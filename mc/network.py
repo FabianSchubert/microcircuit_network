@@ -11,6 +11,7 @@ from .defaults import default_network_params
 
 import numpy as np
 
+from tqdm import tqdm
 
 
 class Network:
@@ -383,7 +384,9 @@ class Network:
         )
         self.syn_output_to_hidden_exc.ps_target_var = "Isyn_va_exc" # redirection input to va
 
-    def run_network_top_down_input(self,input_data,output_nudging_data):
+    def run_network_top_down_input(self,input_data,output_nudging_data,
+                                    record_neur_pop_vars = None,
+                                    record_syn_pop_vars = None):
 
         # The input data needs two dimensions: time and the input layer space.
         assert input_data.ndim == 2
@@ -393,26 +396,62 @@ class Network:
         assert input_data.shape[1] == self.dim_input_layer
 
         # The same for the top-down nudging input and the output layer.
-        assert output_nudging_data.ndim = 2
-        assert output_nudging_data.shape[1] = self.dim_output_layer
+        assert output_nudging_data.ndim == 2
+        assert output_nudging_data.shape[1] == self.dim_output_layer
+
+        import pdb
+        pdb.set_trace()
 
         _t_run = input_data.shape[0]
 
-        # create a view on the input layer's voltage
-        _input_layer_view = self.input_pop.vars["u"].view
 
-        # create a view on the output layer's nudging voltage
-        _output_layer_view = self.output_pop.vars["vtrg"].view
+        _neur_recordings = {}
+        _neur_var_views = {}
 
-        _r_in_rec = np.ndarray((_t_run,self.dim_input_layer))
-        _r_h_rec = np.ndarray((_t_run,self.dim_hidden_layers[0]))
-        _r_out_rec = np.ndarray((_t_run,self.dim_output_layer))
+        _syn_recordings = {}
 
-        _r_in_view = self.input_pop.vars["r"].view
-        _r_h_view = self.hidden_exc_pop[0].vars["r"].view
-        _r_out_view = self.output_pop.vars["r"].view
+        if(record_neur_pop_vars):
+            # record_neur_pop_vars should be either None or
+            # a list of tuples, each holding the name of the
+            # neuron population and the name of the variable
+            # that should be recorded.
+            assert type(record_neur_pop_vars) is list
+            _record_var_data = True
 
-        for t in range(_t_run):
+            for rec_pair in record_neur_pop_vars:
+                # create a dictionary entry for each population to be recorded,
+                # holding a 2d numpy array for recording. 
+                _dim = self.model.neuron_populations[rec_pair[0]].size
+                _neur_recordings[rec_pair[0]] = np.ndarray((_t_run,_dim))
+
+                # add a view for each of the populations
+                _neur_var_views[rec_pair[0]] = self.model.neuron_populations[rec_pair[0]].vars[rec_pair[1]].view
+        else:
+            _record_var_data = False
+
+        if(record_syn_pop_vars):
+            # record_syn_pop_vars should either be None or
+            # a list of tuples, each holding the name of the
+            # neuron population and the name of the variable
+            # that should be recorded.
+            assert type(record_syn_pop_vars) is list
+            _record_syn_data = True
+
+            for rec_pair in record_syn_pop_vars:
+                # create a dictionary entry for each synapse population to be recorded,
+
+                # holding a 3d numpy arry for recording weights. The axes of the array
+                # represent (time, postsynaptic layer dimension, presynaptic layer dimension ).
+                _dim_pre = self.model.synapse_populations[rec_pair[0]].src.size
+
+                _dim_post = self.model.synapse_populations[rec_pair[0]].trg.size
+
+                _syn_recordings[rec_pair[0]] = np.ndarray((_t_run,_dim_post,_dim_pre))        
+
+        else:
+            _record_syn_data = False
+        for t in tqdm(range(_t_run)):
+            
             # Set the input layer voltage view to the input data slice
             # and push the data to the device.
             _input_layer_view[:] = input_data[t]
@@ -421,17 +460,21 @@ class Network:
             # Set the output layer nudging voltage view to the output nudging
             # data slice and push the data to the device.
             _output_layer_view[:] = output_nudging_data[t]
-            self.output_pop.push("vtrg")
+            self.output_pop.push_var_to_device("vtrg")
 
-            self.model.step_time()
+            if(_record_var_data):
+                for rec_pair in record_neur_pop_vars:
+                    self.model.neuron_populations[rec_pair[0]].pull_var_from_device(rec_pair[1])
+                    _neur_recordings[rec_pair[0]][t] = _neur_var_views[rec_pair[0]]
 
-            self.input_pop.pull_var_from_device("r")
-            _r_in_rec[t] = _r_in_view
+            if(_record_syn_data):
+                for rec_pair in record_syn_pop_vars:
+                    self.model.synapse_populations[rec_pair[0]].pull_var_from_device(rec_pair[1])
+                    _syn_recordings[rec_pair[0]][t] = np.reshape(
+                        self.model.synapse_populations[rec_pair[0]].get_var_values(rec_pair[1]),
+                        (_syn_recordings[rec_pair[0]].shape[2],
+                            _syn_recordings[rec_pair[0]].shape[1])
+                    ).T
 
-            self.hidden_exc_pop[0].pull_var_from_device("r")
-            _r_h_rec[t] = _r_h_view
 
-            self.output_pop.pull_var_from_device("r")
-            _r_out_rec[t] = _r_out_view
-
-        return _r_in_rec, _r_h_rec, _r_out_rec
+        return _neur_recordings, _syn_recordings

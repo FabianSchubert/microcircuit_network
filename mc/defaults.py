@@ -10,7 +10,7 @@ default_network_params = {
     "dim_output": 1,
     "dim_hidden": [5],
 
-    "dt": 0.1,
+    "dt": 0.05,
 
     "exc_model_def": {
         "class_name": "exc",
