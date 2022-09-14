@@ -1,0 +1,20 @@
+axes.facecolor: ffffff
+axes.edgecolor: 444444
+grid.linestyle: -
+grid.alpha: .8
+grid.color: white
+grid.linewidth: 2
+axes.axisbelow: True
+axes.spines.top: False
+axes.spines.right: False
+axes.labelcolor: 444444
+text.color: 444444
+xtick.color: 444444
+ytick.color: 444444
+xtick.direction: in
+ytick.direction: in
+font.sans-serif: Fira Sans
+font.size: 8
+legend.fontsize: medium
+legend.frameon: False
+legend.numpoints: 3
