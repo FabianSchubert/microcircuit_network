@@ -140,6 +140,11 @@ class Network:
             default_network_params["weight_update_model_int_to_exc_def"]
             )
 
+        self.weight_update_model_exc_to_int_back_def = _params.get(
+            "weight_update_model_exc_to_int_back_def",
+            default_network_params["weight_update_model_exc_to_int_back_def"]
+            )
+
 
     def fetch_genn_model_initializations(self,_params):
         # Get the initialization data for parameters and variables of
@@ -190,6 +195,14 @@ class Network:
             "synapse_output_to_hidden_exc_init",
             default_network_params["synapse_output_to_hidden_exc_init"])
 
+        self.syn_hidden_exc_to_hidden_int_back_init = _params.get(
+            "synapse_hidden_exc_to_hidden_int_back_init",
+            default_network_params["synapse_hidden_exc_to_hidden_int_back_init"])
+
+        self.syn_output_to_hidden_int_init = _params.get(
+            "synapse_output_to_hidden_int_init",
+            default_network_params["synapse_output_to_hidden_int_init"])
+
     # Instantiate all involved GeNN models from the model definitions.
     def build_genn_models(self):
 
@@ -214,6 +227,9 @@ class Network:
 
         self.weight_update_model_int_to_exc = create_custom_weight_update_class(
             **self.weight_update_model_int_to_exc_def)
+
+        self.weight_update_model_exc_to_int_back = create_custom_weight_update_class(
+            **self.weight_update_model_exc_to_int_back_def)
 
 
     def build_neuron_populations(self):
@@ -240,9 +256,10 @@ class Network:
                     self.exc_model_init["variables"]
                 )
             )
+            _n_hidden_int = self.dim_hidden_layers[k+1] if k < self.n_hidden_layers - 1 else self.dim_output_layer
             self.hidden_int_pop.append(
                 self.model.add_neuron_population("hidden_int_pop"+str(k),
-                    self.dim_hidden_layers[k],
+                    _n_hidden_int,
                     self.neuron_models["int"],
                     self.int_model_init["parameters"],
                     self.int_model_init["variables"]
@@ -278,6 +295,7 @@ class Network:
         self.syn_hidden_int_to_hidden_exc = []
         self.syn_hidden_exc_to_hidden_exc_fwd = []
         self.syn_hidden_exc_to_hidden_exc_back = []
+        self.syn_hidden_exc_to_hidden_int_back = []
 
         for k in range(self.n_hidden_layers):
             self.syn_hidden_exc_to_hidden_int.append(
@@ -313,7 +331,7 @@ class Network:
                     {}
                 )
             )
-            self.syn_hidden_int_to_hidden_exc[-1].ps_target_var = "Isyn_va_int" # redirect input to va
+            self.syn_hidden_int_to_hidden_exc[-1].ps_target_var = "Isyn_va_int" # redirect input to va_int
 
             if(k < self.n_hidden_layers - 1):
                 self.syn_hidden_exc_to_hidden_exc_fwd.append(
@@ -352,6 +370,25 @@ class Network:
                 )
                 self.syn_hidden_exc_to_hidden_exc_back[-1].ps_target_var = "Isyn_va_exc" # redirect input to va
 
+                self.syn_hidden_exc_to_hidden_int_back.append(
+                    self.model.add_synapse_population(
+                        "syn_hidden_exc_to_hidden_int_back"+str(k),
+                        "SPARSE_GLOBALG",
+                        0,
+                        self.hidden_exc_pop[k+1], self.hidden_int_pop[k],
+                        self.weight_update_model_exc_to_int_back,
+                        self.syn_hidden_exc_to_hidden_int_back["parameters"],
+                        self.syn_hidden_exc_to_hidden_int_back["variables"],
+                        {},
+                        {},
+                        "DeltaCurr",
+                        {},
+                        {},
+                        init_connectivity("OneToOne",{})
+                    )
+                )
+                self.syn_hidden_exc_to_hidden_int_back[-1].ps_target_var = "u_td"
+
 
         self.syn_hidden_exc_to_output = self.model.add_synapse_population(
             "syn_hidden_exc_to_output",
@@ -384,6 +421,23 @@ class Network:
         )
         self.syn_output_to_hidden_exc.ps_target_var = "Isyn_va_exc" # redirection input to va
 
+        self.syn_output_to_hidden_int = self.model.add_synapse_population(
+            "syn_output_to_hidden_int",
+            "SPARSE_GLOBALG",
+            0,
+            self.output_pop, self.hidden_int_pop[self.n_hidden_layers-1],
+            self.weight_update_model_exc_to_int_back,
+            self.syn_output_to_hidden_int_init["parameters"],
+            self.syn_output_to_hidden_int_init["variables"],
+            {},
+            {},
+            "DeltaCurr",
+            {},
+            {},
+            init_connectivity("OneToOne",{})
+        )
+        self.syn_output_to_hidden_int.ps_target_var = "u_td"
+
     def run_network_top_down_input(self,input_data,output_nudging_data,
                                     record_neur_pop_vars = None,
                                     record_syn_pop_vars = None):
@@ -398,9 +452,6 @@ class Network:
         # The same for the top-down nudging input and the output layer.
         assert output_nudging_data.ndim == 2
         assert output_nudging_data.shape[1] == self.dim_output_layer
-
-        import pdb
-        pdb.set_trace()
 
         _t_run = input_data.shape[0]
 
@@ -422,10 +473,11 @@ class Network:
                 # create a dictionary entry for each population to be recorded,
                 # holding a 2d numpy array for recording. 
                 _dim = self.model.neuron_populations[rec_pair[0]].size
-                _neur_recordings[rec_pair[0]] = np.ndarray((_t_run,_dim))
+                _key = f'{rec_pair[0]}_{rec_pair[1]}'
+                _neur_recordings[_key] = np.ndarray((_t_run,_dim))
 
                 # add a view for each of the populations
-                _neur_var_views[rec_pair[0]] = self.model.neuron_populations[rec_pair[0]].vars[rec_pair[1]].view
+                _neur_var_views[_key] = self.model.neuron_populations[rec_pair[0]].vars[rec_pair[1]].view
         else:
             _record_var_data = False
 
@@ -446,10 +498,14 @@ class Network:
 
                 _dim_post = self.model.synapse_populations[rec_pair[0]].trg.size
 
-                _syn_recordings[rec_pair[0]] = np.ndarray((_t_run,_dim_post,_dim_pre))        
+                _syn_recordings[f'{rec_pair[0]}_{rec_pair[1]}'] = np.ndarray((_t_run,_dim_post,_dim_pre))        
 
         else:
             _record_syn_data = False
+        
+        _input_layer_view = self.input_pop.vars["u"].view
+        _output_layer_view = self.output_pop.vars["vtrg"].view
+
         for t in tqdm(range(_t_run)):
             
             # Set the input layer voltage view to the input data slice
@@ -462,18 +518,22 @@ class Network:
             _output_layer_view[:] = output_nudging_data[t]
             self.output_pop.push_var_to_device("vtrg")
 
+            self.model.step_time()
+
             if(_record_var_data):
                 for rec_pair in record_neur_pop_vars:
+                    _key = f'{rec_pair[0]}_{rec_pair[1]}'
                     self.model.neuron_populations[rec_pair[0]].pull_var_from_device(rec_pair[1])
-                    _neur_recordings[rec_pair[0]][t] = _neur_var_views[rec_pair[0]]
+                    _neur_recordings[_key][t] = _neur_var_views[_key]
 
             if(_record_syn_data):
                 for rec_pair in record_syn_pop_vars:
+                    _key = f'{rec_pair[0]}_{rec_pair[1]}'
                     self.model.synapse_populations[rec_pair[0]].pull_var_from_device(rec_pair[1])
-                    _syn_recordings[rec_pair[0]][t] = np.reshape(
+                    _syn_recordings[_key][t] = np.reshape(
                         self.model.synapse_populations[rec_pair[0]].get_var_values(rec_pair[1]),
-                        (_syn_recordings[rec_pair[0]].shape[2],
-                            _syn_recordings[rec_pair[0]].shape[1])
+                        (_syn_recordings[_key].shape[2],
+                            _syn_recordings[_key].shape[1])
                     ).T
 
 

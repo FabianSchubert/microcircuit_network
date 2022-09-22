@@ -1,16 +1,19 @@
 #! /usr/bin/env python3
 
-from pygenn.genn_model import init_var, create_dpf_class
+from pygenn.genn_model import init_var, create_dpf_class, init_connectivity
 
+act_func = lambda x: f'log(1.0+exp(1.0*({x})))'
+#act_func = lambda x: f'tanh({x})'
+#act_func = lambda x: f'{x}'
 
 default_network_params = {
     "name": "Net",
 
     "dim_input": 2,
     "dim_output": 1,
-    "dim_hidden": [5],
+    "dim_hidden": [20],
 
-    "dt": 0.05,
+    "dt": 0.1,
 
     "exc_model_def": {
         "class_name": "exc",
@@ -22,7 +25,7 @@ default_network_params = {
         "additional_input_vars": [("Isyn_va_int","scalar",0.0),
                                 ("Isyn_va_exc","scalar",0.0),
                                 ("Isyn_vb","scalar",0.0)],
-        "sim_code": """
+        "sim_code": f"""
                     $(vb) = $(Isyn_vb);
                     $(va_int) = $(Isyn_va_int);
                     $(va_exc) = $(Isyn_va_exc);
@@ -30,7 +33,8 @@ default_network_params = {
                     $(u) += DT * ( -($(glk)+$(gb)+$(ga))*$(u)
                     + $(gb)*$(vb)
                     + $(ga)*$(va) );
-                    $(r) = log(1+exp($(u)));
+                    $(r) = {act_func('$(u)')};
+                    //$(r) = $(u);
                     """,
         "threshold_condition_code": None,
         "reset_code": None
@@ -38,12 +42,15 @@ default_network_params = {
 
     "int_model_def": {
         "class_name": "int",
-        "param_names": ["glk","gd"],
+        "param_names": ["glk","gd","gsom"],
         "var_name_types": [("u","scalar"),("v","scalar"),("r","scalar")],
-        "sim_code": """
+        "additional_input_vars": [("u_td","scalar",0.0)],
+        "sim_code": f"""
+                    $(v) = $(Isyn);
                     $(u) += DT * ( -$(glk)*$(u)
-                    + $(gd)*( $(Isyn)-$(u) ));
-                    $(r) = log(1+exp($(u)));
+                    + $(gd)*( $(v)-$(u) )
+                    + $(gsom)*( $(u_td) - $(u) ));
+                    $(r) = {act_func('$(u)')};
                     //$(r) = (1.0+tanh(2.0*$(u)))/2.0;
                     """,
         "threshold_condition_code": None,
@@ -61,27 +68,17 @@ default_network_params = {
 
     "output_model_def": {
 
-        "param_names": ["glk", "gb", "ga"],
-        "var_name_types": [("u","scalar"), ("r", "scalar"),
-                            ("va_int","scalar"),("va_exc","scalar"),
-                            ("va","scalar"),
-                            ("vb","scalar")],
-        "additional_input_vars": [("Isyn_va_int","scalar",0.0),
-                                ("Isyn_va_exc","scalar",0.0),
-                                ("Isyn_vb","scalar",0.0)],
-
-
         "class_name": "output",
         "param_names": ["glk","gb","ga","gsom"],
         "var_name_types": [("u","scalar"),
                             ("vtrg","scalar"),("r","scalar"),
                             ("vb","scalar")],
-        "sim_code": """
+        "sim_code": f"""
                     $(vb) = $(Isyn);
-                    $(u) += DT * ( -($(glk)+$(ga))*$(u)
-                    + $(gb)*( $(vb)-$(u) )
+                    $(u) += DT * ( -($(glk)+$(gb)+$(ga))*$(u)
+                    + $(gb)*$(vb)
                     + $(gsom)*( $(vtrg) - $(u) ));
-                    $(r) = log(1+exp($(u)));
+                    $(r) = {act_func('$(u)')};
                     """,
         "threshold_condition_code": None,
         "reset_code": None
@@ -98,11 +95,11 @@ default_network_params = {
         "class_name": "weight_update_model_exc_to_exc_fwd_def",
         "param_names": ["muPP"],
         "var_name_types": [("g", "scalar"),("vbEff","scalar")],
-        "synapse_dynamics_code": """
+        "synapse_dynamics_code": f"""
             $(addToInSyn, $(g) * $(r_pre));
             $(vbEff) = $(vb_post) * $(gb_post)/($(glk_post)+$(gb_post)+$(ga_post));
             $(g) += DT * $(muPP) * $(r_pre)
-                * ($(r_post) - log(1+exp($(vbEff))));
+                * ($(r_post) - {act_func('$(vbEff)')} );
         """,
         "is_pre_spike_time_required": False,
         "is_post_spike_time_required": False
@@ -113,10 +110,10 @@ default_network_params = {
         "class_name": "weight_update_model_exc_to_exc_back_def",
         "param_names": ["muPP"],
         "var_name_types": [("g", "scalar")],
-        "synapse_dynamics_code": """
+        "synapse_dynamics_code": f"""
             $(addToInSyn, $(g) * $(r_pre));
             $(g) += DT * $(muPP) * $(r_pre)
-                * ($(r_post) - log(1+exp($(va_exc_post))));
+                * ($(r_post) - $(va_exc_post));
         """,
         "is_pre_spike_time_required": False,
         "is_post_spike_time_required": False
@@ -126,11 +123,21 @@ default_network_params = {
         "class_name": "weight_update_model_exc_to_int_def",
         "param_names": ["muIP"],
         "var_name_types": [("g", "scalar"),("vEff","scalar")],
-        "synapse_dynamics_code": """
+        "synapse_dynamics_code": f"""
             $(addToInSyn, $(g) * $(r_pre));
             $(vEff) = $(v_post) * $(gd_post)/($(glk_post)+$(gd_post));
             $(g) += DT * $(muIP) * $(r_pre)
-                * ($(r_post) - log(1+exp($(vEff))));
+                * ($(r_post) - {act_func('$(vEff)')});
+        """,
+        "is_pre_spike_time_required": False,
+        "is_post_spike_time_required": False
+    },
+
+    "weight_update_model_exc_to_int_back_def": {
+        "class_name": "weight_update_model_exc_to_int_back_def",
+        "var_name_types": [("g","scalar")],
+        "synapse_dynamics_code": """
+            $(addToInSyn, $(g) * $(r_pre));
         """,
         "is_pre_spike_time_required": False,
         "is_post_spike_time_required": False
@@ -170,7 +177,8 @@ default_network_params = {
     "int_model_init": {
         "parameters": {
             "glk": 0.1,
-            "gd": 1.0
+            "gd": 1.0,
+            "gsom": 0.8
         },
         "variables": {
             "u": 0.0,
@@ -188,7 +196,7 @@ default_network_params = {
         "parameters": {
             "glk": 0.1,
             "gb": 1.0,
-            "ga": 0.8,
+            "ga": 0.0,
             "gsom": 0.8
         },
         "variables": {
@@ -201,71 +209,85 @@ default_network_params = {
 
     "synapse_input_to_hidden_exc_init": {
         "variables": {
-            "g": init_var("Uniform", {"min": -1.0/10**0.5, "max": 1.0/10**0.5}),
+            "g": init_var("Uniform", {"min": -1.0, "max": 1.0}),
             "vbEff": 0.0
         },
         "parameters": {
-            "muPP": 1e-3
+            "muPP": 6e-3
         }
     },
 
 
     "synapse_hidden_exc_to_hidden_int_init": {
         "variables": {
-            "g": init_var("Uniform", {"min": -1.0/50**0.5, "max": 1.0/50**0.5}),
+            "g": init_var("Uniform", {"min": -1.0, "max": 1.0}),
             "vEff": 0.0
         },
         "parameters": {
-            "muIP": 1e-3
+            "muIP": 6e-3
         }
 
     },
 
     "synapse_hidden_int_to_hidden_exc_init": {
         "variables": {
-            "g": init_var("Uniform", {"min": -1.0/50**0.5, "max": 1.0/50**0.5})
+            "g": init_var("Uniform", {"min": -1.0, "max": 1.0})
         },
         "parameters": {
-            "muPI": 1e-3
+            "muPI": 6e-3
         }
     },
 
     "synapse_hidden_exc_to_hidden_exc_fwd_init": {
         "variables": {
-            "g": init_var("Uniform", {"min": -1.0/50**0.5, "max": 1.0/50**0.5}),
+            "g": init_var("Uniform", {"min": -1.0, "max": 1.0}),
             "vbEff": 0.0
         },
         "parameters": {
-            "muPP": 1e-3
+            "muPP": 6e-3
         }
     },
 
     "synapse_hidden_exc_to_hidden_exc_back_init": {
         "variables": {
-            "g": init_var("Uniform", {"min": -1.0/50**0.5, "max": 1.0/50**0.5})
+            "g": init_var("Uniform", {"min": -1.0, "max": 1.0})
         },
         "parameters": {
-            "muPP": 1e-3
+            "muPP": 0.
         }
     },
 
     "synapse_hidden_exc_to_output_init": {
         "variables": {
-            "g": init_var("Uniform", {"min": -1.0/50**0.5, "max": 1.0/50**0.5}),
+            "g": init_var("Uniform", {"min": -1.0, "max": 1.0}),
             "vbEff": 0.0
         },
         "parameters": {
-            "muPP": 1e-3
+            "muPP": 6e-3
         }
     },
 
     "synapse_output_to_hidden_exc_init": {
         "variables": {
-            "g": init_var("Uniform", {"min": -1.0/10**0.5, "max": 1.0/10**0.5})
+            "g": init_var("Uniform", {"min": -1.0, "max": 1.0})
         },
         "parameters": {
-            "muPP": 1e-3
+            "muPP": 6e-3
         }
 
+    },
+
+    "synapse_hidden_exc_to_hidden_int_back_init": {
+        "variables": {
+            "g": 1.0# init_var("OneToOne", {"min": -1.0, "max": 1.0})
+        },
+        "parameters": {}
+    },
+
+    "synapse_output_to_hidden_int_init": {
+        "variables": {
+            "g": 1.0#init_connectivity("OneToOne",{})# init_var("OneToOne", {"min": -1.0, "max": 1.0})
+        },
+        "parameters": {}
     }
 }
