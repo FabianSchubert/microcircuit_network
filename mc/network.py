@@ -7,12 +7,121 @@ from pygenn.genn_model import (create_custom_neuron_class,
                                 init_connectivity, init_var,
                                GeNNModel)
 
-from .defaults import default_network_params
+from .utils import prepare_neur_model_dict, prepare_syn_model_dict
 
 import numpy as np
 
 from tqdm import tqdm
 
+#from dataclasses import dataclass
+
+
+
+class NetworkLayer:
+
+    def __init__(self,_genn_model,_params,**kwargs):
+        self.name = _params.get("name")
+
+        self.neur_pops = {}
+
+        self.syn_pops = {}
+
+        self.genn_model = _genn_model
+
+        self.add_neuron_pops(_params["neur_pop_defs"])
+        self.add_syn_pops(_params["syn_pop_defs"])
+
+    def add_neuron_pops(self,_neur_pop_defs):
+
+        for neur_def in _neur_pop_defs:
+
+            neur_def[]
+
+            _neur_pop_name = neur_def["name"]
+            
+            _dim = neur_def["dim"]
+
+            _neur_mod = neur_def["neur_mod"]
+
+            if(_neur_mod not in default_neuron_models):
+                _cust_neur_mod = create_custom_neuron_class(
+                name = f'{self.name}_neurmod_{_neur_pop_name}',
+                **neur_def["neur_mod"])
+            else:
+                _cust_neur_mod = _neur_mod
+
+            _par_init = neur_def["par_init"]
+            _var_init = neur_def["var_init"]
+
+            self.neur_pops[_neur_pop_name] = self.genn_model.add_neuron_population(
+                    f'{self.name}_neurpop_{_neur_pop_name}',
+                    _dim,
+                    _cust_neur_mod,
+                    _par_init,
+                    _var_init)
+
+    def add_syn_pops(self,_syn_pop_defs):
+
+        for syn_def in _syn_pop_defs:
+
+            _syn_def_tmp = dict(default_synapse)
+
+            for v,k in syn_def:
+                _syn_def_tmp[k] = v
+
+            # turn the dictionary defining the weight update model into an actual
+            # GeNN weight update model class unless it is just a string referring 
+            # to one of the default models.
+            if(_syn_def_tmp["w_update_model"] not in default_weight_update_models):
+                
+                _syn_def_tmp["w_update_model"] = create_custom_weight_update_class(
+                    name = f'{self.name}_wu_{_syn_def_tmp["source_name"]}_to_{_syn_def_tmp["target_name"]}',
+                    **_syn_def_tmp["w_update_model"])
+
+            # the same with the postsynaptic model
+            if(_syn_def_tmp["postsyn_model"] not in default_postsynaptic_models):
+                
+                _syn_def_tmp["postsyn_model"] = create_custom_postsynaptic_class(
+                    name = f'{self.name}_ps_{_syn_def_tmp["source_name"]}_to_{_syn_def_tmp["target_name"]}',
+                    **_syn_def_tmp["postsyn_model"])
+            
+            self.syn_pops[_syn_def_tmp["name"]] = self.genn_model.add_synapse_population(
+                name = f'{self.name}_synpop_{_syn_def_tmp["name"]}',
+                source = self.neur_pops[_syn_def_tmp["source_name"]],
+                target = self.neur_pops[_syn_def_tmp["target_name"]],
+                **_syn_def_tmp)
+
+    def connect(self,_source_pop,_target_layer,_target_pop,_syn_pop_def):
+
+        _syn_pop_name = _syn_pop_def["name"]
+        _source_name = _syn_pop_def["source_name"]
+        _target_name = _syn_pop_def["target_name"]
+        _w_update_model = _syn_pop_def.get("weight_upd_mod","StaticPulse")
+        _matrix_type = _syn_pop_def.get("matrix_type","DENSE_INDIVIDUALG")
+        _delay_steps = _syn_pop_def.get("delay_steps",0)
+        _wu_param_space = _syn_pop_def.get("wu_param_space",{})
+        _wu_var_space = _syn_pop_def.get("wu_var_space",{"g":1})
+        _wu_pre_var_space = _syn_pop_def.get("wu_pre_var_space",{})
+        _wu_post_var_space = _syn_pop_def.get("wu_post_var_space",{})
+        _postsyn_model = _syn_pop_def.get("posysn_model","DeltaCurr")
+        _ps_param_space = _syn_pop_def.get("ps_param_space",{})
+        _ps_var_space = _syn_pop_def.get("ps_var_space",{})
+        _connectivity_initialiser = _syn_pop_def.get("connectivity_initialiser",None)
+
+        if(_w_update_model not in default_weight_update_models):
+                
+                _cust_w_update_model = create_custom_weight_update_class(
+                    name = f'{self.name}_wu_{_source_name}_to_{_target_name}',
+                    **_w_update_model)
+            else:
+                _cust_w_update_model = _w_update_model
+            
+            if(_postsyn_model not in default_postsynaptic_models):
+                _cust_postsyn_model = create_custom_postsynaptic_class(
+                    name = f'{self.name}_ps_{_source_name}_to_{_target_name}',
+                    **_postsyn_model)
+            else:
+                _cust_postsyn_model = _postsyn_model
 
 class Network:
 
@@ -114,11 +223,6 @@ class Network:
         self.output_model_def = _params.get("output_model_def",
             default_network_params["output_model_def"])
 
-        # Definition of the current source model used for feeding the input
-        # data into the input layer neurons.
-        self.cs_model_def = _params.get("cs_model_def",
-            default_network_params["cs_model_def"])
-
         # Definitions of the weight update models.
         self.weight_update_model_exc_to_exc_fwd_def = _params.get(
             "weight_update_model_exc_to_exc_fwd_def",
@@ -144,6 +248,52 @@ class Network:
             "weight_update_model_exc_to_int_back_def",
             default_network_params["weight_update_model_exc_to_int_back_def"]
             )
+
+        # fetch postsynaptic integration model definitions
+
+        self.postsyn_model_exc_to_exc_fwd_def = _params.get(
+            "postsyn_model_exc_to_exc_fwd_def",
+            default_network_params["postsyn_model_exc_to_exc_fwd_def"])
+
+        self.postsyn_model_exc_to_exc_back_def = _params.get(
+            "postsyn_model_exc_to_exc_fwd_def",
+            default_network_params["postsyn_model_exc_to_exc_fwd_def"])
+
+        self.postsyn_model_exc_to_int_def = _params.get(
+            "postsyn_model_exc_to_int_def",
+            default_network_params["postsyn_model_exc_to_int_def"])
+
+        self.postsyn_model_int_to_exc_def = _params.get(
+            "postsyn_model_int_to_exc_def",
+            default_network_params["postsyn_model_int_to_exc_def"])
+
+        self.postsyn_model_exc_to_int_back_def = _params.get(
+            "postsyn_model_exc_to_int_back_def",
+            default_network_params["postsyn_model_exc_to_int_back_def"])
+
+        
+
+    def fetch_matrix_type(self,_params):
+
+        self.mat_type_exc_to_exc_fwd_def = _params.get(
+            "mat_type_exc_to_exc_fwd_def",
+            default_network_params["mat_type_exc_to_exc_fwd_def"])
+
+        self.mat_type_exc_to_exc_back_def = _params.get(
+            "mat_type_exc_to_exc_back_def",
+            default_network_params["mat_type_exc_to_exc_back_def"])
+
+        self.mat_type_exc_to_int_def = _params.get(
+            "mat_type_exc_to_int_def",
+            default_network_params["mat_type_exc_to_int_def"])
+
+        self.mat_type_int_to_exc_def = _params.get(
+            "mat_type_int_to_exc_def",
+            default_network_params["mat_type_int_to_exc_def"])
+
+        self.mat_type_exc_to_int_back_def = _params.get(
+            "mat_type_exc_to_int_back_def",
+            default_network_params["mat_type_exc_to_int_back_def"])
 
 
     def fetch_genn_model_initializations(self,_params):
@@ -211,9 +361,6 @@ class Network:
         self.add_neuron_model(self.int_model_def)
         self.add_neuron_model(self.input_model_def)
         self.add_neuron_model(self.output_model_def)
-
-        # Instantiate the source model.
-        self.cs_model = create_custom_current_source_class(**self.cs_model_def)
 
         # Instantiate weight update models.
         self.weight_update_model_exc_to_exc_fwd = create_custom_weight_update_class(
@@ -388,7 +535,6 @@ class Network:
                     )
                 )
                 self.syn_hidden_exc_to_hidden_int_back[-1].ps_target_var = "u_td"
-
 
         self.syn_hidden_exc_to_output = self.model.add_synapse_population(
             "syn_hidden_exc_to_output",

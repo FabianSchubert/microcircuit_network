@@ -57,7 +57,8 @@ Net = Network({"dim_input": dim_in,
                     "variables": {
                         "g": init_var("Uniform", 
                             {"min": -1.0/np.sqrt(dim_hidden), 
-                            "max": 1.0/np.sqrt(dim_hidden)})
+                            "max": 1.0/np.sqrt(dim_hidden)}),
+                        "vbEff": 0.0
                     },
                     "parameters": {
                         "muPP": 6e-3
