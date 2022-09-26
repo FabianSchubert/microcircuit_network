@@ -11,7 +11,7 @@ default_synapse = {
     "matrix_type": "DENSE_INDIVIDUALG",
     "delay_steps": 0,
     "wu_param_space": {},
-    "wu_var_space": {"g":1},
+    "wu_var_space": {"g":1.0},
     "wu_pre_var_space": {},
     "wu_post_var_space": {},
     "postsyn_model": "DeltaCurr",
@@ -22,8 +22,14 @@ default_synapse = {
 
 default_neuron = {
     "neuron": "LIF",
-    "param_space": {"tau": 20.0},
-    "var_space": {"u": 0.0}
+    "param_space": {"C": 1.0,
+                    "Ioffset": 0.0,
+                    "TauM": 20.0,
+                    "TauRefrac": 5.0,
+                    "Vreset": -90.0,
+                    "Vrest": -60.0,
+                    "Vthresh": 30.0},
+    "var_space": {"V": -30.0,"RefracTime": 0.0}
 }
 
 spiking_network_params = {

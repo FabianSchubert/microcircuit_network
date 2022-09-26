@@ -9,6 +9,8 @@ from pygenn.genn_model import (create_custom_neuron_class,
 
 from .utils import prepare_neur_model_dict, prepare_syn_model_dict
 
+from .defaults import (default_synapse,default_neuron,default_network_params)
+
 import numpy as np
 
 from tqdm import tqdm
@@ -19,8 +21,8 @@ from tqdm import tqdm
 
 class NetworkLayer:
 
-    def __init__(self,_genn_model,_params,**kwargs):
-        self.name = _params.get("name")
+    def __init__(self,_genn_model,layer_name,**kwargs):
+        self.name = layer_name
 
         self.neur_pops = {}
 
@@ -28,100 +30,38 @@ class NetworkLayer:
 
         self.genn_model = _genn_model
 
-        self.add_neuron_pops(_params["neur_pop_defs"])
-        self.add_syn_pops(_params["syn_pop_defs"])
+        _neuron_pop_defs = kwargs.get("neur_pops",[])
 
-    def add_neuron_pops(self,_neur_pop_defs):
+        for _neuron_pop_def in _neuron_pop_defs:
+            self.add_neuron_pop(_neuron_pop_def)
 
-        for neur_def in _neur_pop_defs:
+        _synapse_pop_defs = kwargs.get("syn_pops",[])
 
-            neur_def[]
+        for _synapse_pop_def in _synapse_pop_defs:
+            _source = _synapse_pop_def["source"]
+            _target = _synapse_pop_def["target"]
+            self.add_synapse_pop(_source,_target,_synapse_pop_def)
 
-            _neur_pop_name = neur_def["name"]
-            
-            _dim = neur_def["dim"]
+    def add_neuron_pop(self,_neur_def):
 
-            _neur_mod = neur_def["neur_mod"]
+        _short_name, _neur_def = prepare_neur_model_dict(_neur_def,self)
 
-            if(_neur_mod not in default_neuron_models):
-                _cust_neur_mod = create_custom_neuron_class(
-                name = f'{self.name}_neurmod_{_neur_pop_name}',
-                **neur_def["neur_mod"])
-            else:
-                _cust_neur_mod = _neur_mod
+        self.neur_pops[_short_name] = self.genn_model.add_neuron_population(
+                    **_neur_def)
 
-            _par_init = neur_def["par_init"]
-            _var_init = neur_def["var_init"]
+    def add_synapse_pop(self,_source_pop,_target_pop,_syn_def):
 
-            self.neur_pops[_neur_pop_name] = self.genn_model.add_neuron_population(
-                    f'{self.name}_neurpop_{_neur_pop_name}',
-                    _dim,
-                    _cust_neur_mod,
-                    _par_init,
-                    _var_init)
+        _syn_def["source_layer"] = self.name
+        _syn_def["source_pop"] = _source_pop
+        _syn_def["target_layer"] = self.name
+        _syn_def["target_pop"] = _target_pop
 
-    def add_syn_pops(self,_syn_pop_defs):
+        _short_name, _syn_def = prepare_syn_model_dict(_syn_def)
 
-        for syn_def in _syn_pop_defs:
+        self.syn_pops[_short_name] = self.genn_model.add_synapse_population(
+            **_syn_def) 
 
-            _syn_def_tmp = dict(default_synapse)
 
-            for v,k in syn_def:
-                _syn_def_tmp[k] = v
-
-            # turn the dictionary defining the weight update model into an actual
-            # GeNN weight update model class unless it is just a string referring 
-            # to one of the default models.
-            if(_syn_def_tmp["w_update_model"] not in default_weight_update_models):
-                
-                _syn_def_tmp["w_update_model"] = create_custom_weight_update_class(
-                    name = f'{self.name}_wu_{_syn_def_tmp["source_name"]}_to_{_syn_def_tmp["target_name"]}',
-                    **_syn_def_tmp["w_update_model"])
-
-            # the same with the postsynaptic model
-            if(_syn_def_tmp["postsyn_model"] not in default_postsynaptic_models):
-                
-                _syn_def_tmp["postsyn_model"] = create_custom_postsynaptic_class(
-                    name = f'{self.name}_ps_{_syn_def_tmp["source_name"]}_to_{_syn_def_tmp["target_name"]}',
-                    **_syn_def_tmp["postsyn_model"])
-            
-            self.syn_pops[_syn_def_tmp["name"]] = self.genn_model.add_synapse_population(
-                name = f'{self.name}_synpop_{_syn_def_tmp["name"]}',
-                source = self.neur_pops[_syn_def_tmp["source_name"]],
-                target = self.neur_pops[_syn_def_tmp["target_name"]],
-                **_syn_def_tmp)
-
-    def connect(self,_source_pop,_target_layer,_target_pop,_syn_pop_def):
-
-        _syn_pop_name = _syn_pop_def["name"]
-        _source_name = _syn_pop_def["source_name"]
-        _target_name = _syn_pop_def["target_name"]
-        _w_update_model = _syn_pop_def.get("weight_upd_mod","StaticPulse")
-        _matrix_type = _syn_pop_def.get("matrix_type","DENSE_INDIVIDUALG")
-        _delay_steps = _syn_pop_def.get("delay_steps",0)
-        _wu_param_space = _syn_pop_def.get("wu_param_space",{})
-        _wu_var_space = _syn_pop_def.get("wu_var_space",{"g":1})
-        _wu_pre_var_space = _syn_pop_def.get("wu_pre_var_space",{})
-        _wu_post_var_space = _syn_pop_def.get("wu_post_var_space",{})
-        _postsyn_model = _syn_pop_def.get("posysn_model","DeltaCurr")
-        _ps_param_space = _syn_pop_def.get("ps_param_space",{})
-        _ps_var_space = _syn_pop_def.get("ps_var_space",{})
-        _connectivity_initialiser = _syn_pop_def.get("connectivity_initialiser",None)
-
-        if(_w_update_model not in default_weight_update_models):
-                
-                _cust_w_update_model = create_custom_weight_update_class(
-                    name = f'{self.name}_wu_{_source_name}_to_{_target_name}',
-                    **_w_update_model)
-            else:
-                _cust_w_update_model = _w_update_model
-            
-            if(_postsyn_model not in default_postsynaptic_models):
-                _cust_postsyn_model = create_custom_postsynaptic_class(
-                    name = f'{self.name}_ps_{_source_name}_to_{_target_name}',
-                    **_postsyn_model)
-            else:
-                _cust_postsyn_model = _postsyn_model
 
 class Network:
 
@@ -166,6 +106,10 @@ class Network:
         #)
 
 
+        self.layers = []
+
+        self.synapse_populations = []
+
         # Fetch all GeNN model parameters from the parameter
         # dictionary.
         self.fetch_genn_model_definitions(params)
@@ -181,6 +125,8 @@ class Network:
         # and the initial values.
         self.build_neuron_populations()
 
+
+
         self.add_synapses()
 
         # Build the model
@@ -188,6 +134,27 @@ class Network:
 
         # Load the model
         self.model.load()
+
+    def add_network_layer(self):
+        pass
+
+    def add_synapse_pop(self,_source_layer_pop,_target_layer_pop,**kwargs):
+
+        kwargs["source_layer"] = _source_layer_pop[0]
+        kwargs["source_pop"] = _source_layer_pop[1]
+
+        kwargs["target_layer"] = _target_layer_pop[0]
+        kwargs["target_pop"] = _target_layer_pop[1]
+
+        kwargs = prepare_syn_model_dict(kwargs)
+
+        self.synapse_populations.append(
+            self.model.add_synapse_population(**kwargs))
+
+
+
+
+
 
     def add_neuron_model(self,params):
         '''
