@@ -1,10 +1,14 @@
 #! /usr/bin/env python3
 
-from pygenn.genn_model import init_var, create_dpf_class, init_connectivity
-
 act_func = lambda x: f'log(1.0+exp(1.0*({x})))'
-#act_func = lambda x: f'tanh({x})'
-#act_func = lambda x: f'{x}'
+
+from neuron.models import pyr_model, int_model
+from neuron.params import pyr_param_space, int_param_space
+from neuron.var_inits import pyr_var_space, int_var_space
+
+
+
+from synapse.synapses import synapse_dense
 
 default_synapse = {
     "w_update_model": "StaticPulse",
@@ -17,7 +21,8 @@ default_synapse = {
     "postsyn_model": "DeltaCurr",
     "ps_param_space": {},
     "ps_var_space": {},
-    "connectivity_initialiser": None
+    "connectivity_initialiser": None,
+    "ps_target_var": "Isyn"
 }
 
 default_neuron = {
@@ -31,6 +36,75 @@ default_neuron = {
                     "Vthresh": 30.0},
     "var_space": {"V": -30.0,"RefracTime": 0.0}
 }
+
+
+
+#
+
+
+##########################################################
+
+##########################################################
+# Dense Rate Synapses
+
+
+
+
+
+
+
+synapse_exc_to_exc_fwd_rate = {
+    "w_update_model": w_u_model_pyr_basal_rate,
+    "matrix_type": "DENSE_INDIVIDUALG",
+    "delay_steps": 0,
+    "wu_param_space": wu_param_space_pyr_basal_rate,
+    "wu_var_space": wu_var_space_pyr_basal_rate,
+    "wu_pre_var_space": {},
+    "wu_post_var_space": {},
+    "postsyn_model": "DeltaCurr",
+    "ps_param_space": {},
+    "ps_var_space": {},
+    "connectivity_initialiser": None
+}
+
+#
+##########################################################
+
+
+##########################################################
+# Hidden Layer
+
+pyr_pop_rate = (
+    {"pop_name": None, # This should obviously be set individually
+    "num_neurons": None #               ''
+    } | pyr_neuron_rate)
+
+int_pop_rate = (
+    {"pop_name": None, # This should obviously be set individually
+    "num_neurons": None #               ''
+    } | int_neuron_rate)
+
+default_hidden_layer_rate = {
+    "layer_name": "default_hidden_layer",
+    "neur_pops": [
+        pyr_pop_rate,
+        int_pop_rate
+    ],
+    "syn_pops": [
+
+    ]
+
+}
+
+
+default_network = {
+    
+    "name": "default_net",
+    "layers": [
+
+    ]
+}
+
 
 spiking_network_params = {
     "name": "SpikeNet",

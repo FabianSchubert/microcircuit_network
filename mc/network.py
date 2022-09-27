@@ -7,7 +7,9 @@ from pygenn.genn_model import (create_custom_neuron_class,
                                 init_connectivity, init_var,
                                GeNNModel)
 
-from .utils import prepare_neur_model_dict, prepare_syn_model_dict
+from .utils import (prepare_neur_model_dict, 
+                    prepare_syn_model_dict,
+                    create_neur_pop_name)
 
 from .defaults import (default_synapse,default_neuron,default_network_params)
 
@@ -15,119 +17,96 @@ import numpy as np
 
 from tqdm import tqdm
 
-#from dataclasses import dataclass
+from dataclasses import dataclass
 
-
+import pdb
 
 class NetworkLayer:
 
-    def __init__(self,_genn_model,layer_name,**kwargs):
-        self.name = layer_name
+    def __init__(self,genn_model,**kwargs):
+        
+        self.layer_name = kwargs["layer_name"]
 
         self.neur_pops = {}
 
         self.syn_pops = {}
 
-        self.genn_model = _genn_model
+        self.genn_model = genn_model
 
-        _neuron_pop_defs = kwargs.get("neur_pops",[])
+        neuron_pop_defs = kwargs.get("neur_pops",[])
 
-        for _neuron_pop_def in _neuron_pop_defs:
-            self.add_neuron_pop(_neuron_pop_def)
 
-        _synapse_pop_defs = kwargs.get("syn_pops",[])
 
-        for _synapse_pop_def in _synapse_pop_defs:
-            _source = _synapse_pop_def["source"]
-            _target = _synapse_pop_def["target"]
-            self.add_synapse_pop(_source,_target,_synapse_pop_def)
+        for neuron_pop_def in neuron_pop_defs:
+            self.add_neur_pop(neuron_pop_def)
 
-    def add_neuron_pop(self,_neur_def):
 
-        _short_name, _neur_def = prepare_neur_model_dict(_neur_def,self)
+
+        synapse_pop_defs = kwargs.get("syn_pops",[])
+
+        for synapse_pop_def in synapse_pop_defs:
+            
+            self.add_syn_pop(synapse_pop_def["source"],
+                            synapse_pop_def["target"],
+                            synapse_pop_def)
+
+        
+
+    def add_neur_pop(self,neur_def):
+
+        _short_name, _neur_def = prepare_neur_model_dict(neur_def,self)
 
         self.neur_pops[_short_name] = self.genn_model.add_neuron_population(
                     **_neur_def)
 
-    def add_synapse_pop(self,_source_pop,_target_pop,_syn_def):
+    def add_syn_pop(self,source_pop,target_pop,syn_def):
 
-        _syn_def["source_layer"] = self.name
-        _syn_def["source_pop"] = _source_pop
-        _syn_def["target_layer"] = self.name
-        _syn_def["target_pop"] = _target_pop
+        _syn_def = dict(syn_def)
 
-        _short_name, _syn_def = prepare_syn_model_dict(_syn_def)
+        _syn_def["source_layer"] = self.layer_name
+        _syn_def["source_pop"] = source_pop
+        _syn_def["target_layer"] = self.layer_name
+        _syn_def["target_pop"] = target_pop
+
+        _short_name, _ps_target_var, _syn_def = prepare_syn_model_dict(_syn_def)
 
         self.syn_pops[_short_name] = self.genn_model.add_synapse_population(
-            **_syn_def) 
+            **_syn_def)
+        self.syn_pops[_short_name].ps_target_var = _ps_target_var
 
 
 
 class Network:
 
-    def __init__(self,params,**kwargs):
+    def __init__(self,params):
         # name of the network used for initializing the GeNNModel
         self.name = params.get("name",default_network_params["name"])
 
-        # Get the dimension of the input layer.
-        self.dim_input_layer = params.get("dim_input",default_network_params["dim_input"]);
-
-        # Get the dimension of the output layer.
-        self.dim_output_layer = params.get("dim_output",default_network_params["dim_output"]);
-
-        # Get the dimension of the hidden layer(s) as an ordered
-        # list, ordered in the direction of forward processing.
-        self.dim_hidden_layers = params.get("dim_hidden",default_network_params["dim_hidden"])
-
-        # Infer the number of hidden layers from the length
-        # of the list "dimh" in params holding the dimensions
-        # of each hidden layer.
-        self.n_hidden_layers = len(self.dim_hidden_layers)
-
-        # total number of layers = hidden layers plus input and output layer
-        self.n_layers = 2 + self.n_hidden_layers
-
-        # create the GeNNModel
+        # Create GeNN model for the network.
         self.model = GeNNModel("float",self.name)
 
-        # integration time step in ms
-        self.INT_STEP = params.get("dt",default_network_params["dt"])
-        self.model.dT = self.INT_STEP
+        # Create a dictionary for the network layers.
+        self.layers = {}
 
-        # required for only adding input from certain synapses (basal or apical)
-        #self.synapse_model_to_basal = create_custom_postsynaptic_class(
-        #    "synapse_model_to_basal",
-        #    apply_input_code = "$(vb) += $(inSyn);"
-        #)
-        # see above
-        #self.synapse_model_to_apical = create_custom_postsynaptic_class(
-        #    "synapse_model_to_apical",
-        #    apply_input_code = "$(va) += $(inSyn);"
-        #)
+        # Add layers to the dict.
+        for layer_def in params["layers"]:
+            self.add_network_layer(layer_def)
 
+        # Update the list of all neuron populations in the network, 
+        # across all layers.
+        self.fetch_neur_pops()
 
-        self.layers = []
+        # Create a dict to hold all cross-layer synapse populations.
+        self.cross_layer_syn_pops = {}
 
-        self.synapse_populations = []
+        # Add cross-layer synapse populations to the dict as defined
+        # in the parameters.
+        for cross_layer_syn_def in params["cross_layer_syn_pops"]:
+            self.add_cross_layer_synapse_pop(**cross_layer_syn_def)
 
-        # Fetch all GeNN model parameters from the parameter
-        # dictionary.
-        self.fetch_genn_model_definitions(params)
-
-        # Builds all involved GeNN models.
-        self.build_genn_models()
-
-        # Fetch all initial values for GeNN model parameters
-        # and variables.
-        self.fetch_genn_model_initializations(params)
-
-        # Build neuron populations from the neuron models
-        # and the initial values.
-        self.build_neuron_populations()
-
-
-
-        self.add_synapses()
+        # Update the list of all synapse populations in the network,
+        # both within the layers and across layers.
+        self.fetch_syn_pops()
 
         # Build the model
         self.model.build()
@@ -135,36 +114,107 @@ class Network:
         # Load the model
         self.model.load()
 
-    def add_network_layer(self):
-        pass
+    # Function that updates a dictionary with all neuron populations
+    # in the network.
+    def fetch_neur_pops(self):
 
-    def add_synapse_pop(self,_source_layer_pop,_target_layer_pop,**kwargs):
+        self.neur_pops = {}
 
-        kwargs["source_layer"] = _source_layer_pop[0]
-        kwargs["source_pop"] = _source_layer_pop[1]
+        for _layer in self.layers.values():
 
-        kwargs["target_layer"] = _target_layer_pop[0]
-        kwargs["target_pop"] = _target_layer_pop[1]
+            
+            _neur_pops = {create_neur_pop_name(_layer.layer_name,_pop_name): _pop 
+                            for _pop_name, _pop in _layer.neur_pops.items()}
 
-        kwargs = prepare_syn_model_dict(kwargs)
+            self.neur_pops = self.neur_pops | _neur_pops
 
-        self.synapse_populations.append(
-            self.model.add_synapse_population(**kwargs))
+    # Function that updates a dictionary with all synapse populations
+    # in the network. This is a unification of the set of all synapse
+    # populations within layers and the cross-layer synapse populations.
+    def fetch_syn_pops(self):
+
+        self.syn_pops = {}
+
+        for _layer in self.layers.values():
+
+            _syn_pops_layer = {syn_pop.name:syn_pop for syn_pop in _layer.syn_pops.values()}
+
+            self.syn_pops = self.syn_pops | _syn_pops_layer
+
+        self.syn_pops = self.syn_pops | self.cross_layer_syn_pops
+
+    # Add a network layer according to the parameter dict
+    def add_network_layer(self,_layer_params):
+
+        #import pdb
+        #pdb.set_trace()
+
+        _new_layer = NetworkLayer(self.model,**_layer_params)
+
+        
+
+        self.layers[_new_layer.layer_name] = _new_layer
+
+    def add_cross_layer_synapse_pop(self,**kwargs):
+
+        if kwargs["source_layer"] == kwargs["target_layer"]:
+            raise Exception('''Error: Source layer is the same as target layer - this function
+                should only be used for adding cross-layer synapse populations. Use 
+                the member function add_syn_pop() of the respective network layer to add
+                within-layer synapse populations.''')
+        
+        _, _ps_target_var, kwargs = prepare_syn_model_dict(kwargs)
+
+        _new_syn_pop = self.model.add_synapse_population(**kwargs)
+
+        self.cross_layer_syn_pops[_new_syn_pop.name] = _new_syn_pop
+        self.cross_layer_syn_pops[_new_syn_pop.name].ps_target_var = _ps_target_var
+
+    def run_network_external_data(self,ext_data,rec_data):
+
+        # ext_dat should be a list of three-element tuples, where
+        # each first element defines the name of the population
+        # that the external data is injected into, the second element
+        # is the variable name that the data is written into and the
+        # third element is a numpy array holding the actual data as
+        # 2d-array of size T x num_neurons, where T is the number of
+        # time steps to simulate and num_neurons is the respective number
+        # of neurons in the population.
+        # rec_data is a list of two-element tuples, where the first element
+        # is the name of the population from which data should be recorded,
+        # and the second element is the name of the variable that should be
+        # pulled from memory.
+
+        write_views = []
+        read_views = []
+
+        read_data = []
+
+        for _ext_tuple in ext_data:
+            _pop = _ext_tuple[0]
+            _var = _ext_tuple[1]
+
+            write_view.append(
+                self.neur_pops[_pop].vars[_var].view
+                )
 
 
 
 
 
 
+
+
+    '''
     def add_neuron_model(self,params):
-        '''
+        
         _name = params["name"]
         _params = params["params"]
         _vars = params["variables"]
         _sim_code = params["sim_code"]
         _threshold_condition_code = params["threshold_condition_code"]
         _reset_code = params["reset_code"]
-        '''
+        
         self.neuron_models[params["class_name"]] = create_custom_neuron_class(
             **params)
 
@@ -650,4 +700,4 @@ class Network:
                     ).T
 
 
-        return _neur_recordings, _syn_recordings
+        return _neur_recordings, _syn_recordings'''

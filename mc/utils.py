@@ -41,7 +41,7 @@ def prepare_neur_model_dict(_neur_def,_layer):
         _neur_def_tmp[k] = v
 
     _pop_name_short = _neur_def_tmp["pop_name"]
-    _neur_def_tmp["pop_name"] = create_neur_pop_name(_layer.name,_neur_def["pop_name"])
+    _neur_def_tmp["pop_name"] = create_neur_pop_name(_layer.layer_name,_neur_def["pop_name"])
 
     #_neur_def_tmp["pop_name"] = f'{_layer_name}_neurpop_{_neur_def_tmp["pop_name"]}'
 
@@ -81,7 +81,10 @@ def prepare_syn_model_dict(_syn_def):
     _syn_def_tmp.pop("target_layer")
     _syn_def_tmp.pop("target_pop")
 
+    _ps_target_var = _syn_def_tmp["ps_target_var"]
+    _syn_def_tmp.pop("ps_target_var")
 
-    return _pop_name_short, _syn_def_tmp
+
+    return _pop_name_short, _ps_target_var, _syn_def_tmp
 
 
