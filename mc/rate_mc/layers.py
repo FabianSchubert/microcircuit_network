@@ -17,7 +17,7 @@ from .synapses.models import (synapse_pp_basal,
 
 from .synapses.models import (SynapsePPBasal,
                                 SynapsePPApical,
-                                SynapsePI,SynapseIP)
+                                SynapseIP,SynapsePI)
 
 
 from dataclasses import dataclass
@@ -35,11 +35,11 @@ class LayerBase:
 		self.neur_pops[pop_name] = self.genn_model.add_neuron_population(_full_name, size, 
 									neur_model, param_init, var_init)
 
-	def add_syn_pop(self,source,target,syn_model):
+	def add_syn_pop(self,target,source,syn_model):
 
 		self.syn_pops[f'{source}_to_{target}'] = syn_model.connect_pops(
 			f'syn_{self.name}_{source}_to_{target}',
-			self.genn_model,self.neur_pops[source],self.neur_pops[target])
+			self.genn_model,self.neur_pops[target],self.neur_pops[source])
 
 
 class HiddenLayer(LayerBase):
@@ -54,8 +54,8 @@ class HiddenLayer(LayerBase):
 		self.add_neur_pop("pyr_pop",Npyr,pyr_model,pyr_hidden_param_space,pyr_var_space)
 		self.add_neur_pop("int_pop",Nint,int_model,int_param_space,int_var_space)
 
-		self.add_syn_pop("pyr_pop","int_pop",SynapsePI(Npyr))
-		self.add_syn_pop("int_pop","pyr_pop",SynapseIP(Nint))
+		self.add_syn_pop("int_pop","pyr_pop",SynapseIP(Npyr))
+		self.add_syn_pop("pyr_pop","int_pop",SynapsePI(Nint))
 
 class OutputLayer(LayerBase):
 

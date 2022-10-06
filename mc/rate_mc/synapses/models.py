@@ -2,21 +2,22 @@
 
 from .weight_update.models import (wu_model_pp_basal, 
                                             wu_model_pp_apical,
-                                            wu_model_pi,
                                             wu_model_ip,
-                                            wu_model_pi_back,
-                                            wu_model_inpp)
+                                            wu_model_pi,
+                                            wu_model_ip_back,
+                                            wu_model_pinp)
 from .weight_update.params import (wu_param_space_pp_basal, 
                                             wu_param_space_pp_apical,
-                                            wu_param_space_pi,
                                             wu_param_space_ip,
-                                            wu_param_space_pi_back,
-                                            wu_param_space_inpp)
-from .weight_update.var_inits import (wu_var_space_pp_basal,
+                                            wu_param_space_pi,
+                                            wu_param_space_ip_back,
+                                            wu_param_space_pinp)
+'''from .weight_update.var_inits import (wu_var_space_pp_basal,
                                             wu_var_space_pp_apical,
-                                            wu_var_space_pi,
                                             wu_var_space_ip,
-                                            wu_var_space_inpp)
+                                            wu_var_space_pi,
+                                            wu_var_space_pinp)
+'''
 
 from pygenn.genn_model import init_var
 
@@ -41,7 +42,7 @@ class SynapseBase:
     
 
 
-    def connect_pops(self,name,genn_model,source,target):
+    def connect_pops(self,name,genn_model,target,source):
 
         _syn_pop = genn_model.add_synapse_population(
             name,self.matrix_type,self.delay_steps,
@@ -93,7 +94,7 @@ class SynapsePPBasal(SynapseDense):
         #self.wu_var_space = wu_var_space_pp_basal
         self.ps_target_var = "Isyn_vb"
 
-class SynapseINPP(SynapseDense):
+class SynapsePINP(SynapseDense):
 
     def __init__(self,*args,**kwargs):
 
@@ -101,8 +102,8 @@ class SynapseINPP(SynapseDense):
 
         N_norm = args[-1]
 
-        self.w_update_model = wu_model_inpp
-        self.wu_param_space = wu_param_space_inpp
+        self.w_update_model = wu_model_pinp
+        self.wu_param_space = wu_param_space_pinp
         self.wu_var_space = {
             "g": init_var("Uniform", 
                 {"min": -1./N_norm**.5, "max": 1./N_norm**.5}),
@@ -129,38 +130,6 @@ class SynapsePPApical(SynapseDense):
         #self.wu_var_space = wu_var_space_pp_apical
         self.ps_target_var = "Isyn_va_exc"
 
-class SynapsePI(SynapseDense):
-    
-    def __init__(self,*args,**kwargs):
-
-        super().__init__(*args[:-1],**kwargs)
-
-        N_norm = args[-1]
-
-        self.w_update_model = wu_model_pi
-        self.wu_param_space = wu_param_space_pi
-        #self.wu_var_space = wu_var_space_pi
-        self.wu_var_space = {
-            "g": init_var("Uniform", 
-                {"min": -1./N_norm**.5, "max": 1./N_norm**.5}),
-                "vEff": 0.0,
-                "dg": 0.0 
-        }
-        #self.ps_target_var = "Isyn"
-
-class SynapsePIBack(SynapseSparseOneToOne):
-
-    def __init__(self,*args,**kwargs):
-
-        super().__init__(*args,**kwargs)
-
-        self.w_update_model = wu_model_pi_back
-        self.wu_param_space = wu_param_space_pi_back
-        self.wu_var_space = {
-            "g": 1.0
-        }
-        self.ps_target_var = "u_td"
-
 class SynapseIP(SynapseDense):
     
     def __init__(self,*args,**kwargs):
@@ -171,6 +140,38 @@ class SynapseIP(SynapseDense):
 
         self.w_update_model = wu_model_ip
         self.wu_param_space = wu_param_space_ip
+        #self.wu_var_space = wu_var_space_pi
+        self.wu_var_space = {
+            "g": init_var("Uniform", 
+                {"min": -1./N_norm**.5, "max": 1./N_norm**.5}),
+                "vEff": 0.0,
+                "dg": 0.0 
+        }
+        #self.ps_target_var = "Isyn"
+
+class SynapseIPBack(SynapseSparseOneToOne):
+
+    def __init__(self,*args,**kwargs):
+
+        super().__init__(*args,**kwargs)
+
+        self.w_update_model = wu_model_ip_back
+        self.wu_param_space = wu_param_space_ip_back
+        self.wu_var_space = {
+            "g": 1.0
+        }
+        self.ps_target_var = "u_td"
+
+class SynapsePI(SynapseDense):
+    
+    def __init__(self,*args,**kwargs):
+
+        super().__init__(*args[:-1],**kwargs)
+
+        N_norm = args[-1]
+
+        self.w_update_model = wu_model_pi
+        self.wu_param_space = wu_param_space_pi
         #self.wu_var_space = wu_var_space_ip
         self.wu_var_space = {
             "g": init_var("Uniform", 

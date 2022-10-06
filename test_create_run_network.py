@@ -12,25 +12,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def phi(x):
-    return x
-    #return np.log(1.+np.exp(x))
+    #return x
+    return np.log(1.+np.exp(x))
     #return np.tanh(x)
 
-n_in = 1
-n_hidden = [1]
-n_out = 1
+n_in = 4
+n_hidden = [3]
+n_out = 2
 
-n_hidden_teacher = 1
-
-net = Network("testnet",n_in,n_hidden,n_out,dt=0.1)
+n_hidden_teacher = 3
 
 T_show_patterns = 250
-n_patterns = 1000
+n_patterns = 2000
 T_skip = 10
 T = T_show_patterns * n_patterns
 T_rec = int(T/T_skip)
 
-T_init_zero = T_show_patterns * 50
+T_init_zero = T_show_patterns * 500
 
 t_ax = np.arange(T)
 t_ax_skip = t_ax[::T_skip]
@@ -44,20 +42,23 @@ W_21 = (np.random.rand(n_out,n_hidden_teacher)-0.5)/np.sqrt(n_hidden_teacher)
 
 test_output = (W_21 @ phi(W_10 @ test_input.T)).T
 
-#import pdb
-#pdb.set_trace()
-
-#W = (np.random.rand(n_out,n_in)-0.5)/np.sqrt(n_in)
-
-#test_output = (W @ test_input.T).T
-
-
-#test_input[300:600,0] = 1.
-
 test_input_tuple = (test_input,"neur_input_input_pop","u")
 test_output_tuple = (test_output,"neur_output_pyr_pop","vnudge")
 
-#ipdb.set_trace()
+net = Network("testnet",n_in,n_hidden,n_out,dt=0.1)
+
+# Manually set the feedback weight to be the transpose of the
+# teacher feed-forward...
+# NOTE: In genn, weights are stored as flattened arrays with
+# c-order (last index changes first), but the underlying 2d-matrix
+# is of dimension <size source> x <size target>...so you just need to
+# push W_21.flatten() to the device rather than W_21.T.flatten. 
+
+synview = net.syn_pops["syn_output_pyr_pop_to_hidden0_pyr_pop"].vars["g"].view
+synview[:] = W_21.flatten()
+net.syn_pops["syn_output_pyr_pop_to_hidden0_pyr_pop"].push_var_to_device("g")
+
+ipdb.set_trace()
 
 results_neur, results_syn = net.run_sim([test_input_tuple,test_output_tuple],
     [("neur_hidden0_pyr_pop","u"),

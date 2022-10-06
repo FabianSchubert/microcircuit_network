@@ -2,7 +2,7 @@
 
 from .layers import InputLayer , HiddenLayer, OutputLayer
 
-from .synapses.models import SynapsePPBasal, SynapsePPApical, SynapsePIBack, SynapseINPP
+from .synapses.models import SynapsePPBasal, SynapsePPApical, SynapseIPBack, SynapsePINP
 
 from copy import deepcopy
 
@@ -68,11 +68,11 @@ class Network:
 		_N_in = self.neur_pops["neur_input_input_pop"].size
 
 		self.cross_layer_syn_pops.append(
-			SynapseINPP(_N_in).connect_pops(
+			SynapsePINP(_N_in).connect_pops(
 				'syn_input_input_pop_to_hidden0_pyr_pop',
 				self.genn_model,
-				self.neur_pops["neur_input_input_pop"],
-				self.neur_pops["neur_hidden0_pyr_pop"]
+				self.neur_pops["neur_hidden0_pyr_pop"],
+				self.neur_pops["neur_input_input_pop"]
 			)
 		)
 
@@ -86,8 +86,8 @@ class Network:
 				SynapsePPBasal(_N_in).connect_pops(
 					f'syn_{_l.name}_pyr_pop_to_{_l_next.name}_pyr_pop',
 					self.genn_model,
-					_l.neur_pops["pyr_pop"],
-					_l_next.neur_pops["pyr_pop"]
+					_l_next.neur_pops["pyr_pop"],
+					_l.neur_pops["pyr_pop"]
 				)
 			)
 
@@ -97,19 +97,19 @@ class Network:
 				SynapsePPApical(_N_in).connect_pops(
 					f'syn_{_l_next.name}_pyr_pop_to_{_l.name}_pyr_pop',
 					self.genn_model,
-					_l_next.neur_pops["pyr_pop"],
-					_l.neur_pops["pyr_pop"]
+					_l.neur_pops["pyr_pop"],
+					_l_next.neur_pops["pyr_pop"]
 				)
 			)
 
 
 
 			self.cross_layer_syn_pops.append(
-				SynapsePIBack().connect_pops(
+				SynapseIPBack().connect_pops(
 					f'syn_{_l_next.name}_pyr_pop_to_{_l.name}_int_pop',
 					self.genn_model,
-					_l_next.neur_pops["pyr_pop"],
-					_l.neur_pops["int_pop"]
+					_l.neur_pops["int_pop"],
+					_l_next.neur_pops["pyr_pop"]
 				)
 			)
 
@@ -119,8 +119,8 @@ class Network:
 			SynapsePPBasal(_N_in).connect_pops(
 				f'syn_{self.layers[-2].name}_pyr_pop_to_output_pyr_pop',
 				self.genn_model,
-				self.layers[-2].neur_pops["pyr_pop"],
-				self.layers[-1].neur_pops["pyr_pop"]
+				self.layers[-1].neur_pops["pyr_pop"],
+				self.layers[-2].neur_pops["pyr_pop"]
 			)			
 		)
 
@@ -130,19 +130,19 @@ class Network:
 			SynapsePPApical(_N_in).connect_pops(
 				f'syn_output_pyr_pop_to_{self.layers[-2].name}_pyr_pop',
 				self.genn_model,
-				self.layers[-1].neur_pops["pyr_pop"],
-				self.layers[-2].neur_pops["pyr_pop"]
+				self.layers[-2].neur_pops["pyr_pop"],
+				self.layers[-1].neur_pops["pyr_pop"]
 			)			
 		)
 
 
 
 		self.cross_layer_syn_pops.append(
-			SynapsePIBack().connect_pops(
+			SynapseIPBack().connect_pops(
 				f'syn_output_pyr_pop_to_{self.layers[-2].name}_int_pop',
 				self.genn_model,
-				self.layers[-1].neur_pops["pyr_pop"],
-				self.layers[-2].neur_pops["int_pop"]
+				self.layers[-2].neur_pops["int_pop"],
+				self.layers[-1].neur_pops["pyr_pop"]
 			)
 		)
 
