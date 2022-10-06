@@ -1,1 +1,0 @@
-from pygenn.genn_model import init_var, create_dpf_class, init_connectivity

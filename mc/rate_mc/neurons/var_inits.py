@@ -2,6 +2,7 @@
 
 pyr_var_space = {
     "u": 0.0,
+    "vnudge": 0.0,
     "va": 0.0,
     "va_int": 0.0,
     "va_exc": 0.0,
@@ -12,5 +13,10 @@ pyr_var_space = {
 int_var_space = {
     "u": 0.0,
     "v": 0.0,
+    "r": 0.0
+}
+
+input_var_space = {
+    "u": 0.0,
     "r": 0.0
 }

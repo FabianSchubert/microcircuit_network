@@ -1,12 +1,15 @@
 #! /usr/bin/env python3
 
+from ..utils import act_func
+
 pyr_model = {
     "class_name": "pyr",
-    "param_names": ["glk", "gb", "ga"],
+    "param_names": ["glk", "gb", "ga" , "gnudge"],
     "var_name_types": [("u","scalar"), ("r", "scalar"),
                         ("va_int","scalar"),("va_exc","scalar"),
                         ("va","scalar"),
-                        ("vb","scalar")],
+                        ("vb","scalar"),
+                        ("vnudge","scalar")],
     "additional_input_vars": [("Isyn_va_int","scalar",0.0),
                             ("Isyn_va_exc","scalar",0.0),
                             ("Isyn_vb","scalar",0.0)],
@@ -15,9 +18,10 @@ pyr_model = {
                 $(va_int) = $(Isyn_va_int);
                 $(va_exc) = $(Isyn_va_exc);
                 $(va) = $(va_int) + $(va_exc);
-                $(u) += DT * ( -($(glk)+$(gb)+$(ga))*$(u)
+                $(u) += DT * ( -($(glk)+$(gb)+$(ga)+$(gnudge))*$(u)
                 + $(gb)*$(vb)
-                + $(ga)*$(va) );
+                + $(ga)*$(va) 
+                + $(gnudge)*$(vnudge));// + $(gennrand_normal)*sqrt(DT)*0.1;
                 $(r) = {act_func('$(u)')};
                 //$(r) = $(u);
                 """,
@@ -35,10 +39,18 @@ int_model = {
                 $(v) = $(Isyn);
                 $(u) += DT * ( -$(glk)*$(u)
                 + $(gd)*( $(v)-$(u) )
-                + $(gsom)*( $(u_td) - $(u) ));
+                + $(gsom)*( $(u_td) - $(u) ));// + $(gennrand_normal)*sqrt(DT)*0.1;
                 $(r) = {act_func('$(u)')};
-                //$(r) = (1.0+tanh(2.0*$(u)))/2.0;
                 """,
-    "threshold_condition_code": "$(gennrand_uniform) < $(r)*DT",
+    "threshold_condition_code": None,
+    "reset_code": None
+}
+
+input_model = {
+    "class_name": "input",
+    "param_names": None,
+    "var_name_types": [("r","scalar"),("u","scalar")],
+    "sim_code": "$(r) = $(u);",
+    "threshold_condition_code": None,
     "reset_code": None
 }
