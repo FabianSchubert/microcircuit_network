@@ -1,13 +1,13 @@
 #! /usr/bin/env python3
 
-from .neurons.models import pyr_model, int_model, input_model
+from .neurons.models import pyr_model, int_model, input_model, output_model
 
 from .neurons.params import (pyr_hidden_param_space,
-							pyr_output_param_space,
+							output_param_space,
 							int_param_space,
 							input_param_space)
 
-from .neurons.var_inits import pyr_var_space, int_var_space, input_var_space
+from .neurons.var_inits import pyr_var_space, int_var_space, input_var_space, output_var_space
 
 '''
 from .synapses.models import (synapse_pp_basal,
@@ -65,7 +65,7 @@ class OutputLayer(LayerBase):
 
 		N = args[-1]
 
-		self.add_neur_pop("pyr_pop",N,pyr_model,pyr_output_param_space,pyr_var_space)
+		self.add_neur_pop("output_pop",N,output_model,output_param_space,output_var_space)
 
 class InputLayer(LayerBase):
 

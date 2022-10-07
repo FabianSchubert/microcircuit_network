@@ -43,7 +43,7 @@ W_21 = (np.random.rand(n_out,n_hidden_teacher)-0.5)/np.sqrt(n_hidden_teacher)
 test_output = (W_21 @ phi(W_10 @ test_input.T)).T
 
 test_input_tuple = (test_input,"neur_input_input_pop","u")
-test_output_tuple = (test_output,"neur_output_pyr_pop","vnudge")
+test_output_tuple = (test_output,"neur_output_output_pop","vnudge")
 
 net = Network("testnet",n_in,n_hidden,n_out,dt=0.1)
 
@@ -54,17 +54,16 @@ net = Network("testnet",n_in,n_hidden,n_out,dt=0.1)
 # is of dimension <size source> x <size target>...so you just need to
 # push W_21.flatten() to the device rather than W_21.T.flatten. 
 
-synview = net.syn_pops["syn_output_pyr_pop_to_hidden0_pyr_pop"].vars["g"].view
+synview = net.syn_pops["syn_output_output_pop_to_hidden0_pyr_pop"].vars["g"].view
 synview[:] = W_21.flatten()
-net.syn_pops["syn_output_pyr_pop_to_hidden0_pyr_pop"].push_var_to_device("g")
-
-ipdb.set_trace()
+net.syn_pops["syn_output_output_pop_to_hidden0_pyr_pop"].push_var_to_device("g")
 
 results_neur, results_syn = net.run_sim([test_input_tuple,test_output_tuple],
-    [("neur_hidden0_pyr_pop","u"),
-    ("neur_output_pyr_pop","vb"),
-    ("neur_output_pyr_pop","vnudge"),
-    ("neur_output_pyr_pop","u"),
+    [("neur_output_output_pop","vb"),
+    ("neur_output_output_pop","vnudge"),
+    ("neur_output_output_pop","u"),
+    ("neur_output_output_pop","r"),
+    ("neur_hidden0_pyr_pop","u"),
     ("neur_hidden0_pyr_pop","va_exc"),
     ("neur_hidden0_pyr_pop","va_int"),
     ("neur_hidden0_pyr_pop","vb"),
@@ -73,12 +72,11 @@ results_neur, results_syn = net.run_sim([test_input_tuple,test_output_tuple],
     ("neur_hidden0_int_pop","u"),
     ("neur_hidden0_int_pop","v"),
     ("neur_hidden0_pyr_pop","r"),
-    ("neur_output_pyr_pop","r"),
     ("neur_input_input_pop","r")],
     [("syn_hidden0_int_pop_to_pyr_pop","g"),
     ("syn_hidden0_pyr_pop_to_int_pop","g"),
-    ("syn_hidden0_pyr_pop_to_output_pyr_pop","g"),
-    ("syn_output_pyr_pop_to_hidden0_pyr_pop","g"),
+    ("syn_hidden0_pyr_pop_to_output_output_pop","g"),
+    ("syn_output_output_pop_to_hidden0_pyr_pop","g"),
     ("syn_input_input_pop_to_hidden0_pyr_pop","g")],
     T_skip=T_skip)
 
@@ -98,18 +96,18 @@ v_eff_int_hidden = v_int_hidden * 1.0/(0.1 + 1.0)
 
 r_input = results_neur["neur_input_input_pop_r"]
 
-vb_output = results_neur["neur_output_pyr_pop_vb"]
-vnudge_output = results_neur["neur_output_pyr_pop_vnudge"]
-u_output = results_neur["neur_output_pyr_pop_u"]
-r_output = results_neur["neur_output_pyr_pop_r"]
+vb_output = results_neur["neur_output_output_pop_vb"]
+vnudge_output = results_neur["neur_output_output_pop_vnudge"]
+u_output = results_neur["neur_output_output_pop_u"]
+r_output = results_neur["neur_output_output_pop_r"]
 
 vb_eff_output = vb_output * 1.0 / (0.1 + 1.0)
 
 W_hp_ip = results_syn["syn_input_input_pop_to_hidden0_pyr_pop_g"][:,0,0]
 W_hi_hp = results_syn["syn_hidden0_pyr_pop_to_int_pop_g"][:,0,0]
 W_hp_hi = results_syn["syn_hidden0_int_pop_to_pyr_pop_g"][:,0,0]
-W_op_hp = results_syn["syn_hidden0_pyr_pop_to_output_pyr_pop_g"][:,0,0]
-W_hp_op = results_syn["syn_output_pyr_pop_to_hidden0_pyr_pop_g"][:,0,0]
+W_op_hp = results_syn["syn_hidden0_pyr_pop_to_output_output_pop_g"][:,0,0]
+W_hp_op = results_syn["syn_output_output_pop_to_hidden0_pyr_pop_g"][:,0,0]
 
 fig, ax = plt.subplots(1,1)
 

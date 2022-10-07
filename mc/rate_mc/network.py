@@ -117,32 +117,30 @@ class Network:
 
 		self.cross_layer_syn_pops.append(
 			SynapsePPBasal(_N_in).connect_pops(
-				f'syn_{self.layers[-2].name}_pyr_pop_to_output_pyr_pop',
+				f'syn_{self.layers[-2].name}_pyr_pop_to_output_output_pop',
 				self.genn_model,
-				self.layers[-1].neur_pops["pyr_pop"],
+				self.layers[-1].neur_pops["output_pop"],
 				self.layers[-2].neur_pops["pyr_pop"]
 			)			
 		)
 
-		_N_in = self.layers[-1].neur_pops["pyr_pop"].size
+		_N_in = self.layers[-1].neur_pops["output_pop"].size
 
 		self.cross_layer_syn_pops.append(
 			SynapsePPApical(_N_in).connect_pops(
-				f'syn_output_pyr_pop_to_{self.layers[-2].name}_pyr_pop',
+				f'syn_output_output_pop_to_{self.layers[-2].name}_pyr_pop',
 				self.genn_model,
 				self.layers[-2].neur_pops["pyr_pop"],
-				self.layers[-1].neur_pops["pyr_pop"]
+				self.layers[-1].neur_pops["output_pop"]
 			)			
 		)
-
-
 
 		self.cross_layer_syn_pops.append(
 			SynapseIPBack().connect_pops(
 				f'syn_output_pyr_pop_to_{self.layers[-2].name}_int_pop',
 				self.genn_model,
 				self.layers[-2].neur_pops["int_pop"],
-				self.layers[-1].neur_pops["pyr_pop"]
+				self.layers[-1].neur_pops["output_pop"]
 			)
 		)
 

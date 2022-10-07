@@ -2,6 +2,10 @@
 
 from pygenn.genn_model import init_var
 
+wu_var_space_transmit_rate = {
+        "g": init_var("Uniform", {"min": -1.0, "max": 1.0})
+}
+
 wu_var_space_pp_basal = {
         "g": init_var("Uniform", {"min": -1.0, "max": 1.0}),
         "vbEff": 0.0,
@@ -23,3 +27,7 @@ wu_var_space_ip = {
 wu_var_space_pi = {
             "g": init_var("Uniform", {"min": -1.0, "max": 1.0}),
             "dg": 0.0}
+
+wu_var_space_ip_back = {
+        "g": 1.0
+}

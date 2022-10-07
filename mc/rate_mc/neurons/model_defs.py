@@ -4,12 +4,11 @@ from ..utils import act_func
 
 pyr_model = {
     "class_name": "pyr",
-    "param_names": ["glk", "gb", "ga" , "gnudge"],
+    "param_names": ["glk", "gb", "ga"],
     "var_name_types": [("u","scalar"), ("r", "scalar"),
                         ("va_int","scalar"),("va_exc","scalar"),
                         ("va","scalar"),
-                        ("vb","scalar"),
-                        ("vnudge","scalar")],
+                        ("vb","scalar")],
     "additional_input_vars": [("Isyn_va_int","scalar",0.0),
                             ("Isyn_va_exc","scalar",0.0),
                             ("Isyn_vb","scalar",0.0)],
@@ -18,16 +17,32 @@ pyr_model = {
                 $(va_int) = $(Isyn_va_int);
                 $(va_exc) = $(Isyn_va_exc);
                 $(va) = $(va_int) + $(va_exc);
-                $(u) += DT * ( -($(glk)+$(gb)+$(ga)+$(gnudge))*$(u)
+                $(u) += DT * ( -($(glk)+$(gb)+$(ga))*$(u)
                 + $(gb)*$(vb)
-                + $(ga)*$(va) 
-                + $(gnudge)*$(vnudge));// + $(gennrand_normal)*sqrt(DT)*0.1;
+                + $(ga)*$(va));
                 $(r) = {act_func('$(u)')};
                 //$(r) = $(u);
                 """,
     "threshold_condition_code": None,
     "reset_code": None
 }
+
+output_model = {
+    "class_name": "output",
+    "param_names": ["glk","gb","ga"],
+    "var_name_types": [("u","scalar"),("r","scalar"),
+    ("vb","scalar"),("gnudge","scalar"),("vnudge","scalar")],
+    "additional_input_vars": [("Isyn_vb","scalar",0.0)],
+    "sim_code": f"""
+                $(vb) = $(Isyn_vb);
+                $(u) += DT * (-($(glk)+$(gb)+$(gnudge))*$(u)
+                + $(gb)*$(vb)
+                + $(gnudge)*$(vnudge));
+                $(r) = {act_func('$(u)')};
+                """,
+    "threshold_condition_code": None,
+    "reset_code": None
+}  
 
 
 int_model = {

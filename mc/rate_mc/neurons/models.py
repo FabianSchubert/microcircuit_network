@@ -2,7 +2,8 @@
 
 from .model_defs import (pyr_model as pyr_model_def,
 						int_model as int_model_def,
-						input_model as input_model_def)
+						input_model as input_model_def,
+						output_model as output_model_def)
 
 from pygenn.genn_model import create_custom_neuron_class
 
@@ -14,3 +15,6 @@ int_model = create_custom_neuron_class(**int_model_def)
 
 # Input Neuron
 input_model = create_custom_neuron_class(**input_model_def)
+
+# Output Neuron
+output_model = create_custom_neuron_class(**output_model_def)

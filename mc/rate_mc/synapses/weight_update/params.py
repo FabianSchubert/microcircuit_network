@@ -1,5 +1,7 @@
 #! /usr/bin/env python3
 
+wu_param_space_transmit_rate = {}
+
 wu_param_space_pp_basal= {"muPP_basal": 2e-3,
 							"tau":.1}
 
