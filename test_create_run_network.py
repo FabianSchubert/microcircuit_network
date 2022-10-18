@@ -12,19 +12,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def phi(x):
-    #return x
-    return np.log(1.+np.exp(x))
+    return x
+    #return np.log(1.+np.exp(x))
     #return np.tanh(x)
 
-n_in = 4
-n_hidden = [3]
-n_out = 2
+n_in = 1
+n_hidden = [1]
+n_out = 1
 
-n_hidden_teacher = 3
+n_hidden_teacher = 1
 
 T_show_patterns = 250
-n_patterns = 2000
-T_skip = 10
+n_patterns = 2500
+T_skip = 20
 T = T_show_patterns * n_patterns
 T_rec = int(T/T_skip)
 
@@ -34,16 +34,17 @@ t_ax = np.arange(T)
 t_ax_skip = t_ax[::T_skip]
 
 test_input = np.random.rand(n_patterns,n_in)
-test_input = np.repeat(test_input,T_show_patterns,axis=0)
-test_input[:T_init_zero,:] = 0.
+#test_input_t_sign = np.arange(n_patterns)*T_show_patterns
+test_input = np.repeat(test_input,T_show_patterns,axis=0)[t_ax_skip]
+#test_input[:T_init_zero,:] = 0.
 
 W_10 = (np.random.rand(n_hidden_teacher,n_in)-0.5)/np.sqrt(n_in)
 W_21 = (np.random.rand(n_out,n_hidden_teacher)-0.5)/np.sqrt(n_hidden_teacher)
 
 test_output = (W_21 @ phi(W_10 @ test_input.T)).T
 
-test_input_tuple = (test_input,"neur_input_input_pop","u")
-test_output_tuple = (test_output,"neur_output_output_pop","vnudge")
+test_input_tuple = (test_input,t_ax_skip,"neur_input_input_pop","u")
+test_output_tuple = (test_output,t_ax_skip,"neur_output_output_pop","vnudge")
 
 net = Network("testnet",n_in,n_hidden,n_out,dt=0.1)
 
@@ -58,7 +59,7 @@ synview = net.syn_pops["syn_output_output_pop_to_hidden0_pyr_pop"].vars["g"].vie
 synview[:] = W_21.flatten()
 net.syn_pops["syn_output_output_pop_to_hidden0_pyr_pop"].push_var_to_device("g")
 
-results_neur, results_syn = net.run_sim([test_input_tuple,test_output_tuple],
+results_neur, results_syn = net.run_sim(T,[test_input_tuple,test_output_tuple],
     [("neur_output_output_pop","vb"),
     ("neur_output_output_pop","vnudge"),
     ("neur_output_output_pop","u"),
@@ -121,8 +122,7 @@ ax.legend()
 
 plt.show()
 
-
-loss = ((vb_eff_output-test_output[::T_skip])**2.).mean(axis=1)
+loss = ((vb_eff_output-test_output)**2.).mean(axis=1)
 
 T_show_patterns_rec = int(T_show_patterns/T_skip)
 
@@ -145,14 +145,14 @@ fig.savefig("train_loss.png",dpi=600)
 fig, ax = plt.subplots(1,2,figsize=(10,5))
 
 ax[0].plot(t_ax_skip,vb_eff_output[:,0],label=r'$\hat{v}_b$')
-ax[0].plot(t_ax_skip,test_output[::T_skip,0],label=r'$u_{trg}$')
+ax[0].plot(t_ax_skip,test_output[:,0],label=r'$u_{trg}$')
 
 ax[0].legend()
 
 ax[0].set_xlabel("Training Steps")
 
 ax[1].plot(t_ax_skip,vb_eff_output[:,0],label=r'$\hat{v}_b$')
-ax[1].plot(t_ax_skip,test_output[::T_skip,0],label=r'$u_{trg}$')
+ax[1].plot(t_ax_skip,test_output[:,0],label=r'$u_{trg}$')
 
 ax[1].legend()
 
