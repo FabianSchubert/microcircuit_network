@@ -190,12 +190,12 @@ class SynapsePPApical(SynapseDense):
 
         self.wu_var_space_transmit = {
             "g": init_var("Uniform", 
-                {"min": -1./N_norm**.5, "max": 1./N_norm**.5})
+                {"min": -2./N_norm**.5, "max": 2./N_norm**.5})
             }
 
         self.wu_var_space_plast = {
             "g": init_var("Uniform", 
-                {"min": -1./N_norm**.5, "max": 1./N_norm**.5})
+                {"min": -2./N_norm**.5, "max": 2./N_norm**.5})
             }
         #self.wu_var_space = wu_var_space_pp_apical
         self.ps_target_var = "Isyn_va_exc"

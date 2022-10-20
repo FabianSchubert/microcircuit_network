@@ -174,7 +174,7 @@ class Network:
 			self.syn_pops[pop.name] = pop
 
 
-	def run_sim(self,T,ext_data_pop_vars,readout_neur_pop_vars,readout_syn_pop_vars,T_skip=1):
+	def run_sim(self,T,ext_data_pop_vars,readout_neur_pop_vars,readout_syn_pop_vars):
 		
 		'''
 		ext_data_pop_vars should be a list tuples of the form
@@ -243,7 +243,7 @@ class Network:
 		idx_readout_neur_pop_heads = []
 
 		time_signatures_readout_syn_pop = []
-		idx_readout_syn_pop_heads
+		idx_readout_syn_pop_heads = []
 
 		for readout_pop, readout_var, t_sign in readout_neur_pop_vars:
 			_dict_name = f'{readout_pop}_{readout_var}'
@@ -284,9 +284,11 @@ class Network:
 						# remove the current first element of the time signatures after use.
 						time_signatures[k] = time_signatures[k][1:]
 
+			self.genn_model.step_time()
+
 			for k,(readout_pop,readout_var,_) in enumerate(readout_neur_pop_vars):
 
-				if(time_signatures_readout_neur_pop[k].shape > 0):
+				if(time_signatures_readout_neur_pop[k].shape[0] > 0):
 
 					if(time_signatures_readout_neur_pop[k][0] == t):
 
@@ -300,7 +302,7 @@ class Network:
 
 			for k,(readout_pop,readout_var,_) in enumerate(readout_syn_pop_vars):
 
-				if(time_signatures_readout_syn_pop[k].shape > 0):
+				if(time_signatures_readout_syn_pop[k].shape[0] > 0):
 
 					if(time_signatures_readout_syn_pop[k][0] == t):
 
@@ -312,13 +314,13 @@ class Network:
 	                        readout_syn_arrays[_dict_name].shape[1:],order='F'
 	                    )
 
-	                    idx_readout_syn_pop_heads[k] += 1
+						idx_readout_syn_pop_heads[k] += 1
 
-	                    time_signatures_readout_syn_pop[k] = time_signatures_readout_syn_pop[k][1:]
+						time_signatures_readout_syn_pop[k] = time_signatures_readout_syn_pop[k][1:]
 
 
 
-			self.genn_model.step_time()
+			
 
 			'''
 			if t%T_skip == 0:

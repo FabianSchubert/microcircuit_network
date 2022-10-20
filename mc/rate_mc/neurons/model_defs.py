@@ -1,10 +1,11 @@
 #! /usr/bin/env python3
 
 from ..utils import act_func
+from pygenn.genn_model import create_dpf_class
 
 pyr_model = {
     "class_name": "pyr",
-    "param_names": ["glk", "gb", "ga"],
+    "param_names": ["glk", "gb", "ga", "sigm_noise"],
     "var_name_types": [("u","scalar"), ("r", "scalar"),
                         ("va_int","scalar"),("va_exc","scalar"),
                         ("va","scalar"),
@@ -12,6 +13,7 @@ pyr_model = {
     "additional_input_vars": [("Isyn_va_int","scalar",0.0),
                             ("Isyn_va_exc","scalar",0.0),
                             ("Isyn_vb","scalar",0.0)],
+    "derived_params": [("DTSQRT", create_dpf_class(lambda pars, dt: dt**.5)())],
     "sim_code": f"""
                 $(vb) = $(Isyn_vb);
                 $(va_int) = $(Isyn_va_int);
@@ -19,7 +21,8 @@ pyr_model = {
                 $(va) = $(va_int) + $(va_exc);
                 $(u) += DT * ( -($(glk)+$(gb)+$(ga))*$(u)
                 + $(gb)*$(vb)
-                + $(ga)*$(va));
+                + $(ga)*$(va))
+                + $(sigm_noise)*$(gennrand_normal)*$(DTSQRT);
                 $(r) = {act_func('$(u)')};
                 //$(r) = $(u);
                 """,
@@ -29,15 +32,17 @@ pyr_model = {
 
 output_model = {
     "class_name": "output",
-    "param_names": ["glk","gb","ga"],
+    "param_names": ["glk","gb","ga","sigm_noise"],
     "var_name_types": [("u","scalar"),("r","scalar"),
     ("vb","scalar"),("gnudge","scalar"),("vnudge","scalar")],
     "additional_input_vars": [("Isyn_vb","scalar",0.0)],
+    "derived_params": [("DTSQRT", create_dpf_class(lambda pars, dt: dt**.5)())],
     "sim_code": f"""
                 $(vb) = $(Isyn_vb);
                 $(u) += DT * (-($(glk)+$(gb)+$(gnudge))*$(u)
                 + $(gb)*$(vb)
-                + $(gnudge)*$(vnudge));
+                + $(gnudge)*$(vnudge))
+                + $(sigm_noise)*$(gennrand_normal)*$(DTSQRT);
                 $(r) = {act_func('$(u)')};
                 """,
     "threshold_condition_code": None,

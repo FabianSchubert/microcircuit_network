@@ -14,7 +14,6 @@ wu_model_pp_basal = {
 	"param_names": ["muPP_basal","tau"],
 	"var_name_types": [("g", "scalar"),("dg","scalar"),("vbEff","scalar")],
 	"synapse_dynamics_code": f"""
-		//$(addToInSyn, $(g) * $(r_pre));
 		$(vbEff) = $(vb_post) * $(gb_post)/($(glk_post)+$(gb_post)+$(ga_post));
 		$(dg) += DT * ($(muPP_basal) * $(r_pre)
 		* ($(r_post) - {act_func('$(vbEff)')} ) - $(dg))/$(tau);
@@ -29,7 +28,6 @@ wu_model_pp_apical = {
 	"param_names": ["muPP_apical"],
 	"var_name_types": [("g", "scalar")],
 	"synapse_dynamics_code": f"""
-	    //$(addToInSyn, $(g) * $(r_pre));
 	""",
 	"is_pre_spike_time_required": False,
 	"is_post_spike_time_required": False
@@ -40,7 +38,6 @@ wu_model_pinp = {
 	"param_names": ["muPINP","tau"],
 	"var_name_types": [("g", "scalar"),("dg","scalar"),("vbEff","scalar")],
 	"synapse_dynamics_code": f"""
-		//$(addToInSyn, $(g) * $(r_pre));
 		$(vbEff) = $(vb_post) * $(gb_post)/($(glk_post)+$(gb_post)+$(ga_post));
 		$(dg) += DT * ($(muPINP) * $(r_pre)
 		* ($(r_post) - {act_func('$(vbEff)')} ) - $(dg))/$(tau);
@@ -55,7 +52,6 @@ wu_model_ip = {
     "param_names": ["muIP","tau"],
     "var_name_types": [("g", "scalar"),("dg","scalar"),("vEff","scalar")],
     "synapse_dynamics_code": f"""
-        //$(addToInSyn, $(g) * $(r_pre));
         $(vEff) = $(v_post) * $(gd_post)/($(glk_post)+$(gd_post));
         $(dg) += DT * ($(muIP) * $(r_pre)
             * ($(r_post) - {act_func('$(vEff)')}) - $(dg))/$(tau);
@@ -71,7 +67,6 @@ wu_model_ip_back = {
 	"param_names": [],
 	"var_name_types": [("g","scalar")],
 	"synapse_dynamics_code": f"""
-		//$(addToInSyn, $(g) * $(r_pre));
 	""",
 	"is_pre_spike_time_required": False,
 	"is_post_spike_time_required": False
@@ -82,7 +77,6 @@ wu_model_pi = {
     "param_names": ["muPI","tau"],
     "var_name_types": [("g", "scalar"),("dg","scalar")],
     "synapse_dynamics_code": """
-        //$(addToInSyn, $(g) * $(r_pre));
         $(dg) += DT * (-$(muPI) * $(r_pre)
             * $(va_post) - $(dg));
         $(g) += DT * $(dg);
