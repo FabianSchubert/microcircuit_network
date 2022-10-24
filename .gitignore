@@ -1,3 +1,6 @@
+# ignore plots
+*.png
+
 # Do not commit the generated c++ code
 *_CODE/
 

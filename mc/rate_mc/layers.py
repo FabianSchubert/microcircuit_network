@@ -24,11 +24,12 @@ from dataclasses import dataclass
 
 class LayerBase:
 
-	def __init__(self,name,genn_model):
+	def __init__(self,name,genn_model,plastic=True):
 		self.name = name
 		self.genn_model = genn_model
 		self.neur_pops = {}
 		self.syn_pops = {}
+		self.plastic = plastic
 
 	def add_neur_pop(self,pop_name,size,neur_model,param_init,var_init):
 		_full_name = f'neur_{self.name}_{pop_name}'
@@ -39,7 +40,8 @@ class LayerBase:
 
 		self.syn_pops[f'{source}_to_{target}'] = syn_model.connect_pops(
 			f'syn_{self.name}_{source}_to_{target}',
-			self.genn_model,self.neur_pops[target],self.neur_pops[source])
+			self.genn_model,self.neur_pops[target],self.neur_pops[source],
+			plastic=self.plastic)
 
 
 class HiddenLayer(LayerBase):

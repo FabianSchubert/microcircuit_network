@@ -5,10 +5,9 @@ from mc.rate_mc.network import Network
 from pygenn.genn_model import GeNNModel
 
 from mc.rate_mc.neurons.params import (pyr_hidden_param_space,
-                                    output_param_space,
-                                    int_param_space,
-                                    input_param_space)
-
+	output_param_space,
+	int_param_space,
+	input_param_space)
 gb_pyr = pyr_hidden_param_space["gb"]
 ga_pyr = pyr_hidden_param_space["ga"]
 glk_pyr = pyr_hidden_param_space["glk"]
@@ -29,9 +28,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def phi(x):
-    return x
-    #return np.log(1.+np.exp(x))
-    #return np.tanh(x)
+	return x
+	#return np.log(1.+np.exp(x))
+	#return np.tanh(x)
 
 n_in = 30
 n_hidden = [50]
@@ -40,7 +39,7 @@ n_out = 10
 n_hidden_teacher = 20
 
 T_show_patterns = 150
-n_patterns = 800000
+n_patterns = 80000
 
 
 T_switch_to_patterns = 1 * T_show_patterns
@@ -55,9 +54,6 @@ t_ax_readout = np.arange(T)[::T_skip_rec]+140
 T_skip_plot = 30
 
 test_input = np.random.rand(n_patterns,n_in)
-#test_input_t_sign = np.arange(n_patterns)*T_show_patterns
-#test_input = np.repeat(test_input,T_show_patterns,axis=0)[t_ax_skip]
-#test_input[:T_init_zero,:] = 0.
 
 W_10 = 4.*(np.random.rand(n_hidden_teacher,n_in)-0.5)/np.sqrt(n_in)
 W_21 = 4.*(np.random.rand(n_out,n_hidden_teacher)-0.5)/np.sqrt(n_hidden_teacher)
@@ -74,10 +70,54 @@ switch_plast_t = np.array([0,T_switch_to_patterns])
 
 switch_plast_input_tuple = (switch_plast_input_dat,switch_plast_t,"neur_output_output_pop","gnudge")
 
+############### run 10 validations throughout the simulation
+T_interval_validation = int(T/10)
 
-net = Network("testnet",n_in,n_hidden,n_out,dt=0.1)
+t_validation = np.arange(int(T/T_interval_validation)) * T_interval_validation
 
-### Manually initialize the network in self-predicting state
+n_val_patterns = 20
+
+# show 100 patterns on each validation run.
+T_run_validation = T_show_patterns * n_val_patterns
+
+ext_data_validation = []
+
+target_data_validation = []
+
+readout_neur_pop_vars_validation = []
+
+readout_syn_pop_vars_validation = []
+
+T_run_validation_list = [T_run_validation] * t_validation.shape[0]        
+
+for k in range(t_validation.shape[0]):
+	val_input = np.random.rand(n_val_patterns,n_in)
+	
+	val_target = (W_21 @ phi(W_10 @ val_input.T)).T
+	
+	target_data_validation.append(val_target)
+
+	t_ax_val = np.arange(n_val_patterns)*T_show_patterns
+	
+	t_ax_readout_val = np.arange(T_run_validation)
+
+	# the second input tuple sets the nudging conductance in the output population to zero
+	# at the start of the validation.
+	val_input_tuple = [(val_input,t_ax_val,"neur_input_input_pop","u"),
+						(np.zeros((1,n_out)),np.array([0.]).astype("int"),"neur_output_output_pop","gnudge")]
+	
+	ext_data_validation.append(val_input_tuple)
+
+	readout_neur_pop_vars_validation.append([("neur_output_output_pop","u",t_ax_readout_val)])
+
+	readout_syn_pop_vars_validation.append([("syn_hidden0_pyr_pop_to_output_output_pop","g",t_ax_readout_val)])
+
+data_validation = [t_validation, T_run_validation_list, ext_data_validation, readout_neur_pop_vars_validation, readout_syn_pop_vars_validation]
+###############
+
+net = Network("testnet",n_in,n_hidden,n_out,dt=0.5)
+
+### Manually initialize the network in the self-predicting state
 
 # W_pi = - W_pp_back
 synview_pi = net.syn_pops["syn_hidden0_int_pop_to_pyr_pop"].vars["g"].view
@@ -93,43 +133,27 @@ net.syn_pops["syn_hidden0_pyr_pop_to_output_output_pop"].pull_var_from_device("g
 synview_ip = synview_pp_fwd * (gb_pyr + glk_pyr) / (gb_pyr + ga_pyr + glk_pyr)
 net.syn_pops["syn_hidden0_pyr_pop_to_int_pop"].push_var_to_device("g")
 
-'''
-# manually solve the problem for testing purposes...
-
-synview = net.syn_pops["syn_input_input_pop_to_hidden0_pyr_pop"].vars["g"].view
-synview[:] = W_10.T.flatten()*(0.1 + 1.0 + 0.8)/1.0
-net.syn_pops["syn_input_input_pop_to_hidden0_pyr_pop"].push_var_to_device("g")
-
-synview = net.syn_pops["syn_hidden0_pyr_pop_to_output_output_pop"].vars["g"].view
-synview[:] = W_21.T.flatten()*(0.1 + 1.0)/1.0
-net.syn_pops["syn_hidden0_pyr_pop_to_output_output_pop"].push_var_to_device("g")
-
-synview = net.syn_pops["syn_hidden0_pyr_pop_to_int_pop"].vars["g"].view
-synview[:] = W_21.T.flatten()*((0.1 + 1.0)/1.0)*(1.0+0.1)/(1.0+0.8+0.1)
-'''
-
-results_neur, results_syn = net.run_sim(T,[test_input_tuple,test_output_tuple,switch_plast_input_tuple],
-    [("neur_output_output_pop","vb",t_ax_readout),
-    ("neur_output_output_pop","vnudge",t_ax_readout),
-    ("neur_output_output_pop","u",t_ax_readout),
-    ("neur_output_output_pop","r",t_ax_readout),
-    ("neur_hidden0_pyr_pop","u",t_ax_readout),
-    ("neur_hidden0_pyr_pop","va_exc",t_ax_readout),
-    ("neur_hidden0_pyr_pop","va_int",t_ax_readout),
-    ("neur_hidden0_pyr_pop","vb",t_ax_readout),
-    ("neur_hidden0_pyr_pop","va",t_ax_readout),
-    ("neur_hidden0_int_pop","r",t_ax_readout),
-    ("neur_hidden0_int_pop","u",t_ax_readout),
-    ("neur_hidden0_int_pop","v",t_ax_readout),
-    ("neur_hidden0_pyr_pop","r",t_ax_readout),
-    ("neur_input_input_pop","r",t_ax_readout)],
-    [("syn_hidden0_int_pop_to_pyr_pop","g",t_ax_readout),
-    ("syn_hidden0_pyr_pop_to_int_pop","g",t_ax_readout),
-    ("syn_hidden0_pyr_pop_to_output_output_pop","g",t_ax_readout),
-    ("syn_output_output_pop_to_hidden0_pyr_pop","g",t_ax_readout),
-    ("syn_input_input_pop_to_hidden0_pyr_pop","g",t_ax_readout)])
-
-#ipdb.set_trace()
+results_neur, results_syn, results_validation = net.run_sim(T,[test_input_tuple,test_output_tuple,switch_plast_input_tuple],
+	[("neur_output_output_pop","vb",t_ax_readout),
+	("neur_output_output_pop","vnudge",t_ax_readout),
+	("neur_output_output_pop","u",t_ax_readout),
+	("neur_output_output_pop","r",t_ax_readout),
+	("neur_hidden0_pyr_pop","u",t_ax_readout),
+	("neur_hidden0_pyr_pop","va_exc",t_ax_readout),
+	("neur_hidden0_pyr_pop","va_int",t_ax_readout),
+	("neur_hidden0_pyr_pop","vb",t_ax_readout),
+	("neur_hidden0_pyr_pop","va",t_ax_readout),
+	("neur_hidden0_int_pop","r",t_ax_readout),
+	("neur_hidden0_int_pop","u",t_ax_readout),
+	("neur_hidden0_int_pop","v",t_ax_readout),
+	("neur_hidden0_pyr_pop","r",t_ax_readout),
+	("neur_input_input_pop","r",t_ax_readout)],
+	[("syn_hidden0_int_pop_to_pyr_pop","g",t_ax_readout),
+	("syn_hidden0_pyr_pop_to_int_pop","g",t_ax_readout),
+	("syn_hidden0_pyr_pop_to_output_output_pop","g",t_ax_readout),
+	("syn_output_output_pop_to_hidden0_pyr_pop","g",t_ax_readout),
+	("syn_input_input_pop_to_hidden0_pyr_pop","g",t_ax_readout)],
+	data_validation)
 
 va_exc_hidden = results_neur["neur_hidden0_pyr_pop_va_exc"]
 va_int_hidden = results_neur["neur_hidden0_pyr_pop_va_int"]
@@ -192,6 +216,7 @@ fig.tight_layout()
 
 fig.savefig("train_loss.png",dpi=600)
 
+'''
 fig, ax = plt.subplots(1,2,figsize=(10,5))
 
 ax[0].plot(t_ax_readout[::T_skip_plot],vb_eff_output[:,0][::T_skip_plot],label=r'$\hat{v}_b$')
@@ -215,6 +240,27 @@ fig.tight_layout()
 fig.savefig("u_trg_vs_vb_eff.png",dpi=600)
 
 plt.show()
+'''
 
+
+
+for k in range(t_validation.shape[0]):
+
+	fig, ax = plt.subplots(1,1,figsize=(10,5))
+
+	ax.step(t_ax_val,target_data_validation[k][:,0],where="post",label=r'$u_{trg}$')
+	ax.plot(t_ax_readout_val,results_validation[k][0]["neur_output_output_pop_u"][:,0],label=r'$\hat{v}_b$')
+
+	ax.set_title(f'Validation at Time Step $t = {t_validation[k]}$')
+
+	ax.set_xlabel(r"$Time Steps$")
+
+	ax.legend()
+
+	fig.tight_layout()
+
+	fig.savefig(f'validation_t_{t_validation[k]}.png',dpi=300)
+
+	plt.show()
 
 pdb.set_trace()

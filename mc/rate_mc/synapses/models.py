@@ -63,6 +63,8 @@ class SynapseBase:
 
     def connect_pops(self,name,genn_model,target,source,plastic=True):
 
+
+
         wu_model = self.build_plastic_wu_model() if plastic else self.build_static_wu_model()
 
         if plastic:
@@ -95,8 +97,9 @@ class SynapseBase:
             self.connectivity_initialiser
         )
         _syn_pop.ps_target_var = self.ps_target_var
-        
+
         return _syn_pop
+
 
 class SynapseDense(SynapseBase):
 
