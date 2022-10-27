@@ -1,21 +1,55 @@
-#! /usr/bin/env python3
+'''
+This module defines the network class used to
+construct an instance of the dendritic microcircuit model.
+'''
+from dataclasses import dataclass
+
+import numpy as np
+
+from pygenn.genn_model import GeNNModel
+
+from tqdm import tqdm
 
 from .layers import InputLayer, HiddenLayer, OutputLayer
 
 from .synapses.models import (SynapsePPBasal, SynapsePPApical,
                               SynapseIPBack, SynapsePINP)
 
-from dataclasses import dataclass
-
-from pygenn.genn_model import GeNNModel
-
-import numpy as np
-
-from tqdm import tqdm
-
 
 @dataclass
 class Network:
+    '''The Network class defines the dendritic microcircuit
+    model.
+
+    Args:
+        name (str):         Name of the network instance.
+
+        size_input (int):   Number of neurons in the input layer.
+
+        size_hidden (list): List of integers defining the number.
+                            of neurons in each hidden layer. Order
+                            corresponds to the flow of information
+                            in the "forward direction" from the
+                            input to the output layer.
+
+        size_output (int):  Number of neurons in the output layer.
+
+        dt (float):         Simulation time step size.
+
+        plastic (bool):     Flag indicating whether the network should
+                            include synaptic plasticity rules. If this
+                            is True (default), a non-plastic twin of
+                            the network will be created that is used
+                            for validation runs using
+                            func: Network.run_validation.
+
+        t_inp_max (int):    Maximum number of time signatures used for
+                            updating the input layer and the target for
+                            the output layer. This must be specified
+                            because the external data is pushed to the 
+                            device as a whole before the start of the
+                            simulation.
+    '''
 
     name: str
     size_input: int
@@ -23,6 +57,7 @@ class Network:
     size_output: int
     dt: float = 0.1
     plastic: bool = True
+    t_inp_max: int
 
     def __post_init__(self):
 
@@ -156,16 +191,28 @@ class Network:
         #################################################
 
         self.genn_model.build()
+
+        inp_pop = self.neur_pops["neur_input_input_pop"]
+
+        testpar_init = np.arange((inp_pop.size))
+
+        inp_pop.set_extra_global_param("testpar", testpar_init)
+
+        inp_pop.set_extra_global_param("t", 0)
+
         self.genn_model.load()
 
         # only if this instance is plastic, we create a static
         # twin of the network as a member variable of itself
         # (otherwise, calling create_static_twin() would lead
         # to an infinite recursive loop).
-        if(self.plastic):
+        if self.plastic:
             self.create_static_twin()
 
     def update_neur_pops(self):
+        '''updates the dictionary self.neur_pops
+        by running through all layers
+        to get a full list of all neuron populations.'''
 
         self.neur_pops = {}
         for layer in self.layers:
@@ -173,6 +220,10 @@ class Network:
                 self.neur_pops[pop.name] = pop
 
     def update_syn_pops(self):
+        '''updates the dictionary self.syn_pops
+        by running through all layers and cross-layer
+        synapse populations to get a full list
+        of all synapse populations.'''
 
         self.syn_pops = {}
 
@@ -184,45 +235,90 @@ class Network:
             self.syn_pops[pop.name] = pop
 
     def create_static_twin(self):
+        '''create a non-plastic copy of the
+        network by removing the plastic component
+        in the weight update rules for the copy.
+        The copy self.static_twin will be an
+        instance of the network itself.'''
 
         self.static_twin_net = Network(
             "static_twin", self.size_input, self.size_hidden,
             self.size_output, dt=self.dt, plastic=False)
 
-    def run_sim(self, T, ext_data_pop_vars, readout_neur_pop_vars,
-                readout_syn_pop_vars, data_validation=None):
+    def run_sim(self, T, t_sign, ext_data_input, ext_data_output,
+                ext_data_pop_vars, readout_neur_pop_vars,
+                readout_syn_pop_vars, t_sign_validation=None, data_validation=None):
         '''
-        ext_data_pop_vars should be a list tuples of the form
+        run_sim simulates the network and allows the user
+        to provide input data as well as specify targets
+        for readout/recording.
 
-        (numpy_data, numpy_times, target_pop, target_var).
+        Args:
 
-        numpy_times is a list of time indices whose length
-        should be the same as the first dimension of numpy_data.
+            T (int):    Number of simulation time steps.
 
-        readout_neur_pop_vars & readout_syn_pop_vars should both be lists
-        of tuples of the form
+            t_sign (numpy.ndarray):
 
-        (readout_pop, readout_var, numpy_times),
+                        Time signatures for the update
+                        of the input rates and the values
+                        of u_trg in the output population.
 
-        where numpy_times is an array specifying the readout times.
+            ext_data_input (numpy.ndarray):
 
-        data_validation should be a list of the form
+                        Data array for the input rates.
+                        Should be of size (len(t_sign), size_input).
 
-        [t_validation, T_run, ext_data_validation,
-                readout_neur_pop_vars_validation],
+            ext_data_output (numpy.ndarray):
 
-        where t_validation is a numpy array with ordered time signatures
-        used to trigger a validation run.
+                        Data array for the u_trg variables.
+                        Should be of size (len(t_sign), size_output).
 
-        T_run should be a list of runtimes for the validation runs.??,??,
+            ext_data_pop_vars (list):
 
-        ext_data_validation should be a list of lists, each following
-        the same structure as ext_data_pop_vars. ext_data_validation
-        must have the same length as the size of the t_validation array,
-        as each time signature corresponds to one entry in ext_data_validation.
+                        Additional data and time signatures targeting
+                        neuron population variables in the network.
 
-        Likewise, readout_neur_pop_vars_validation should be a list of lists,
-        each following the structure of readout_neur_pop_vars.
+                        ext_data_pop_vars should be a list tuples of the form
+                        (numpy_data, numpy_times, target_pop, target_var).
+
+                        numpy_times is a list of time indices whose length
+                        should be the same as the first dimension of
+                        numpy_data.
+
+            readout_neur_pop_vars (list):
+
+                        List of tuples of the form
+                        (readout_pop, readout_var, numpy_times).
+                        readout_pop is the name of the population
+                        to be read from & readout var specifies the
+                        variable to be pulled.
+                        numpy_times is an array specifying
+                        the readout times.
+
+            readout_syn_pop_vars (list):
+
+                        Same structure as readout_neur_pop_vars.
+
+            t_sign_validation (np.ndarray):
+
+                        Time signatures for calling a validation run.
+
+            data_validation (list):
+
+                        List of dictionaries, each of which holds
+                        arguments for a validation run executed at
+                        one of the time steps given in t_sign_validation.
+                        The arguments required are a subset of the arguments
+                        provided to run_sim, namely
+                        {T, t_sign, ext_data_input, ext_data_pop_vars, readout_neur_pop_vars}.
+                        Note that this does not include any "target data", e.g. for
+                        the readout. The validation runs only yield the
+                        simulation data specified in readout_neur_pop_vars,
+                        and it is the user's responsibility to construct
+                        meaningful validation measures from the data that is
+                        returned. Furthermore, there is no option for
+                        recording synapses, since they are kept fixed
+                        during the validation.
         '''
 
         input_views = []
@@ -233,20 +329,19 @@ class Network:
 
         n_inputs = len(ext_data_pop_vars)
 
-        # List for copies of time signatures.
-        time_signatures = []
+        # List for copies of time signatures for extra input data.
+        time_signatures_ext_data = []
 
-        if(data_validation):
-            # Copy of the validation run time signatures
-            t_validation = np.array(data_validation[0])
+        if data_validation:
 
-            T_run_validation = data_validation[1]
+            assert t_sign_validation is not None, \
+                """Error: validation data was provided,
+                but no time signatures were given.
+                """
 
-            ext_data_validation = data_validation[2]
-
-            readout_neur_pop_vars_validation = data_validation[3]
-
-            readout_syn_pop_vars_validation = data_validation[4]
+            assert t_sign_validation.shape[0] == len(data_validation), \
+                """Error: Number of validation time signatures
+                does not match number of validation datasets."""
 
             # List to store the results of the validation runs.
             results_validation = []
@@ -256,24 +351,28 @@ class Network:
 
         for ext_dat, numpy_times, target_pop, target_var in ext_data_pop_vars:
 
-            assert ext_dat.ndim == 2, """Input data array does
-            not have two dimensions."""
+            assert ext_dat.ndim == 2, \
+                """Input data array does
+                not have two dimensions."""
 
             _target_pop = self.neur_pops[target_pop]
-            assert ext_dat.shape[1] == _target_pop.size, """Input data size and
-            input population size do not match."""
+            assert ext_dat.shape[1] == _target_pop.size, \
+                """Input data size and
+                input population size do not match."""
 
             assert len(
                 numpy_times) > 0, """Error: Passed empty input
                 data time span list."""
 
-            assert np.all(numpy_times[:-1] < numpy_times[1:]), """Error: Input times are not correctly
-            ordered"""
+            assert np.all(numpy_times[:-1] < numpy_times[1:]), \
+                """Error: Input times are not correctly
+                ordered"""
 
-            assert numpy_times.shape[0] == ext_dat.shape[0], """Error: Size of input data does not match
-            number of time signatures."""
+            assert numpy_times.shape[0] == ext_dat.shape[0], \
+                """Error: Size of input data does not match
+                number of time signatures."""
 
-            time_signatures.append(np.array(numpy_times))
+            time_signatures_ext_data.append(np.array(numpy_times))
 
             idx_data_heads.append(0)
 
@@ -293,7 +392,8 @@ class Network:
 
         for readout_pop, readout_var, t_sign in readout_neur_pop_vars:
             _dict_name = f'{readout_pop}_{readout_var}'
-            readout_views[_dict_name] = self.neur_pops[readout_pop].vars[readout_var].view
+            _view = self.neur_pops[readout_pop].vars[readout_var].view
+            readout_views[_dict_name] = _view
             readout_neur_arrays[_dict_name] = np.ndarray(
                 (t_sign.shape[0], self.neur_pops[readout_pop].size))
 
@@ -302,24 +402,28 @@ class Network:
 
         for readout_pop, readout_var, t_sign in readout_syn_pop_vars:
             _dict_name = f'{readout_pop}_{readout_var}'
+            _trg_size = self.syn_pops[readout_pop].trg.size
+            _src_size = self.syn_pops[readout_pop].src.size
             readout_syn_arrays[_dict_name] = np.ndarray((t_sign.shape[0],
-                                                         self.syn_pops[readout_pop].trg.size,
-                                                         self.syn_pops[readout_pop].src.size))
+                                                        _trg_size,
+                                                        _src_size))
 
             time_signatures_readout_syn_pop.append(np.array(t_sign))
             idx_readout_syn_pop_heads.append(0)
+
+        _inp_pop = self.neur_pops["neur_input_input_pop"]
 
         for t in tqdm(range(T)):
 
             for k in range(n_inputs):
 
                 # if the array of time signatures is not empty...
-                if(time_signatures[k].shape[0] > 0):
+                if time_signatures_ext_data[k].shape[0] > 0:
 
                     # check if the current time is equal to the
                     # current first element in the
                     # array of time signatures.
-                    if(time_signatures[k][0] == t):
+                    if time_signatures_ext_data[k][0] == t:
                         input_views[k][:] = ext_data_pop_vars[k][0][idx_data_heads[k]]
 
                         self.neur_pops[ext_data_pop_vars[k][2]].push_var_to_device(
@@ -329,9 +433,9 @@ class Network:
 
                         # remove the current first element of the
                         # time signatures after use.
-                        time_signatures[k] = time_signatures[k][1:]
+                        time_signatures_ext_data[k] = time_signatures_ext_data[k][1:]
 
-            if(data_validation):
+            if data_validation:
                 if(idx_validation_runs < t_validation.shape[0]
                         and t_validation[idx_validation_runs] == t):
 
@@ -347,9 +451,9 @@ class Network:
 
             for k, (readout_pop, readout_var, _) in enumerate(readout_neur_pop_vars):
 
-                if(time_signatures_readout_neur_pop[k].shape[0] > 0):
+                if time_signatures_readout_neur_pop[k].shape[0] > 0:
 
-                    if(time_signatures_readout_neur_pop[k][0] == t):
+                    if time_signatures_readout_neur_pop[k][0] == t:
 
                         self.neur_pops[readout_pop].pull_var_from_device(
                             readout_var)
@@ -380,10 +484,9 @@ class Network:
 
                         time_signatures_readout_syn_pop[k] = time_signatures_readout_syn_pop[k][1:]
 
-        if(data_validation):
+        if data_validation:
             return readout_neur_arrays, readout_syn_arrays, results_validation
-        else:
-            return readout_neur_arrays, readout_syn_arrays
+        return readout_neur_arrays, readout_syn_arrays
 
     def run_validation(self, T, ext_data_pop_vars,
                        readout_neur_pop_vars, readout_syn_pop_vars):
@@ -402,7 +505,7 @@ class Network:
             # 36 standing for SPARSE_GLOBALG:
             # You can not read weights from this matrix type, and it is not
             # plastic anyway.
-            if(syn_pop.matrix_type != 36):
+            if syn_pop.matrix_type != 36:
 
                 syn_pop.pull_var_from_device("g")
 

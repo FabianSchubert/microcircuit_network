@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 
+import ipdb
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -10,6 +11,9 @@ from mc.rate_mc.network import Network
 from mc.rate_mc.neurons.params import (pyr_hidden_param_space,
                                        output_param_space,
                                        int_param_space)
+
+from utils import gen_input_output_data
+
 gb_pyr = pyr_hidden_param_space["gb"]
 ga_pyr = pyr_hidden_param_space["ga"]
 glk_pyr = pyr_hidden_param_space["glk"]
@@ -22,73 +26,95 @@ glk_int = int_param_space["glk"]
 gd_int = int_param_space["gd"]
 gsom_int = int_param_space["gsom"]
 
+#####################
+# Training parameters
+N_IN = 30
+N_HIDDEN = [50]
+N_OUT = 10
 
-def phi(x):
-    return x
-    # return np.log(1.+np.exp(x))
-    # return np.tanh(x)
+N_HIDDEN_TEACHER = 20
 
+T_SHOW_PATTERNS = 150
+N_PATTERNS = 100000
 
-n_in = 30
-n_hidden = [50]
-n_out = 10
+T_OFFSET = 0
 
-n_hidden_teacher = 20
+T = N_PATTERNS * T_SHOW_PATTERNS + T_OFFSET
+####################
 
-T_show_patterns = 150
-n_patterns = 80000
+######################
+# recording parameters
 
+T_SKIP_REC = 450
+T_OFFSET_REC = 140
+T_AX_READOUT = np.arange(T)[::T_SKIP_REC]+T_OFFSET_REC
+######################
 
-T_switch_to_patterns = 1 * T_show_patterns
+#####################
+# plotting parameters
 
-T = T_show_patterns * n_patterns
+# skip readout data
+T_SKIP_PLOT = 30
+#####################
 
-t_ax_input = np.arange(n_patterns)*T_show_patterns + T_switch_to_patterns
+#######################
+# validation parameters
 
-T_skip_rec = T_show_patterns*3
-t_ax_readout = np.arange(T)[::T_skip_rec]+140
+T_INTERVAL_VALIDATION = int(T/10)
 
-T_skip_plot = 30
+N_VAL_PATTERNS = 20
 
-test_input = np.random.rand(n_patterns, n_in)
+T_RUN_VALIDATION = T_SHOW_PATTERNS * N_VAL_PATTERNS
 
-W_10 = 4.*(np.random.rand(n_hidden_teacher, n_in)-0.5)/np.sqrt(n_in)
-W_21 = 4.*(np.random.rand(n_out, n_hidden_teacher)-0.5) / \
-    np.sqrt(n_hidden_teacher)
+T_SIGN_VALIDATION = np.arange(T)[::T_INTERVAL_VALIDATION]
+N_VALIDATION = T_SIGN_VALIDATION.shape[0]
+#######################
 
-test_output = (W_21 @ phi(W_10 @ test_input.T)).T
+########################
+# generate training data
+(t_ax_train, test_input,
+ test_output, W_10, W_21) = gen_input_output_data(N_IN,
+                                                  N_HIDDEN_TEACHER,
+                                                  N_OUT,
+                                                  N_PATTERNS,
+                                                  T_SHOW_PATTERNS,
+                                                  T_OFFSET)
 
-test_input_tuple = (test_input, t_ax_input, "neur_input_input_pop", "u")
-test_output_tuple = (test_output, t_ax_input,
-                     "neur_output_output_pop", "vnudge")
+########################
 
-switch_plast_input_dat = np.ones((2, n_out)) * 0.8
-switch_plast_input_dat[0] = 0.
+##########################
+# generate validation data
+data_validation = []
 
-switch_plast_t = np.array([0, T_switch_to_patterns])
+targ_output_validation = []
 
-switch_plast_input_tuple = (switch_plast_input_dat,
-                            switch_plast_t, "neur_output_output_pop", "gnudge")
+for k in range(n_validation):
 
-# run 10 validations throughout the simulation
-T_interval_validation = int(T/10)
+    (t_ax_val, val_input,
+     val_output, _, _) = gen_input_output_data(N_IN,
+                                               N_HIDDEN_TEACHER,
+                                               N_OUT,
+                                               N_VAL_PATTERNS,
+                                               T_SHOW_PATTERNS,
+                                               0,
+                                               (W_10, W_21))
 
-t_validation = np.arange(int(T/T_interval_validation)) * T_interval_validation
+    {T, t_sign, ext_data_input, readout_neur_pop_vars}
 
-n_val_patterns = 20
+    _dict_data_validation = {}
 
-# show 100 patterns on each validation run.
-T_run_validation = T_show_patterns * n_val_patterns
+    _dict_data_validation["T"] = T_RUN_VALIDATION
+    _dict_data_validation["t_sign"] = t_ax_val
+    _dict_data_validation["ext_data_input"] = val_input
+    _dict_data_validation[]
 
-ext_data_validation = []
+    # the second input tuple sets the nudging
+    # conductance in the output population to zero
+    # at the start of the validation.
+    _val_input_tuples = [(val_input, t_ax_val, "neur_input_input_pop", "u"),
+                         (np.zeros((1, n_out)), np.array([0.]).astype("int"),
+                          "neur_output_output_pop", "gnudge")]
 
-target_data_validation = []
-
-readout_neur_pop_vars_validation = []
-
-readout_syn_pop_vars_validation = []
-
-T_run_validation_list = [T_run_validation] * t_validation.shape[0]
 
 for k in range(t_validation.shape[0]):
     val_input = np.random.rand(n_val_patterns, n_in)
@@ -122,6 +148,8 @@ data_validation = [t_validation, T_run_validation_list,
 ###############
 
 net = Network("testnet", n_in, n_hidden, n_out, dt=0.5)
+
+ipdb.set_trace()
 
 # Manually initialize the network in the self-predicting state
 

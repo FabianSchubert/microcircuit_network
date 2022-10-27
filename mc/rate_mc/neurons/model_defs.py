@@ -49,7 +49,6 @@ output_model = {
     "reset_code": None
 }
 
-
 int_model = {
     "class_name": "int",
     "param_names": ["glk", "gd", "gsom"],
@@ -69,8 +68,15 @@ int_model = {
 input_model = {
     "class_name": "input",
     "param_names": None,
-    "var_name_types": [("r", "scalar"), ("u", "scalar")],
-    "sim_code": "$(r) = $(u);",
+    "var_name_types": [("r", "scalar"), ("t", "int"), ("idx_dat", "int")],
+    "sim_code": """
+    if($(t)==$(t_sign)[$(idx_dat)]){
+        $(r) = $(u)[$(id)+$(idx_dat)*$(num_neurons)];
+        $(idx_dat)++;
+    }
+    $(t)++;
+    //$(r) = $(u)[$(id)+$(t)];""",
     "threshold_condition_code": None,
-    "reset_code": None
+    "reset_code": None,
+    "extra_global_params": [("u", "scalar*"), ("t_sign", "int*")]
 }
