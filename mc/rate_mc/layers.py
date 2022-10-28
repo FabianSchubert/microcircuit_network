@@ -70,8 +70,11 @@ class OutputLayer(LayerBase):
 
         N = args[-1]
 
+        _output_param_space = dict(output_param_space)
+        _output_param_space["pop_size"] = N
+
         self.add_neur_pop("output_pop", N, output_model,
-                          output_param_space, output_var_space)
+                          _output_param_space, output_var_space)
 
 
 class InputLayer(LayerBase):
@@ -82,5 +85,8 @@ class InputLayer(LayerBase):
 
         N = args[-1]
 
+        _input_param_space = dict(input_param_space)
+        _input_param_space["pop_size"] = N
+
         self.add_neur_pop("input_pop", N, input_model,
-                          input_param_space, input_var_space)
+                          _input_param_space, input_var_space)

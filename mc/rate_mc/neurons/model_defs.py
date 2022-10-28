@@ -31,22 +31,31 @@ pyr_model = {
 
 output_model = {
     "class_name": "output",
-    "param_names": ["glk", "gb", "ga", "sigm_noise"],
+    "param_names": ["glk", "gb", "ga", "sigm_noise", "pop_size"],
     "var_name_types": [("u", "scalar"), ("r", "scalar"),
                        ("vb", "scalar"), ("gnudge", "scalar"),
-                       ("vnudge", "scalar")],
+                       ("vnudge", "scalar"), ("idx_dat", "int")],
     "additional_input_vars": [("Isyn_vb", "scalar", 0.0)],
     "derived_params": [("DTSQRT",
                         create_dpf_class(lambda pars, dt: dt**.5)())],
     "sim_code": f"""
                 $(vb) = $(Isyn_vb);
+                if($(t)>=$(t_sign)[$(idx_dat)]*DT 
+                   && $(idx_dat) < ($(size_t_sign) - 1)){{
+                    $(vnudge) = $(u_trg)[$(id)+$(idx_dat)*$(size_u_trg)];
+                    $(idx_dat)++;
+                }}
                 $(u) += DT * (-($(glk)+$(gb)+$(gnudge))*$(u)
                 + $(gb)*$(vb)
                 + $(gnudge)*$(vnudge));
                 $(r) = {act_func('$(u)')};
                 """,
     "threshold_condition_code": None,
-    "reset_code": None
+    "reset_code": None,
+    "extra_global_params": [("u_trg", "scalar*"),
+                            ("size_u_trg", "int"), 
+                            ("t_sign", "int*"),
+                            ("size_t_sign", "int")]
 }
 
 int_model = {
@@ -67,16 +76,19 @@ int_model = {
 
 input_model = {
     "class_name": "input",
-    "param_names": None,
-    "var_name_types": [("r", "scalar"), ("t", "int"), ("idx_dat", "int")],
+    "param_names": ["pop_size"],
+    "var_name_types": [("r", "scalar"), ("idx_dat", "int")],
     "sim_code": """
-    if($(t)==$(t_sign)[$(idx_dat)]){
-        $(r) = $(u)[$(id)+$(idx_dat)*$(num_neurons)];
+    if($(t)>=$(t_sign)[$(idx_dat)]
+       && $(idx_dat) < ($(size_t_sign) - 1)){
+        $(r) = $(u)[$(id)+$(idx_dat)*$(size_u)];
         $(idx_dat)++;
     }
-    $(t)++;
     //$(r) = $(u)[$(id)+$(t)];""",
     "threshold_condition_code": None,
     "reset_code": None,
-    "extra_global_params": [("u", "scalar*"), ("t_sign", "int*")]
+    "extra_global_params": [("u", "scalar*"),
+                            ("size_u", "int"),
+                            ("t_sign", "int*"),
+                            ("size_t_sign", "int")]
 }

@@ -4,6 +4,8 @@ construct an instance of the dendritic microcircuit model.
 '''
 from dataclasses import dataclass
 
+import ipdb
+
 import numpy as np
 
 from pygenn.genn_model import GeNNModel
@@ -14,7 +16,6 @@ from .layers import InputLayer, HiddenLayer, OutputLayer
 
 from .synapses.models import (SynapsePPBasal, SynapsePPApical,
                               SynapseIPBack, SynapsePINP)
-
 
 @dataclass
 class Network:
@@ -55,9 +56,10 @@ class Network:
     size_input: int
     size_hidden: list
     size_output: int
+    t_inp_max: int
     dt: float = 0.1
     plastic: bool = True
-    t_inp_max: int
+    t_inp_static_max: int = 0
 
     def __post_init__(self):
 
@@ -68,6 +70,7 @@ class Network:
         self.n_hidden_layers = len(self.size_hidden)
 
         self.layers = []
+
         self.layers.append(
             InputLayer("input",
                        self.genn_model,
@@ -76,9 +79,9 @@ class Network:
         # there must be at least one hidden layer.
         assert len(self.size_hidden) > 0
 
-        for k in range(self.n_hidden_layers-1):
+        for k in range(self.n_hidden_layers - 1):
             _l_size = self.size_hidden[k]
-            _l_next_size = self.size_hidden[k+1]
+            _l_next_size = self.size_hidden[k + 1]
             self.layers.append(
                 HiddenLayer(f'hidden{k}',
                             self.genn_model, _l_size, _l_next_size,
@@ -87,7 +90,7 @@ class Network:
         self.layers.append(
             HiddenLayer(f'hidden{self.n_hidden_layers-1}',
                         self.genn_model,
-                        self.size_hidden[self.n_hidden_layers-1],
+                        self.size_hidden[self.n_hidden_layers - 1],
                         self.size_output,
                         plastic=self.plastic))
 
@@ -102,7 +105,6 @@ class Network:
         self.cross_layer_syn_pops = []
 
         _N_in = self.neur_pops["neur_input_input_pop"].size
-
         self.cross_layer_syn_pops.append(
             SynapsePINP(_N_in).connect_pops(
                 'syn_input_input_pop_to_hidden0_pyr_pop',
@@ -113,9 +115,9 @@ class Network:
             )
         )
 
-        for k in range(self.n_hidden_layers-1):
-            _l = self.layers[k+1]
-            _l_next = self.layers[k+2]
+        for k in range(self.n_hidden_layers - 1):
+            _l = self.layers[k + 1]
+            _l_next = self.layers[k + 2]
 
             _N_in = _l.neur_pops["pyr_pop"].size
 
@@ -192,13 +194,27 @@ class Network:
 
         self.genn_model.build()
 
-        inp_pop = self.neur_pops["neur_input_input_pop"]
+        # initialize the extra global parameters required for
+        # putting the input to the gpu
+        _t_sign_init = np.zeros((self.t_inp_max))
 
-        testpar_init = np.arange((inp_pop.size))
+        _inp_pop = self.neur_pops["neur_input_input_pop"]
 
-        inp_pop.set_extra_global_param("testpar", testpar_init)
+        _u_input_init = np.zeros((_inp_pop.size*self.t_inp_max))
 
-        inp_pop.set_extra_global_param("t", 0)
+        _inp_pop.set_extra_global_param("u", _u_input_init)
+        _inp_pop.set_extra_global_param("t_sign", _t_sign_init)
+        _inp_pop.set_extra_global_param("size_u", self.size_input)
+        _inp_pop.set_extra_global_param("size_t_sign", self.t_inp_max)
+
+        _output_pop = self.neur_pops["neur_output_output_pop"]
+
+        _u_trg_init = np.zeros((_output_pop.size*self.t_inp_max))
+
+        _output_pop.set_extra_global_param("u_trg", _u_trg_init)
+        _output_pop.set_extra_global_param("t_sign", _t_sign_init)
+        _output_pop.set_extra_global_param("size_u_trg", self.size_output)
+        _output_pop.set_extra_global_param("size_t_sign", self.t_inp_max)
 
         self.genn_model.load()
 
@@ -243,7 +259,8 @@ class Network:
 
         self.static_twin_net = Network(
             "static_twin", self.size_input, self.size_hidden,
-            self.size_output, dt=self.dt, plastic=False)
+            self.size_output, self.t_inp_static_max,
+            dt=self.dt, plastic=False)
 
     def run_sim(self, T, t_sign, ext_data_input, ext_data_output,
                 ext_data_pop_vars, readout_neur_pop_vars,
@@ -266,12 +283,12 @@ class Network:
             ext_data_input (numpy.ndarray):
 
                         Data array for the input rates.
-                        Should be of size (len(t_sign), size_input).
+                        Should be of size (len(t_sign) * size_input).
 
             ext_data_output (numpy.ndarray):
 
                         Data array for the u_trg variables.
-                        Should be of size (len(t_sign), size_output).
+                        Should be of size (len(t_sign) * size_output).
 
             ext_data_pop_vars (list):
 
@@ -390,30 +407,53 @@ class Network:
         time_signatures_readout_syn_pop = []
         idx_readout_syn_pop_heads = []
 
-        for readout_pop, readout_var, t_sign in readout_neur_pop_vars:
+        for readout_pop, readout_var, t_sign_readout in readout_neur_pop_vars:
             _dict_name = f'{readout_pop}_{readout_var}'
             _view = self.neur_pops[readout_pop].vars[readout_var].view
             readout_views[_dict_name] = _view
             readout_neur_arrays[_dict_name] = np.ndarray(
-                (t_sign.shape[0], self.neur_pops[readout_pop].size))
+                (t_sign_readout.shape[0], self.neur_pops[readout_pop].size))
 
-            time_signatures_readout_neur_pop.append(np.array(t_sign))
+            time_signatures_readout_neur_pop.append(np.array(t_sign_readout))
             idx_readout_neur_pop_heads.append(0)
 
-        for readout_pop, readout_var, t_sign in readout_syn_pop_vars:
+        for readout_pop, readout_var, t_sign_readout in readout_syn_pop_vars:
             _dict_name = f'{readout_pop}_{readout_var}'
             _trg_size = self.syn_pops[readout_pop].trg.size
             _src_size = self.syn_pops[readout_pop].src.size
-            readout_syn_arrays[_dict_name] = np.ndarray((t_sign.shape[0],
+            readout_syn_arrays[_dict_name] = np.ndarray((t_sign_readout.shape[0],
                                                         _trg_size,
                                                         _src_size))
 
-            time_signatures_readout_syn_pop.append(np.array(t_sign))
+            time_signatures_readout_syn_pop.append(np.array(t_sign_readout))
             idx_readout_syn_pop_heads.append(0)
 
         _inp_pop = self.neur_pops["neur_input_input_pop"]
 
+        _inp_pop.extra_global_params["u"].view[:ext_data_input.shape[0]] = ext_data_input
+        _inp_pop.extra_global_params["t_sign"].view[:t_sign.shape[0]] = t_sign
+        _inp_pop.extra_global_params["size_t_sign"].view[:] = t_sign.shape[0]
+
+        _inp_pop.push_extra_global_param_to_device("u", self.size_input * self.t_inp_max)
+        _inp_pop.push_extra_global_param_to_device("t_sign", self.t_inp_max)
+
+        if self.plastic:
+            _output_pop = self.neur_pops["neur_output_output_pop"]
+
+            _output_pop.extra_global_params["u_trg"].view[:ext_data_output.shape[0]] = ext_data_output
+            _output_pop.extra_global_params["t_sign"].view[:t_sign.shape[0]] = t_sign
+            _output_pop.extra_global_params["size_t_sign"].view[:] = t_sign.shape[0]
+
+            _output_pop.push_extra_global_param_to_device("u_trg", self.size_output * self.t_inp_max)
+            _output_pop.push_extra_global_param_to_device("t_sign", self.t_inp_max)
+
+
+
+
         for t in tqdm(range(T)):
+
+            #import ipdb
+            #ipdb.set_trace()
 
             for k in range(n_inputs):
 
@@ -436,14 +476,11 @@ class Network:
                         time_signatures_ext_data[k] = time_signatures_ext_data[k][1:]
 
             if data_validation:
-                if(idx_validation_runs < t_validation.shape[0]
-                        and t_validation[idx_validation_runs] == t):
+                if(idx_validation_runs < t_sign_validation.shape[0]
+                        and t_sign_validation[idx_validation_runs] == t):
 
                     results_validation.append(
-                        self.run_validation(T_run_validation[idx_validation_runs],
-                                            ext_data_validation[idx_validation_runs],
-                                            readout_neur_pop_vars_validation[idx_validation_runs],
-                                            readout_syn_pop_vars_validation[idx_validation_runs]))
+                        self.run_validation(**data_validation[idx_validation_runs]))
 
                     idx_validation_runs += 1
 
@@ -484,12 +521,13 @@ class Network:
 
                         time_signatures_readout_syn_pop[k] = time_signatures_readout_syn_pop[k][1:]
 
+
         if data_validation:
             return readout_neur_arrays, readout_syn_arrays, results_validation
         return readout_neur_arrays, readout_syn_arrays
 
-    def run_validation(self, T, ext_data_pop_vars,
-                       readout_neur_pop_vars, readout_syn_pop_vars):
+    def run_validation(self, T, t_sign, ext_data_input, ext_data_pop_vars,
+                       readout_neur_pop_vars):
         '''
         This method runs a network simulation on the
         static twin after copying the current weight
@@ -521,8 +559,9 @@ class Network:
                 view[:] = weights[key]
 
                 syn_pop.push_var_to_device("g")
+        
+        result_neur_arrays, _ = self.static_twin_net.run_sim(
+            T, t_sign, ext_data_input, np.ndarray(0),
+            ext_data_pop_vars, readout_neur_pop_vars, [])
 
-        result_neur_arrays, result_syn_arrays = self.static_twin_net.run_sim(
-            T, ext_data_pop_vars, readout_neur_pop_vars, readout_syn_pop_vars)
-
-        return result_neur_arrays, result_syn_arrays
+        return result_neur_arrays

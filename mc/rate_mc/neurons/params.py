@@ -12,7 +12,8 @@ output_param_space = {
     "glk": 0.1,
     "gb": 1.0,
     "ga": 0.0,
-    "sigm_noise": 0.0
+    "sigm_noise": 0.0,
+    "pop_size": None
 }
 
 int_param_space = {
@@ -21,4 +22,6 @@ int_param_space = {
     "gsom": 0.8
 }
 
-input_param_space = {}
+input_param_space = {
+    "pop_size": None
+}

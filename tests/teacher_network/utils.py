@@ -2,8 +2,8 @@ import numpy as np
 
 
 def phi(x):
-
-    return np.log(1.+np.exp(x))
+    return x
+    #return np.log(1.+np.exp(x))
 
 
 def gen_input_output_data(n_in=30,
@@ -27,4 +27,4 @@ def gen_input_output_data(n_in=30,
 
     t_ax = np.arange(n_patterns)*t_show_patterns + t_offset
 
-    return t_ax, test_input, test_output, W_10, W_21
+    return t_ax, test_input.flatten(), test_output.flatten(), W_10, W_21
