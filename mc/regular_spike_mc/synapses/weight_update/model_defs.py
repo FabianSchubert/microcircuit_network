@@ -9,6 +9,13 @@ wu_model_transmit_rate = {
     "synapse_dynamics_code": "$(addToInSyn, $(g) * $(r_pre));",
 }
 
+wu_model_transmit_spike = {
+    "class_name": "weight_update_model_transmit_spike",
+    "param_names": [],
+    "var_name_types": [("g", "scalar")],
+    "sim_code": "$(addToInSyn, $(g));"
+}
+
 wu_model_pp_basal = {
     "class_name": "weight_update_model_pyr_to_pyr_fwd_def",
     "param_names": ["muPP_basal", "tau"],
