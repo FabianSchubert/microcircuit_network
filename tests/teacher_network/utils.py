@@ -2,8 +2,8 @@ import numpy as np
 
 
 def phi(x):
-    return x
-    #return np.log(1.+np.exp(x))
+    #return x
+    return np.log(1.+np.exp(x))
 
 
 def gen_input_output_data(n_in=30,

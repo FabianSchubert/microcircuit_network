@@ -262,7 +262,9 @@ class Network:
             self.size_output, self.t_inp_static_max,
             dt=self.dt, plastic=False)
 
-    def run_sim(self, T, t_sign, ext_data_input, ext_data_output,
+    def run_sim(self, T, t_sign, 
+                #current_source_input, current_source_output,
+                ext_data_input, ext_data_output,
                 ext_data_pop_vars, readout_neur_pop_vars,
                 readout_syn_pop_vars, t_sign_validation=None, data_validation=None):
         '''
@@ -337,6 +339,8 @@ class Network:
                         recording synapses, since they are kept fixed
                         during the validation.
         '''
+
+
 
         input_views = []
 
@@ -428,6 +432,12 @@ class Network:
             time_signatures_readout_syn_pop.append(np.array(t_sign_readout))
             idx_readout_syn_pop_heads.append(0)
 
+        ####################################################
+        # prepare some internal state variables / parameters
+
+        self.genn_model.t = 0.0
+        self.genn_model.timestep = 0
+
         _inp_pop = self.neur_pops["neur_input_input_pop"]
 
         _inp_pop.extra_global_params["u"].view[:ext_data_input.shape[0]] = ext_data_input
@@ -437,7 +447,12 @@ class Network:
         _inp_pop.push_extra_global_param_to_device("u", self.size_input * self.t_inp_max)
         _inp_pop.push_extra_global_param_to_device("t_sign", self.t_inp_max)
 
+        # reset the input index counter before running the simulation
+        _inp_pop.vars["idx_dat"].view[:] = 0
+        _inp_pop.push_var_to_device("idx_dat")
+
         if self.plastic:
+
             _output_pop = self.neur_pops["neur_output_output_pop"]
 
             _output_pop.extra_global_params["u_trg"].view[:ext_data_output.shape[0]] = ext_data_output
@@ -447,14 +462,22 @@ class Network:
             _output_pop.push_extra_global_param_to_device("u_trg", self.size_output * self.t_inp_max)
             _output_pop.push_extra_global_param_to_device("t_sign", self.t_inp_max)
 
+            _output_pop.vars["idx_dat"].view[:] = 0
+            _output_pop.push_var_to_device("idx_dat")
 
-
+        ####################################################
 
         for t in tqdm(range(T)):
 
             #import ipdb
             #ipdb.set_trace()
 
+            #if(t==1):
+            #    import ipdb
+            #    ipdb.set_trace()
+
+            # manual variable manipulation
+            
             for k in range(n_inputs):
 
                 # if the array of time signatures is not empty...
@@ -483,9 +506,11 @@ class Network:
                         self.run_validation(**data_validation[idx_validation_runs]))
 
                     idx_validation_runs += 1
-
+            
+            
             self.genn_model.step_time()
 
+            
             for k, (readout_pop, readout_var, _) in enumerate(readout_neur_pop_vars):
 
                 if time_signatures_readout_neur_pop[k].shape[0] > 0:
@@ -521,7 +546,7 @@ class Network:
 
                         time_signatures_readout_syn_pop[k] = time_signatures_readout_syn_pop[k][1:]
 
-
+            
         if data_validation:
             return readout_neur_arrays, readout_syn_arrays, results_validation
         return readout_neur_arrays, readout_syn_arrays

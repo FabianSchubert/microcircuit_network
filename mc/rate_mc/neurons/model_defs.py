@@ -40,10 +40,11 @@ output_model = {
                         create_dpf_class(lambda pars, dt: dt**.5)())],
     "sim_code": f"""
                 $(vb) = $(Isyn_vb);
-                if($(t)>=$(t_sign)[$(idx_dat)]*DT 
-                   && $(idx_dat) < ($(size_t_sign) - 1)){{
-                    $(vnudge) = $(u_trg)[$(id)+$(idx_dat)*$(size_u_trg)];
-                    $(idx_dat)++;
+                if($(idx_dat) < $(size_t_sign)){{
+                    if($(t)>=$(t_sign)[$(idx_dat)]*DT){{
+                        $(vnudge) = $(u_trg)[$(id)+$(idx_dat)*$(size_u_trg)];
+                        $(idx_dat)++;
+                    }}
                 }}
                 $(u) += DT * (-($(glk)+$(gb)+$(gnudge))*$(u)
                 + $(gb)*$(vb)
@@ -79,12 +80,12 @@ input_model = {
     "param_names": ["pop_size"],
     "var_name_types": [("r", "scalar"), ("idx_dat", "int")],
     "sim_code": """
-    if($(t)>=$(t_sign)[$(idx_dat)]
-       && $(idx_dat) < ($(size_t_sign) - 1)){
-        $(r) = $(u)[$(id)+$(idx_dat)*$(size_u)];
-        $(idx_dat)++;
-    }
-    //$(r) = $(u)[$(id)+$(t)];""",
+    if($(idx_dat) < $(size_t_sign)){
+        if($(t)>=$(t_sign)[$(idx_dat)]*DT){
+            $(r) = $(u)[$(id)+$(idx_dat)*$(size_u)];
+            $(idx_dat)++;
+        }
+    }""",
     "threshold_condition_code": None,
     "reset_code": None,
     "extra_global_params": [("u", "scalar*"),

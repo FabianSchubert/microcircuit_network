@@ -1,0 +1,5 @@
+from pygenn.genn_model import create_custom_current_source_class
+
+from .model_defs import step_current_model as step_current_model_def
+
+step_current_model = create_custom_neuron_class(**step_current_model_def)
