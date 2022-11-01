@@ -1,0 +1,5 @@
+from .model_defs import integrator_update as integrator_update_def
+
+from pygenn.genn_model import create_custom_postsynaptic_class
+
+integrator_update = create_custom_postsynaptic_class(**integrator_update_def)

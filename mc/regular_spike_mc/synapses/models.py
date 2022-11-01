@@ -2,7 +2,9 @@
 
 from pygenn.genn_model import create_custom_weight_update_class
 
-from .weight_update.model_defs import (wu_model_transmit_rate,
+from .postsyn.models import integrator_update
+
+from .weight_update.model_defs import (wu_model_transmit_rate_diff,
                                        wu_model_pp_basal,
                                        wu_model_pp_apical,
                                        wu_model_pinp,
@@ -41,7 +43,7 @@ class SynapseBase:
     wu_pre_var_space_plast: dict = field(default_factory=dict)
     wu_post_var_space_transmit: dict = field(default_factory=dict)
     wu_post_var_space_plast: dict = field(default_factory=dict)
-    postsyn_model: str = "DeltaCurr"
+    postsyn_model: "typing.Any" = integrator_update
     ps_param_space_transmit: dict = field(default_factory=dict)
     ps_param_space_plast: dict = field(default_factory=dict)
     ps_var_space_transmit: dict = field(default_factory=dict)
@@ -126,7 +128,7 @@ class SynapsePPBasal(SynapseDense):
 
         N_norm = args[-1]
 
-        self.w_update_model_transmit = wu_model_transmit_rate
+        self.w_update_model_transmit = wu_model_transmit_rate_diff
         self.w_update_model_plast = wu_model_pp_basal
 
         self.wu_param_space_transmit = wu_param_space_transmit_rate
@@ -155,7 +157,7 @@ class SynapsePINP(SynapseDense):
 
         N_norm = args[-1]
 
-        self.w_update_model_transmit = wu_model_transmit_rate
+        self.w_update_model_transmit = wu_model_transmit_rate_diff
         self.w_update_model_plast = wu_model_pinp
 
         self.wu_param_space_transmit = wu_param_space_transmit_rate
@@ -184,7 +186,7 @@ class SynapsePPApical(SynapseDense):
 
         N_norm = args[-1]
 
-        self.w_update_model_transmit = wu_model_transmit_rate
+        self.w_update_model_transmit = wu_model_transmit_rate_diff
         self.w_update_model_plast = wu_model_pp_apical
 
         self.wu_param_space_transmit = wu_param_space_transmit_rate
@@ -211,7 +213,7 @@ class SynapseIP(SynapseDense):
 
         N_norm = args[-1]
 
-        self.w_update_model_transmit = wu_model_transmit_rate
+        self.w_update_model_transmit = wu_model_transmit_rate_diff
         self.w_update_model_plast = wu_model_ip
 
         self.wu_param_space_transmit = wu_param_space_transmit_rate
@@ -236,7 +238,7 @@ class SynapseIPBack(SynapseSparseOneToOne):
 
         super().__init__(*args, **kwargs)
 
-        self.w_update_model_transmit = wu_model_transmit_rate
+        self.w_update_model_transmit = wu_model_transmit_rate_diff
         self.w_update_model_plast = wu_model_ip_back
 
         self.wu_param_space_transmit = wu_param_space_transmit_rate
@@ -260,7 +262,7 @@ class SynapsePI(SynapseDense):
 
         N_norm = args[-1]
 
-        self.w_update_model_transmit = wu_model_transmit_rate
+        self.w_update_model_transmit = wu_model_transmit_rate_diff
         self.w_update_model_plast = wu_model_pi
 
         self.wu_param_space_transmit = wu_param_space_transmit_rate

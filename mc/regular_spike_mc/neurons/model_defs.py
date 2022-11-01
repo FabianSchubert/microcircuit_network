@@ -5,11 +5,13 @@ from pygenn.genn_model import create_dpf_class
 
 pyr_model = {
     "class_name": "pyr",
-    "param_names": ["glk", "gb", "ga", "sigm_noise"],
+    "param_names": ["glk", "gb", "ga", "sigm_noise", "spike_interv"],
     "var_name_types": [("u", "scalar"), ("r", "scalar"),
+                       ("r_last", "scalar"),
                        ("va_int", "scalar"), ("va_exc", "scalar"),
                        ("va", "scalar"),
-                       ("vb", "scalar")],
+                       ("vb", "scalar"),
+                       ("t_last_spike", "scalar")],
     "additional_input_vars": [("Isyn_va_int", "scalar", 0.0),
                               ("Isyn_va_exc", "scalar", 0.0),
                               ("Isyn_vb", "scalar", 0.0)],
@@ -25,8 +27,8 @@ pyr_model = {
                 + $(ga)*$(va));
                 $(r) = {act_func('$(u)')};
                 """,
-    "threshold_condition_code": None,
-    "reset_code": None
+    "threshold_condition_code": "$(t) - $(t_last_spike) >= $(spike_interv)",
+    "reset_code": ""
 }
 
 output_model = {
