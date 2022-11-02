@@ -28,7 +28,7 @@ pyr_model = {
                 + $(ga)*$(va));
                 $(r) = {act_func('$(u)')};
                 """,
-    "threshold_condition_code": "$(t) - $(t_last_spike) > $(spike_interv)",
+    "threshold_condition_code": "$(t) - $(t_last_spike) > $(spike_interv)*DT",
     "reset_code": """
                   $(r_sec_last) = $(r_last);
                   $(r_last) = $(r);
@@ -62,7 +62,7 @@ output_model = {
                 + $(gnudge)*$(vnudge));
                 $(r) = {act_func('$(u)')};
                 """,
-    "threshold_condition_code": "$(t) - $(t_last_spike) > $(spike_interv)",
+    "threshold_condition_code": "$(t) - $(t_last_spike) > $(spike_interv)*DT",
     "reset_code": """
                   $(r_sec_last) = $(r_last);
                   $(r_last) = $(r);
@@ -89,7 +89,7 @@ int_model = {
                 + $(gsom)*( $(u_td) - $(u) ));
                 $(r) = {act_func('$(u)')};
                 """,
-    "threshold_condition_code": "$(t) - $(t_last_spike) > $(spike_interv)",
+    "threshold_condition_code": "$(t) - $(t_last_spike) > $(spike_interv)*DT",
     "reset_code": """
                   $(r_sec_last) = $(r_last);
                   $(r_last) = $(r);
@@ -111,7 +111,7 @@ input_model = {
             $(idx_dat)++;
         }
     }""",
-    "threshold_condition_code": "$(t) - $(t_last_spike) > $(spike_interv)",
+    "threshold_condition_code": "$(t) - $(t_last_spike) > $(spike_interv)*DT",
     "reset_code": """
                   $(r_sec_last) = $(r_last);
                   $(r_last) = $(r);
