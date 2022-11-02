@@ -11,7 +11,18 @@ def merge_dicts(dict_1, dict_2):
 
 
 def merge_dict_list_strings(dict_1, dict_2, key):
-
+    '''
+    
+    '''
+    # check if both lists provide lists associated
+    # with the given key if the key is present
+    assert isinstance(dict_1.get(key, []), list), \
+        f"value of {key} in list 1 is not a list."
+    assert isinstance(dict_2.get(key, []), list), \
+        f"value of {key} in list 2 is not a list."
+    
+    # check if every element in the lists are
+    # are strings.        
     assert all(isinstance(s, str) for s in dict_1.get(key, [])
                ), f"{key} list 1 contains non-string elements"
     assert all(isinstance(s, str) for s in dict_2.get(key, [])
@@ -69,16 +80,21 @@ def merge_wu_def(class_name, def_1, def_2):
     for code in code_strings:
         code_1 = def_1.get(code, None)
         code_2 = def_2.get(code, None)
+
+        # if both codes are None, set the resulting
+        # code to None.
         if(code_1 is None and code_2 is None):
             wu_def[code] = None
         else:
+            # else, set either code variables to
+            # an empty string if they are None...
             code_1 = "" if code_1 is None else code_1
             code_2 = "" if code_2 is None else code_2
 
+            # ... and merge both string with a line break.
             wu_def[code] = f'''{code_1}\n{code_2}'''
 
     # check additional boolean requirements parameters
-
     boolean_flags = ["is_pre_spike_time_required",
                      "is_post_spike_time_required",
                      "is_pre_spike_event_time_required",
@@ -91,3 +107,42 @@ def merge_wu_def(class_name, def_1, def_2):
             def_2.get(flag, None) is True)
 
     return wu_def
+
+def merge_ps_def(class_name, def_1, def_2):
+
+    ps_def = {
+        "class_name": class_name
+    }
+
+    ps_def["param_names"] = merge_dict_list_strings(
+        def_1, def_2, "param_names")
+
+    var_params_pair_names = ["var_name_types",
+                             "derived_params",
+                             "extra_global_params"]
+
+    for vp in var_params_pair_names:
+        ps_def[vp] = merge_dict_tuple_args(def_1, def_2, vp)
+
+    code_strings = ["decay_code",
+                    "apply_input_code",
+                    "support_code"]
+
+    for code in code_strings:
+        code_1 = def_1.get(code, None)
+        code_2 = def_2.get(code, None)
+
+        # if both codes are None, set the resulting
+        # code to None.
+        if(code_1 is None and code_2 is None):
+            ps_def[code] = None
+        else:
+            # else, set either code variables to
+            # an empty string if they are None...
+            code_1 = "" if code_1 is None else code_1
+            code_2 = "" if code_2 is None else code_2
+
+            # ... and merge both string with a line break.
+            ps_def[code] = f'''{code_1}\n{code_2}'''
+
+    return ps_def

@@ -13,7 +13,7 @@ wu_model_transmit_rate_diff = {
     "class_name": "weight_update_model_transmit_spike",
     "param_names": [],
     "var_name_types": [("g", "scalar")],
-    "sim_code": "$(addToInSyn, $(g) * ($(r_pre)-$(r_last_pre)));"
+    "sim_code": "$(addToInSyn, $(g) * ($(r_pre)-$(r_sec_last_pre)));"
 }
 
 wu_model_pp_basal = {
