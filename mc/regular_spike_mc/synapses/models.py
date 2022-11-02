@@ -13,7 +13,7 @@ from .weight_update.model_defs import (wu_model_transmit_rate_diff,
                                        wu_model_ip_back,
                                        wu_model_pi)
 
-from .weight_update.params import (wu_model_transmit_rate_diff,
+from .weight_update.params import (wu_param_space_transmit_rate_diff,
                                    wu_param_space_pp_basal,
                                    wu_param_space_pp_apical,
                                    wu_param_space_ip,
@@ -54,9 +54,9 @@ class SynapseBase:
     connectivity_initialiser: "typing.Any" = None
     ps_target_var: str = "Isyn"
 
-    def build_wu_model(self):
+    def build_wu_model(self,plastic):
 
-        if self.plastic:
+        if plastic:
             merged_wu_model_def = merge_wu_def("plastic_wu_model",
                                            self.w_update_model_transmit,
                                            self.w_update_model_plast)
@@ -65,9 +65,9 @@ class SynapseBase:
         else:
             return create_custom_weight_update_class(**self.w_update_model_transmit)
 
-    def build_ps_model(self):
+    def build_ps_model(self,plastic):
 
-        if self.plastic:
+        if plastic:
             merged_ps_model_def = merge_ps_def("plastic_ps_model",
                                                self.ps_model_transmit,
                                                self.ps_model_plast)
@@ -78,8 +78,8 @@ class SynapseBase:
 
     def connect_pops(self, name, genn_model, target, source, plastic=True):
 
-        wu_model = self.build_wu_model()
-        ps_model = self.build_ps_model()
+        wu_model = self.build_wu_model(plastic)
+        ps_model = self.build_ps_model(plastic)
 
         if plastic:
             wu_param_space = merge_dicts(self.wu_param_space_transmit,
@@ -148,7 +148,7 @@ class SynapsePPBasal(SynapseDense):
         self.w_update_model_transmit = wu_model_transmit_rate_diff
         self.w_update_model_plast = wu_model_pp_basal
 
-        self.wu_param_space_transmit = wu_param_space_transmit_rate
+        self.wu_param_space_transmit = wu_param_space_transmit_rate_diff
         self.wu_param_space_plast = wu_param_space_pp_basal
 
         self.wu_var_space_transmit = {
@@ -180,7 +180,7 @@ class SynapsePINP(SynapseDense):
         self.w_update_model_transmit = wu_model_transmit_rate_diff
         self.w_update_model_plast = wu_model_pinp
 
-        self.wu_param_space_transmit = wu_param_space_transmit_rate
+        self.wu_param_space_transmit = wu_param_space_transmit_rate_diff
         self.wu_param_space_plast = wu_param_space_pinp
 
         self.wu_var_space_transmit = {
@@ -212,7 +212,7 @@ class SynapsePPApical(SynapseDense):
         self.w_update_model_transmit = wu_model_transmit_rate_diff
         self.w_update_model_plast = wu_model_pp_apical
 
-        self.wu_param_space_transmit = wu_param_space_transmit_rate
+        self.wu_param_space_transmit = wu_param_space_transmit_rate_diff
         self.wu_param_space_plast = wu_param_space_pp_apical
 
         self.wu_var_space_transmit = {
@@ -242,7 +242,7 @@ class SynapseIP(SynapseDense):
         self.w_update_model_transmit = wu_model_transmit_rate_diff
         self.w_update_model_plast = wu_model_ip
 
-        self.wu_param_space_transmit = wu_param_space_transmit_rate
+        self.wu_param_space_transmit = wu_param_space_transmit_rate_diff
         self.wu_param_space_plast = wu_param_space_ip
 
         self.wu_var_space_transmit = {
@@ -270,7 +270,7 @@ class SynapseIPBack(SynapseSparseOneToOne):
         self.w_update_model_transmit = wu_model_transmit_rate_diff
         self.w_update_model_plast = wu_model_ip_back
 
-        self.wu_param_space_transmit = wu_param_space_transmit_rate
+        self.wu_param_space_transmit = wu_param_space_transmit_rate_diff
         self.wu_param_space_plast = wu_param_space_ip_back
 
         self.wu_var_space_transmit = {
@@ -293,11 +293,11 @@ class SynapsePI(SynapseDense):
 
         self.ps_model_transmit = integrator_update
         self.ps_model_plast = None
-        
+
         self.w_update_model_transmit = wu_model_transmit_rate_diff
         self.w_update_model_plast = wu_model_pi
 
-        self.wu_param_space_transmit = wu_param_space_transmit_rate
+        self.wu_param_space_transmit = wu_param_space_transmit_rate_diff
         self.wu_param_space_plast = wu_param_space_pi
 
         self.wu_var_space_transmit = {

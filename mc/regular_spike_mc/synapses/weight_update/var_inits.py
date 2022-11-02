@@ -6,6 +6,10 @@ wu_var_space_transmit_rate = {
     "g": init_var("Uniform", {"min": -1.0, "max": 1.0})
 }
 
+wu_var_space_transmit_rate_diff = {
+    "g": init_var("Uniform", {"min": -1.0, "max": 1.0})
+}
+
 wu_var_space_pp_basal = {
     "g": init_var("Uniform", {"min": -1.0, "max": 1.0}),
     "vbEff": 0.0,

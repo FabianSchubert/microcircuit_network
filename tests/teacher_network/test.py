@@ -9,9 +9,9 @@ import numpy as np
 
 import pdb
 
-from mc.rate_mc.network import Network
+from mc.regular_spike_mc.network import Network
 
-from mc.rate_mc.neurons.params import (pyr_hidden_param_space,
+from mc.regular_spike_mc.neurons.params import (pyr_hidden_param_space,
                                        output_param_space,
                                        int_param_space)
 

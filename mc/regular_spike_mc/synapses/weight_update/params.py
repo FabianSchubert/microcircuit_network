@@ -2,6 +2,8 @@
 
 wu_param_space_transmit_rate = {}
 
+wu_param_space_transmit_rate_diff = {}
+
 wu_param_space_pp_basal = {"muPP_basal": 4e-4,
                            "tau": 1.}
 

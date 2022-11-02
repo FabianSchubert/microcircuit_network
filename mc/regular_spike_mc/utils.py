@@ -48,6 +48,11 @@ def merge_dict_tuple_args(dict_1, dict_2, key):
 
 def merge_wu_def(class_name, def_1, def_2):
 
+    if def_1 is None:
+        def_1 = {}
+    if def_2 is None:
+        def_2 = {}
+    
     wu_def = {
         "class_name": class_name
     }
@@ -109,6 +114,11 @@ def merge_wu_def(class_name, def_1, def_2):
     return wu_def
 
 def merge_ps_def(class_name, def_1, def_2):
+
+    if def_1 is None:
+        def_1 = {}
+    if def_2 is None:
+        def_2 = {}
 
     ps_def = {
         "class_name": class_name
