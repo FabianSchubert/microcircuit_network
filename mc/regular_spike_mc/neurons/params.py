@@ -1,5 +1,7 @@
-#! /usr/bin/env python3
-
+'''
+Neuron model parameters stored in
+dicts.
+'''
 
 pyr_hidden_param_space = {
     "glk": 0.1,

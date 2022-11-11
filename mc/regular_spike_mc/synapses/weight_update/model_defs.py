@@ -1,4 +1,7 @@
-#! /usr/bin/env python3
+'''
+Weight update model definitions stored in
+dicts.
+'''
 
 from ...utils import act_func
 
@@ -12,8 +15,17 @@ wu_model_transmit_rate = {
 wu_model_transmit_rate_diff = {
     "class_name": "weight_update_model_transmit_spike",
     "param_names": [],
-    "var_name_types": [("g", "scalar")],
-    "sim_code": "$(addToInSyn, $(g) * ($(r_pre)-$(r_sec_last_pre)));"
+    "var_name_types": [("g", "scalar"),
+                       ("w_input_last", "scalar"),
+                       ("w_input", "scalar")],
+    "sim_code": """
+        // calculate new weighted input
+        $(w_input) = $(g) * $(r_pre);
+        // This one should add the difference to inSyn
+        $(addToInSyn, $(w_input) - $(w_input_last));
+        // This one should update w_input_last
+        $(w_input_last) = $(w_input);
+    """
 }
 
 wu_model_pp_basal = {
