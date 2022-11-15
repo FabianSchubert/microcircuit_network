@@ -2,6 +2,7 @@
 This module defines the network class used to
 construct an instance of the dendritic microcircuit model.
 '''
+
 from dataclasses import dataclass
 
 import ipdb
@@ -327,10 +328,11 @@ class Network:
                         one of the time steps given in t_sign_validation.
                         The arguments required are a subset of the arguments
                         provided to run_sim, namely
-                        {T, t_sign, ext_data_input, ext_data_pop_vars, readout_neur_pop_vars}.
-                        Note that this does not include any "target data", e.g. for
-                        the readout. The validation runs only yield the
-                        simulation data specified in readout_neur_pop_vars,
+                        {T, t_sign, ext_data_input, ext_data_pop_vars,
+                        readout_neur_pop_vars}.
+                        Note that this does not include any "target data",
+                        e.g. for the readout. The validation runs only yield
+                        the simulation data specified in readout_neur_pop_vars,
                         and it is the user's responsibility to construct
                         meaningful validation measures from the data that is
                         returned. Furthermore, there is no option for
@@ -366,6 +368,7 @@ class Network:
             # Counter for keeping track of the next validation run
             idx_validation_runs = 0
 
+        
         for ext_dat, numpy_times, target_pop, target_var in ext_data_pop_vars:
 
             assert ext_dat.ndim == 2, \
@@ -394,6 +397,7 @@ class Network:
             idx_data_heads.append(0)
 
             input_views.append(_target_pop.vars[target_var].view)
+        
 
         readout_views = {}
 
@@ -407,6 +411,7 @@ class Network:
         time_signatures_readout_syn_pop = []
         idx_readout_syn_pop_heads = []
 
+        
         for readout_pop, readout_var, t_sign_readout in readout_neur_pop_vars:
             _dict_name = f'{readout_pop}_{readout_var}'
             _view = self.neur_pops[readout_pop].vars[readout_var].view
@@ -427,6 +432,9 @@ class Network:
 
             time_signatures_readout_syn_pop.append(np.array(t_sign_readout))
             idx_readout_syn_pop_heads.append(0)
+
+        
+
 
         ####################################################
         # prepare some internal state variables / parameters
@@ -477,13 +485,6 @@ class Network:
 
         for t in tqdm(range(T)):
 
-            # import ipdb
-            # ipdb.set_trace()
-
-            # if(t==1):
-            #    import ipdb
-            #    ipdb.set_trace()
-
             # manual variable manipulation
 
             for k in range(n_inputs):
@@ -506,7 +507,7 @@ class Network:
                         # time signatures after use.
                         time_signatures_ext_data[k] = time_signatures_ext_data[k][1:]
 
-            if data_validation:
+            if data_validation and self.plastic:
                 if(idx_validation_runs < t_sign_validation.shape[0]
                         and t_sign_validation[idx_validation_runs] == t):
 
@@ -514,9 +515,11 @@ class Network:
                         self.run_validation(**data_validation[idx_validation_runs]))
 
                     idx_validation_runs += 1
-
+            
+            
             self.genn_model.step_time()
 
+            
             for k, (readout_pop, readout_var, _) in enumerate(readout_neur_pop_vars):
 
                 if time_signatures_readout_neur_pop[k].shape[0] > 0:
@@ -551,6 +554,7 @@ class Network:
                         idx_readout_syn_pop_heads[k] += 1
 
                         time_signatures_readout_syn_pop[k] = time_signatures_readout_syn_pop[k][1:]
+            
 
         if data_validation:
             return readout_neur_arrays, readout_syn_arrays, results_validation

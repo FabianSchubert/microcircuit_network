@@ -4,6 +4,7 @@ in dicts.
 '''
 
 from pygenn.genn_model import create_dpf_class
+
 from ..utils import act_func
 
 pyr_model = {
@@ -26,9 +27,12 @@ pyr_model = {
                 $(va_int) = $(Isyn_va_int);
                 $(va_exc) = $(Isyn_va_exc);
                 $(va) = $(va_int) + $(va_exc);
-                $(u) += DT * ( -($(glk)+$(gb)+$(ga))*$(u)
+                //relaxation
+                /*$(u) += DT * ( -($(glk)+$(gb)+$(ga))*$(u)
                 + $(gb)*$(vb)
-                + $(ga)*$(va));
+                + $(ga)*$(va));*/
+                //direct input
+                $(u) = ($(gb)*$(vb)+$(ga)*$(va))/($(glk)+$(gb)+$(ga));
                 $(r) = {act_func('$(u)')};
                 """,
     "threshold_condition_code": "$(t) - $(t_last_spike) >= $(spike_interv)*DT",
@@ -58,9 +62,12 @@ output_model = {
                         $(idx_dat)++;
                     }}
                 }}
-                $(u) += DT * (-($(glk)+$(gb)+$(gnudge))*$(u)
+                //relaxation
+                /*$(u) += DT * (-($(glk)+$(gb)+$(gnudge))*$(u)
                 + $(gb)*$(vb)
-                + $(gnudge)*$(vnudge));
+                + $(gnudge)*$(vnudge));*/
+                //direct input
+                $(u) = ($(gb)*$(vb)+$(gnudge)*$(vnudge))/($(glk)+$(gb)+$(gnudge));
                 $(r) = {act_func('$(u)')};
                 """,
     "threshold_condition_code": "$(t) - $(t_last_spike) >= $(spike_interv)*DT",
@@ -83,9 +90,12 @@ int_model = {
     "additional_input_vars": [("u_td", "scalar", 0.0)],
     "sim_code": f"""
                 $(v) = $(Isyn);
-                $(u) += DT * ( -$(glk)*$(u)
+                // relaxation
+                /*$(u) += DT * ( -$(glk)*$(u)
                 + $(gd)*( $(v)-$(u) )
-                + $(gsom)*( $(u_td) - $(u) ));
+                + $(gsom)*( $(u_td) - $(u) ));*/
+                // direct input
+                $(u) = ($(gd)*$(v)+$(gsom)*$(u_td))/($(glk)+$(gd)+$(gsom));
                 $(r) = {act_func('$(u)')};
                 """,
     "threshold_condition_code": "$(t) - $(t_last_spike) >= $(spike_interv)*DT",

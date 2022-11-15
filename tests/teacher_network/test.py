@@ -6,23 +6,21 @@ a randomly teacher network with one hidden
 layer and randomly generated weights.
 '''
 
-import cProfile
-import pstats
-import io
-from pstats import SortKey
-from tqdm import tqdm
-
+#import cProfile
+#import io
 import pdb
+#import pstats
+#from pstats import SortKey
+
 import ipdb
 import matplotlib.pyplot as plt
 import numpy as np
-
+from tqdm import tqdm
 
 from mc.regular_spike_mc.network import Network
-
-from mc.regular_spike_mc.neurons.params import (pyr_hidden_param_space,
+from mc.regular_spike_mc.neurons.params import (int_param_space,
                                                 output_param_space,
-                                                int_param_space)
+                                                pyr_hidden_param_space)
 
 from .utils import gen_input_output_data
 
@@ -38,7 +36,12 @@ GLK_INT = int_param_space["glk"]
 GD_INT = int_param_space["gd"]
 GSOM_INT = int_param_space["gsom"]
 
-pr = cProfile.Profile()
+#pr = cProfile.Profile()
+
+##################
+# Model parameters
+DT = 0.5
+##################
 
 #####################
 # Training parameters
@@ -48,8 +51,8 @@ N_OUT = 10
 
 N_HIDDEN_TEACHER = 20
 
-T_SHOW_PATTERNS = 150
-N_PATTERNS = 70000
+T_SHOW_PATTERNS = 50
+N_PATTERNS = 150000
 
 T_OFFSET = 0
 
@@ -74,7 +77,7 @@ T_SKIP_PLOT = 10
 #######################
 # validation parameters
 
-T_INTERVAL_VALIDATION = int(T/5)
+T_INTERVAL_VALIDATION = int(T/10)
 
 N_VAL_PATTERNS = 20
 
@@ -83,7 +86,7 @@ T_RUN_VALIDATION = T_SHOW_PATTERNS * N_VAL_PATTERNS
 T_SIGN_VALIDATION = np.arange(T)[::T_INTERVAL_VALIDATION]
 N_VALIDATION = T_SIGN_VALIDATION.shape[0]
 
-T_SKIP_REC_VAL = 10
+T_SKIP_REC_VAL = 2
 T_OFFSET_REC_VAL = 0
 T_AX_READOUT_VAL = np.arange(T_RUN_VALIDATION)[::T_SKIP_REC_VAL] \
     + T_OFFSET_REC_VAL
@@ -149,7 +152,7 @@ for k in range(N_VALIDATION):
 # Initialize network
 
 net = Network("testnet", N_IN, N_HIDDEN, N_OUT,
-              N_PATTERNS, dt=0.2, plastic=True,
+              N_PATTERNS, dt=DT, plastic=True,
               t_inp_static_max=N_VAL_PATTERNS)
 
 
@@ -215,7 +218,8 @@ neur_readout_list = [("neur_output_output_pop",
                       "r", T_AX_READOUT)
                      ]
 
-syn_readout_list = [("syn_hidden0_int_pop_to_pyr_pop",
+syn_readout_list = []
+'''("syn_hidden0_int_pop_to_pyr_pop",
                     "g", T_AX_READOUT),
                     ("syn_hidden0_pyr_pop_to_int_pop",
                     "g", T_AX_READOUT),
@@ -224,18 +228,11 @@ syn_readout_list = [("syn_hidden0_int_pop_to_pyr_pop",
                     ("syn_output_output_pop_to_hidden0_pyr_pop",
                     "g", T_AX_READOUT),
                     ("syn_input_input_pop_to_hidden0_pyr_pop",
-                    "g", T_AX_READOUT)]
-'''
-T, t_sign, ext_data_input, ext_data_output,
-ext_data_pop_vars, readout_neur_pop_vars,
-readout_syn_pop_vars, t_sign_validation=None, data_validation=None
+                    "g", T_AX_READOUT)'''
 
-T, t_ax_train, test_input, test_output,
-ext_data_pop_vars, neur_readout_list, syn_readout_list, t_sign_validation,
-data_validation
-'''
 
-pr.enable()
+
+#pr.enable()
 
 (results_neur, results_syn,
  results_validation) = net.run_sim(T, t_ax_train,
@@ -246,12 +243,12 @@ pr.enable()
                                    T_SIGN_VALIDATION,
                                    data_validation)
 
-pr.disable()
-s = io.StringIO()
-sortby = SortKey.CUMULATIVE
-ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-ps.print_stats()
-print(s.getvalue())
+#pr.disable()
+#s = io.StringIO()
+#sortby = SortKey.CUMULATIVE
+#ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+#ps.print_stats()
+#print(s.getvalue())
 
 
 '''
@@ -279,7 +276,7 @@ u_output = results_neur["neur_output_output_pop_u"]
 #r_output = results_neur["neur_output_output_pop_r"]
 
 vb_eff_output = vb_output * GB_OUT / (GLK_OUT + GB_OUT + GA_OUT)
-
+'''
 W_hp_ip = results_syn["syn_input_input_pop_to_hidden0_pyr_pop_g"][:, 0, 0]
 W_hi_hp = results_syn["syn_hidden0_pyr_pop_to_int_pop_g"][:, 0, 0]
 W_hp_hi = results_syn["syn_hidden0_int_pop_to_pyr_pop_g"][:, 0, 0]
@@ -300,7 +297,7 @@ ax.plot(T_AX_READOUT, W_hp_op, label="hp_op")
 ax.legend()
 
 plt.show()
-
+'''
 loss = ((vb_eff_output-vnudge_output)**2.).mean(axis=1)
 
 fig, ax = plt.subplots(1, 2, figsize=(10, 5))
@@ -344,11 +341,11 @@ for k in range(T_SIGN_VALIDATION.shape[0]):
 
     plt.show()
 
-W_op_hp = results_syn["syn_hidden0_pyr_pop_to_output_output_pop_g"]
-I_vb = np.ndarray(vb_output.shape)
+#W_op_hp = results_syn["syn_hidden0_pyr_pop_to_output_output_pop_g"]
+#I_vb = np.ndarray(vb_output.shape)
 
-for t in tqdm(range(I_vb.shape[0])):
-    I_vb[t] = W_op_hp[t] @ r_pyr_hidden[t]
+#for t in tqdm(range(I_vb.shape[0])):
+#    I_vb[t] = W_op_hp[t] @ r_pyr_hidden[t]
 
-plt.ion()
+#plt.ion()
 pdb.set_trace()
