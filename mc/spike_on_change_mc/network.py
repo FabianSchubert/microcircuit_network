@@ -515,11 +515,9 @@ class Network:
                         self.run_validation(**data_validation[idx_validation_runs]))
 
                     idx_validation_runs += 1
-            
-            
+
             self.genn_model.step_time()
 
-            
             for k, (readout_pop, readout_var, _) in enumerate(readout_neur_pop_vars):
 
                 if time_signatures_readout_neur_pop[k].shape[0] > 0:

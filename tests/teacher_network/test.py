@@ -17,8 +17,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 
-from mc.regular_spike_mc.network import Network
-from mc.regular_spike_mc.neurons.params import (int_param_space,
+from mc.spike_on_change_mc.network import Network
+from mc.spike_on_change_mc.neurons.params import (int_param_space,
                                                 output_param_space,
                                                 pyr_hidden_param_space)
 
@@ -40,7 +40,7 @@ GSOM_INT = int_param_space["gsom"]
 
 ##################
 # Model parameters
-DT = 0.5
+DT = 0.3
 ##################
 
 #####################
@@ -52,7 +52,7 @@ N_OUT = 10
 N_HIDDEN_TEACHER = 20
 
 T_SHOW_PATTERNS = 50
-N_PATTERNS = 150000
+N_PATTERNS = 15000
 
 T_OFFSET = 0
 

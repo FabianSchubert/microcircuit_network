@@ -1,17 +1,20 @@
-'''
+"""
 Neuron model definitions with keywords stored
 in dicts.
-'''
+"""
 
 from pygenn.genn_model import create_dpf_class
 
 from ..utils import act_func
 
+TH_COND_CODE = "abs($(r)-$(r_last)) >= $(change_th)"
+RESET_CODE = "$(r_last) = $(r);"
+
 pyr_model = {
     "class_name": "pyr",
-    "param_names": ["glk", "gb", "ga", "sigm_noise", "spike_interv"],
+    "param_names": ["glk", "gb", "ga", "sigm_noise", "change_th"],
     "var_name_types": [("u", "scalar"), ("r", "scalar"),
-                       # ("r_last", "scalar"),
+                       ("r_last", "scalar"),
                        # ("r_sec_last", "scalar"),
                        ("va_int", "scalar"), ("va_exc", "scalar"),
                        ("va", "scalar"),
@@ -28,28 +31,26 @@ pyr_model = {
                 $(va_exc) = $(Isyn_va_exc);
                 $(va) = $(va_int) + $(va_exc);
                 //relaxation
-                /*$(u) += DT * ( -($(glk)+$(gb)+$(ga))*$(u)
+                $(u) += DT * ( -($(glk)+$(gb)+$(ga))*$(u)
                 + $(gb)*$(vb)
-                + $(ga)*$(va));*/
+                + $(ga)*$(va));
                 //direct input
-                $(u) = ($(gb)*$(vb)+$(ga)*$(va))/($(glk)+$(gb)+$(ga));
+                //$(u) = ($(gb)*$(vb)+$(ga)*$(va))/($(glk)+$(gb)+$(ga));
                 $(r) = {act_func('$(u)')};
                 """,
-    "threshold_condition_code": "$(t) - $(t_last_spike) >= $(spike_interv)*DT",
-    "reset_code": """
-                  $(t_last_spike) = $(t);
-                  """,
+    "threshold_condition_code": TH_COND_CODE,
+    "reset_code": RESET_CODE,
     "is_auto_refractory_required": False
 }
 
 output_model = {
     "class_name": "output",
     "param_names": ["glk", "gb", "ga", "sigm_noise", "pop_size",
-                    "spike_interv"],
+                    "change_th"],
     "var_name_types": [("u", "scalar"), ("r", "scalar"),
                        ("vb", "scalar"), ("gnudge", "scalar"),
                        ("vnudge", "scalar"), ("idx_dat", "int"),
-                       # ("r_last", "scalar"), ("r_sec_last", "scalar"),
+                       ("r_last", "scalar"),# ("r_sec_last", "scalar"),
                        ("t_last_spike", "scalar")],
     "additional_input_vars": [("Isyn_vb", "scalar", 0.0)],
     "derived_params": [("DTSQRT",
@@ -63,17 +64,15 @@ output_model = {
                     }}
                 }}
                 //relaxation
-                /*$(u) += DT * (-($(glk)+$(gb)+$(gnudge))*$(u)
+                $(u) += DT * (-($(glk)+$(gb)+$(gnudge))*$(u)
                 + $(gb)*$(vb)
-                + $(gnudge)*$(vnudge));*/
+                + $(gnudge)*$(vnudge));
                 //direct input
-                $(u) = ($(gb)*$(vb)+$(gnudge)*$(vnudge))/($(glk)+$(gb)+$(gnudge));
+                //$(u) = ($(gb)*$(vb)+$(gnudge)*$(vnudge))/($(glk)+$(gb)+$(gnudge));
                 $(r) = {act_func('$(u)')};
                 """,
-    "threshold_condition_code": "$(t) - $(t_last_spike) >= $(spike_interv)*DT",
-    "reset_code": """
-                  $(t_last_spike) = $(t);
-                  """,
+    "threshold_condition_code": TH_COND_CODE,
+    "reset_code": RESET_CODE,
     "extra_global_params": [("u_trg", "scalar*"),
                             ("size_u_trg", "int"),
                             ("t_sign", "int*"),
@@ -83,33 +82,31 @@ output_model = {
 
 int_model = {
     "class_name": "int",
-    "param_names": ["glk", "gd", "gsom", "spike_interv"],
+    "param_names": ["glk", "gd", "gsom", "change_th"],
     "var_name_types": [("u", "scalar"), ("v", "scalar"), ("r", "scalar"),
-                       # ("r_last", "scalar"), ("r_sec_last", "scalar"),
+                       ("r_last", "scalar"),# ("r_sec_last", "scalar"),
                        ("t_last_spike", "scalar")],
     "additional_input_vars": [("u_td", "scalar", 0.0)],
     "sim_code": f"""
                 $(v) = $(Isyn);
                 // relaxation
-                /*$(u) += DT * ( -$(glk)*$(u)
+                $(u) += DT * ( -$(glk)*$(u)
                 + $(gd)*( $(v)-$(u) )
-                + $(gsom)*( $(u_td) - $(u) ));*/
+                + $(gsom)*( $(u_td) - $(u) ));
                 // direct input
-                $(u) = ($(gd)*$(v)+$(gsom)*$(u_td))/($(glk)+$(gd)+$(gsom));
+                //$(u) = ($(gd)*$(v)+$(gsom)*$(u_td))/($(glk)+$(gd)+$(gsom));
                 $(r) = {act_func('$(u)')};
                 """,
-    "threshold_condition_code": "$(t) - $(t_last_spike) >= $(spike_interv)*DT",
-    "reset_code": """
-                  $(t_last_spike) = $(t);
-                  """,
+    "threshold_condition_code": TH_COND_CODE,
+    "reset_code": RESET_CODE,
     "is_auto_refractory_required": False
 }
 
 input_model = {
     "class_name": "input",
-    "param_names": ["pop_size", "spike_interv"],
+    "param_names": ["pop_size", "change_th"],
     "var_name_types": [("r", "scalar"), ("idx_dat", "int"),
-                       # ("r_last", "scalar"), ("r_sec_last", "scalar"),
+                       ("r_last", "scalar"),# ("r_sec_last", "scalar"),
                        ("t_last_spike", "scalar")],
     "sim_code": """
     if($(idx_dat) < $(size_t_sign)){
@@ -118,10 +115,8 @@ input_model = {
             $(idx_dat)++;
         }
     }""",
-    "threshold_condition_code": "$(t) - $(t_last_spike) >= $(spike_interv)*DT",
-    "reset_code": """
-                  $(t_last_spike) = $(t);
-                  """,
+    "threshold_condition_code": TH_COND_CODE,
+    "reset_code": RESET_CODE,
     "extra_global_params": [("u", "scalar*"),
                             ("size_u", "int"),
                             ("t_sign", "int*"),

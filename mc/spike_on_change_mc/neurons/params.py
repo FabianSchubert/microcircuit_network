@@ -8,7 +8,7 @@ pyr_hidden_param_space = {
     "ga": 0.8,
     "gb": 1.0,
     "sigm_noise": 0.0,
-    "spike_interv": 1
+    "change_th": 0.01
 }
 
 output_param_space = {
@@ -17,17 +17,17 @@ output_param_space = {
     "ga": 0.0,
     "sigm_noise": 0.0,
     "pop_size": None,
-    "spike_interv": 1
+    "change_th": 0.01
 }
 
 int_param_space = {
     "glk": 0.1,
     "gd": 1.0,
     "gsom": 0.8,
-    "spike_interv": 1
+    "change_th": 0.01
 }
 
 input_param_space = {
     "pop_size": None,
-    "spike_interv": 1
+    "change_th": 0.01
 }
