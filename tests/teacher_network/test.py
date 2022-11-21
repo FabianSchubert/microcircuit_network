@@ -6,11 +6,11 @@ a randomly teacher network with one hidden
 layer and randomly generated weights.
 '''
 
-#import cProfile
-#import io
+# import cProfile
+# import io
 import pdb
-#import pstats
-#from pstats import SortKey
+# import pstats
+# from pstats import SortKey
 
 import ipdb
 import matplotlib.pyplot as plt
@@ -19,10 +19,14 @@ from tqdm import tqdm
 
 from mc.spike_on_change_mc.network import Network
 from mc.spike_on_change_mc.neurons.params import (int_param_space,
-                                                output_param_space,
-                                                pyr_hidden_param_space)
+                                                  output_param_space,
+                                                  pyr_hidden_param_space)
 
 from .utils import gen_input_output_data
+
+from tests.utils import calc_loss_interp
+
+col_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 GB_PYR = pyr_hidden_param_space["gb"]
 GA_PYR = pyr_hidden_param_space["ga"]
@@ -36,23 +40,23 @@ GLK_INT = int_param_space["glk"]
 GD_INT = int_param_space["gd"]
 GSOM_INT = int_param_space["gsom"]
 
-#pr = cProfile.Profile()
+# pr = cProfile.Profile()
 
 ##################
 # Model parameters
-DT = 0.3
+DT = 0.5
 ##################
 
 #####################
 # Training parameters
 N_IN = 30
-N_HIDDEN = [50]
+N_HIDDEN = [20]
 N_OUT = 10
 
 N_HIDDEN_TEACHER = 20
 
 T_SHOW_PATTERNS = 50
-N_PATTERNS = 15000
+N_PATTERNS = 300000
 
 T_OFFSET = 0
 
@@ -62,9 +66,9 @@ T = N_PATTERNS * T_SHOW_PATTERNS + T_OFFSET
 ######################
 # recording parameters
 
-T_SKIP_REC = T_SHOW_PATTERNS * 10
+T_SKIP_REC = T_SHOW_PATTERNS * 50
 T_OFFSET_REC = 140
-T_AX_READOUT = np.arange(T)[::T_SKIP_REC]+T_OFFSET_REC
+T_AX_READOUT = np.arange(T)[::T_SKIP_REC] + T_OFFSET_REC
 ######################
 
 #####################
@@ -77,9 +81,11 @@ T_SKIP_PLOT = 10
 #######################
 # validation parameters
 
-T_INTERVAL_VALIDATION = int(T/10)
+N_VALIDATION = 30
 
-N_VAL_PATTERNS = 20
+T_INTERVAL_VALIDATION = int(T / N_VALIDATION)
+
+N_VAL_PATTERNS = 100
 
 T_RUN_VALIDATION = T_SHOW_PATTERNS * N_VAL_PATTERNS
 
@@ -89,7 +95,7 @@ N_VALIDATION = T_SIGN_VALIDATION.shape[0]
 T_SKIP_REC_VAL = 2
 T_OFFSET_REC_VAL = 0
 T_AX_READOUT_VAL = np.arange(T_RUN_VALIDATION)[::T_SKIP_REC_VAL] \
-    + T_OFFSET_REC_VAL
+                   + T_OFFSET_REC_VAL
 #######################
 
 ########################
@@ -113,7 +119,6 @@ data_validation = []
 targ_output_validation = []
 
 for k in range(N_VALIDATION):
-
     (t_ax_val, val_input,
      val_output, _, _) = gen_input_output_data(N_IN,
                                                N_HIDDEN_TEACHER,
@@ -127,7 +132,6 @@ for k in range(N_VALIDATION):
 
     _dict_data_validation = {}
 
-    _dict_data_validation["T"] = T_RUN_VALIDATION
     _dict_data_validation["t_sign"] = t_ax_val
     _dict_data_validation["ext_data_input"] = val_input
     _dict_data_validation["ext_data_pop_vars"] = [
@@ -148,13 +152,18 @@ for k in range(N_VALIDATION):
 
     targ_output_validation.append(val_output)
 
+#######################################
+# set populations to record spikes from
+neur_pops_spike_rec = ["neur_hidden0_pyr_pop"]
+#######################################
+
 ##########################
 # Initialize network
 
 net = Network("testnet", N_IN, N_HIDDEN, N_OUT,
-              N_PATTERNS, dt=DT, plastic=True,
-              t_inp_static_max=N_VAL_PATTERNS)
-
+              T, T_RUN_VALIDATION, N_PATTERNS, dt=DT,
+              spike_rec_pops=neur_pops_spike_rec,
+              plastic=True, t_inp_static_max=N_VAL_PATTERNS)
 
 #################################
 # Manually initialize the network
@@ -163,10 +172,10 @@ net = Network("testnet", N_IN, N_HIDDEN, N_OUT,
 synview_pi = net.syn_pops["syn_hidden0_int_pop_to_pyr_pop"].vars["g"].view
 
 synview_pp_back = net.syn_pops["syn_output_output_pop_to_hidden0_pyr_pop"
-                               ].vars["g"].view
+].vars["g"].view
 
 net.syn_pops["syn_output_output_pop_to_hidden0_pyr_pop"
-             ].pull_var_from_device("g")
+].pull_var_from_device("g")
 
 synview_pi[:] = -synview_pp_back
 
@@ -175,10 +184,10 @@ net.syn_pops["syn_hidden0_int_pop_to_pyr_pop"].push_var_to_device("g")
 synview_ip = net.syn_pops["syn_hidden0_pyr_pop_to_int_pop"].vars["g"].view
 
 synview_pp_fwd = net.syn_pops["syn_hidden0_pyr_pop_to_output_output_pop"
-                              ].vars["g"].view
+].vars["g"].view
 
 net.syn_pops["syn_hidden0_pyr_pop_to_output_output_pop"
-             ].pull_var_from_device("g")
+].pull_var_from_device("g")
 
 synview_ip = synview_pp_fwd * (GB_PYR + GLK_PYR) / (GB_PYR + GA_PYR + GLK_PYR)
 
@@ -189,9 +198,9 @@ net.syn_pops["syn_hidden0_pyr_pop_to_int_pop"].push_var_to_device("g")
 ##################################
 # prepare the readout instructions
 neur_readout_list = [("neur_output_output_pop",
-                     "vb", T_AX_READOUT),
+                      "vb", T_AX_READOUT),
                      ("neur_output_output_pop",
-                     "vnudge", T_AX_READOUT),
+                      "vnudge", T_AX_READOUT),
                      ("neur_output_output_pop",
                       "u", T_AX_READOUT),
                      # ("neur_output_output_pop",
@@ -218,37 +227,36 @@ neur_readout_list = [("neur_output_output_pop",
                       "r", T_AX_READOUT)
                      ]
 
-syn_readout_list = []
-'''("syn_hidden0_int_pop_to_pyr_pop",
-                    "g", T_AX_READOUT),
+syn_readout_list = [("syn_hidden0_int_pop_to_pyr_pop",
+                     "g", T_AX_READOUT),
                     ("syn_hidden0_pyr_pop_to_int_pop",
-                    "g", T_AX_READOUT),
+                     "g", T_AX_READOUT),
                     ("syn_hidden0_pyr_pop_to_output_output_pop",
-                    "g", T_AX_READOUT),
+                     "g", T_AX_READOUT),
                     ("syn_output_output_pop_to_hidden0_pyr_pop",
-                    "g", T_AX_READOUT),
+                     "g", T_AX_READOUT),
                     ("syn_input_input_pop_to_hidden0_pyr_pop",
-                    "g", T_AX_READOUT)'''
+                     "g", T_AX_READOUT)]
 
-
-
-#pr.enable()
+# pr.enable()
 
 (results_neur, results_syn,
- results_validation) = net.run_sim(T, t_ax_train,
+ results_spikes,
+ results_validation) = net.run_sim(t_ax_train,
                                    test_input, test_output,
                                    ext_data_pop_vars,
                                    neur_readout_list,
                                    syn_readout_list,
                                    T_SIGN_VALIDATION,
-                                   data_validation)
+                                   data_validation,
+                                   show_progress_val=False)
 
-#pr.disable()
-#s = io.StringIO()
-#sortby = SortKey.CUMULATIVE
-#ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-#ps.print_stats()
-#print(s.getvalue())
+# pr.disable()
+# s = io.StringIO()
+# sortby = SortKey.CUMULATIVE
+# ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+# ps.print_stats()
+# print(s.getvalue())
 
 
 '''
@@ -273,10 +281,10 @@ r_pyr_hidden = results_neur["neur_hidden0_pyr_pop_r"]
 vb_output = results_neur["neur_output_output_pop_vb"]
 vnudge_output = results_neur["neur_output_output_pop_vnudge"]
 u_output = results_neur["neur_output_output_pop_u"]
-#r_output = results_neur["neur_output_output_pop_r"]
+# r_output = results_neur["neur_output_output_pop_r"]
 
 vb_eff_output = vb_output * GB_OUT / (GLK_OUT + GB_OUT + GA_OUT)
-'''
+
 W_hp_ip = results_syn["syn_input_input_pop_to_hidden0_pyr_pop_g"][:, 0, 0]
 W_hi_hp = results_syn["syn_hidden0_pyr_pop_to_int_pop_g"][:, 0, 0]
 W_hp_hi = results_syn["syn_hidden0_int_pop_to_pyr_pop_g"][:, 0, 0]
@@ -297,16 +305,26 @@ ax.plot(T_AX_READOUT, W_hp_op, label="hp_op")
 ax.legend()
 
 plt.show()
-'''
-loss = ((vb_eff_output-vnudge_output)**2.).mean(axis=1)
+
+loss = np.ndarray((T_SIGN_VALIDATION.shape[0]))
+
+for k in range(T_SIGN_VALIDATION.shape[0]):
+    _dat_targ = np.reshape(targ_output_validation[k], (N_VAL_PATTERNS, N_OUT))
+    _dat_readout = results_validation[k]["neur_var_rec"]["neur_output_output_pop_u"]
+
+    _loss = calc_loss_interp(t_ax_val, T_AX_READOUT_VAL,
+                             _dat_targ, _dat_readout)
+    loss[k] = _loss
+
+# loss = ((vb_eff_output - vnudge_output) ** 2.).mean(axis=1)
 
 fig, ax = plt.subplots(1, 2, figsize=(10, 5))
 
-ax[0].plot(T_AX_READOUT[::T_SKIP_PLOT], loss[::T_SKIP_PLOT])
+ax[0].plot(T_SIGN_VALIDATION, loss)
 ax[0].set_xlabel("Training Steps")
 ax[0].set_ylabel("Mean Squ. Err.")
 
-ax[1].plot(T_AX_READOUT[::T_SKIP_PLOT], loss[::T_SKIP_PLOT])
+ax[1].plot(T_SIGN_VALIDATION, loss)
 ax[1].set_xlabel("Training Steps")
 ax[1].set_ylabel("Mean Squ. Err.")
 
@@ -316,20 +334,32 @@ fig.tight_layout()
 
 fig.savefig("./tests/teacher_network/plots/train_loss.png", dpi=600)
 
+plt.show()
 
 for k in range(T_SIGN_VALIDATION.shape[0]):
+    spike_times, spike_indices = results_validation[k]["spike_rec"]["neur_hidden0_pyr_pop"]
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 5))
 
-    ax.step(t_ax_val, np.reshape(targ_output_validation[k], (N_VAL_PATTERNS, N_OUT))
-            [:, 0], where="post", label=r'$u_{trg}$')
-    ax.plot(T_AX_READOUT_VAL,
-            results_validation[k]["neur_output_output_pop_u"][:, 0],
-            label=r'$\hat{v}_b$')
+    stpplot = ax.step(t_ax_val*DT, np.reshape(targ_output_validation[k], (N_VAL_PATTERNS, N_OUT))[:, 0],
+                      where="post", label=r'$u_{trg}$', zorder=5)
 
-    ax.set_title(f'Validation at Time Step $t = {T_SIGN_VALIDATION[k]}$')
+    lnplot = ax.plot(T_AX_READOUT_VAL*DT,
+                     results_validation[k]["neur_var_rec"]["neur_output_output_pop_u"][:, 0],
+                     label=r'$\hat{v}_b$', zorder=10)
 
-    ax.set_xlabel(r"$Time Steps$")
+    ax.vlines(x=spike_times[np.where(spike_indices == 0)[0]],
+              colors="k",
+              ymin=ax.get_ylim()[0],
+              ymax=ax.get_ylim()[1],
+              zorder=0, alpha=0.25,
+              linewidth=0.5)
+
+    ax.set_title(f'Validation at Time $t = {T_SIGN_VALIDATION[k]*DT}$')
+
+    ax.set_xlabel(r"$Time$")
+
+    ax.set_xlim([0.,250.])
 
     ax.legend()
 
@@ -339,13 +369,14 @@ for k in range(T_SIGN_VALIDATION.shape[0]):
         f'./tests/teacher_network/plots/validation_t_{T_SIGN_VALIDATION[k]}.png',
         dpi=300)
 
-    plt.show()
+    plt.close()
+    #plt.show()
 
-#W_op_hp = results_syn["syn_hidden0_pyr_pop_to_output_output_pop_g"]
-#I_vb = np.ndarray(vb_output.shape)
+W_op_hp = results_syn["syn_hidden0_pyr_pop_to_output_output_pop_g"]
+I_vb = np.ndarray(vb_output.shape)
 
-#for t in tqdm(range(I_vb.shape[0])):
-#    I_vb[t] = W_op_hp[t] @ r_pyr_hidden[t]
+for t in tqdm(range(I_vb.shape[0])):
+    I_vb[t] = W_op_hp[t] @ r_pyr_hidden[t]
 
-#plt.ion()
+plt.ion()
 pdb.set_trace()

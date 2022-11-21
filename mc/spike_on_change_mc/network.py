@@ -3,7 +3,7 @@ This module defines the network class used to
 construct an instance of the dendritic microcircuit model.
 '''
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import ipdb
 import numpy as np
@@ -17,7 +17,8 @@ from .synapses.models import (SynapseIPBack, SynapsePINP, SynapsePPApical,
 
 @dataclass
 class Network:
-    '''The Network class defines the dendritic microcircuit
+    """
+    The Network class defines the dendritic microcircuit
     model.
 
     Args:
@@ -25,36 +26,53 @@ class Network:
 
         size_input (int):   Number of neurons in the input layer.
 
-        size_hidden (list): List of integers defining the number.
-                            of neurons in each hidden layer. Order
-                            corresponds to the flow of information
-                            in the "forward direction" from the
-                            input to the output layer.
+        size_hidden (list):     List of integers defining the number.
+                                of neurons in each hidden layer. Order
+                                corresponds to the flow of information
+                                in the "forward direction" from the
+                                input to the output layer.
 
-        size_output (int):  Number of neurons in the output layer.
+        size_output (int):      Number of neurons in the output layer.
 
-        dt (float):         Simulation time step size.
+        dt (float):             Simulation time step size.
 
-        plastic (bool):     Flag indicating whether the network should
-                            include synaptic plasticity rules. If this
-                            is True (default), a non-plastic twin of
-                            the network will be created that is used
-                            for validation runs using
-                            func: Network.run_validation.
+        n_sim_steps (int):      Length of the simulation in time steps.
+                                This has to be fixed upon initialization
+                                because the size of the spike recording buffers
+                                on the gpu are determined by that number.
 
-        t_inp_max (int):    Maximum number of time signatures used for
-                            updating the input layer and the target for
-                            the output layer. This must be specified
-                            because the external data is pushed to the
-                            device as a whole before the start of the
-                            simulation.
-    '''
+        n_sim_steps_val (int):  Same as n_sim_steps, but for the validation
+                                runs.
+
+        plastic (bool):         Flag indicating whether the network should
+                                include synaptic plasticity rules. If this
+                                is True (default), a non-plastic twin of
+                                the network will be created that is used
+                                for validation runs using
+                                func: Network.run_validation.
+
+        t_inp_max (int):        Maximum number of time signatures used for
+                                updating the input layer and the target for
+                                the output layer. This must be specified
+                                because the external data is pushed to the
+                                device as a whole before the start of the
+                                simulation.
+
+        spike_rec_pops (list):  List of name strings of neuron populations from
+                                which spikes are to be recorded. Unfortunately,
+                                this has to be set at the time of the initialization
+                                of the network instance and can not be altered
+                                for different simulation runs.
+    """
 
     name: str
     size_input: int
     size_hidden: list
     size_output: int
+    n_sim_steps: int
+    n_sim_steps_val: int
     t_inp_max: int
+    spike_rec_pops: list = field(default_factory=list)
     dt: float = 0.1
     plastic: bool = True
     t_inp_static_max: int = 0
@@ -86,7 +104,7 @@ class Network:
                             plastic=self.plastic))
 
         self.layers.append(
-            HiddenLayer(f'hidden{self.n_hidden_layers-1}',
+            HiddenLayer(f'hidden{self.n_hidden_layers - 1}',
                         self.genn_model,
                         self.size_hidden[self.n_hidden_layers - 1],
                         self.size_output,
@@ -190,15 +208,23 @@ class Network:
         #
         #################################################
 
+        ############################
+        # set up the spike recording
+
+        for _pop in self.spike_rec_pops:
+            self.neur_pops[_pop].spike_recording_enabled = True
+
+        ############################
+
         self.genn_model.build()
 
         # initialize the extra global parameters required for
         # putting the input to the gpu
-        _t_sign_init = np.zeros((self.t_inp_max))
+        _t_sign_init = np.zeros(self.t_inp_max)
 
         _inp_pop = self.neur_pops["neur_input_input_pop"]
 
-        _u_input_init = np.zeros((_inp_pop.size*self.t_inp_max))
+        _u_input_init = np.zeros((_inp_pop.size * self.t_inp_max))
 
         _inp_pop.set_extra_global_param("u", _u_input_init)
         _inp_pop.set_extra_global_param("t_sign", _t_sign_init)
@@ -207,14 +233,14 @@ class Network:
 
         _output_pop = self.neur_pops["neur_output_output_pop"]
 
-        _u_trg_init = np.zeros((_output_pop.size*self.t_inp_max))
+        _u_trg_init = np.zeros((_output_pop.size * self.t_inp_max))
 
         _output_pop.set_extra_global_param("u_trg", _u_trg_init)
         _output_pop.set_extra_global_param("t_sign", _t_sign_init)
         _output_pop.set_extra_global_param("size_u_trg", self.size_output)
         _output_pop.set_extra_global_param("size_t_sign", self.t_inp_max)
 
-        self.genn_model.load()
+        self.genn_model.load(num_recording_timesteps=self.n_sim_steps)
 
         # only if this instance is plastic, we create a static
         # twin of the network as a member variable of itself
@@ -224,9 +250,9 @@ class Network:
             self.create_static_twin()
 
     def update_neur_pops(self):
-        '''updates the dictionary self.neur_pops
+        """updates the dictionary self.neur_pops
         by running through all layers
-        to get a full list of all neuron populations.'''
+        to get a full list of all neuron populations."""
 
         self.neur_pops = {}
         for layer in self.layers:
@@ -234,10 +260,10 @@ class Network:
                 self.neur_pops[pop.name] = pop
 
     def update_syn_pops(self):
-        '''updates the dictionary self.syn_pops
+        """updates the dictionary self.syn_pops
         by running through all layers and cross-layer
         synapse populations to get a full list
-        of all synapse populations.'''
+        of all synapse populations."""
 
         self.syn_pops = {}
 
@@ -249,31 +275,32 @@ class Network:
             self.syn_pops[pop.name] = pop
 
     def create_static_twin(self):
-        '''create a non-plastic copy of the
+        """create a non-plastic copy of the
         network by removing the plastic component
         in the weight update rules for the copy.
         The copy self.static_twin will be an
-        instance of the network itself.'''
+        instance of the network itself."""
 
         self.static_twin_net = Network(
             "static_twin", self.size_input, self.size_hidden,
-            self.size_output, self.t_inp_static_max,
+            self.size_output, self.n_sim_steps_val, 0,
+            self.t_inp_static_max, spike_rec_pops=self.spike_rec_pops,
             dt=self.dt, plastic=False)
 
-    def run_sim(self, T, t_sign,
-                # current_source_input, current_source_output,
+    def run_sim(self, t_sign,
                 ext_data_input, ext_data_output,
                 ext_data_pop_vars, readout_neur_pop_vars,
-                readout_syn_pop_vars, t_sign_validation=None,
-                data_validation=None):
-        '''
+                readout_syn_pop_vars,
+                t_sign_validation=None,
+                data_validation=None,
+                show_progress=True,
+                show_progress_val=True):
+        """
         run_sim simulates the network and allows the user
         to provide input data as well as specify targets
         for readout/recording.
 
         Args:
-
-            T (int):    Number of simulation time steps.
 
             t_sign (numpy.ndarray):
 
@@ -338,7 +365,14 @@ class Network:
                         returned. Furthermore, there is no option for
                         recording synapses, since they are kept fixed
                         during the validation.
-        '''
+
+            show_progress (boolean):
+
+                        If true, a tqdm progress bar is displayed during
+                        the simulation run.
+        """
+
+        T = self.n_sim_steps
 
         input_views = []
 
@@ -352,7 +386,6 @@ class Network:
         time_signatures_ext_data = []
 
         if data_validation:
-
             assert t_sign_validation is not None, \
                 """Error: validation data was provided,
                 but no time signatures were given.
@@ -368,9 +401,7 @@ class Network:
             # Counter for keeping track of the next validation run
             idx_validation_runs = 0
 
-        
         for ext_dat, numpy_times, target_pop, target_var in ext_data_pop_vars:
-
             assert ext_dat.ndim == 2, \
                 """Input data array does
                 not have two dimensions."""
@@ -397,7 +428,6 @@ class Network:
             idx_data_heads.append(0)
 
             input_views.append(_target_pop.vars[target_var].view)
-        
 
         readout_views = {}
 
@@ -411,7 +441,6 @@ class Network:
         time_signatures_readout_syn_pop = []
         idx_readout_syn_pop_heads = []
 
-        
         for readout_pop, readout_var, t_sign_readout in readout_neur_pop_vars:
             _dict_name = f'{readout_pop}_{readout_var}'
             _view = self.neur_pops[readout_pop].vars[readout_var].view
@@ -427,14 +456,11 @@ class Network:
             _trg_size = self.syn_pops[readout_pop].trg.size
             _src_size = self.syn_pops[readout_pop].src.size
             readout_syn_arrays[_dict_name] = np.ndarray((t_sign_readout.shape[0],
-                                                        _trg_size,
-                                                        _src_size))
+                                                         _trg_size,
+                                                         _src_size))
 
             time_signatures_readout_syn_pop.append(np.array(t_sign_readout))
             idx_readout_syn_pop_heads.append(0)
-
-        
-
 
         ####################################################
         # prepare some internal state variables / parameters
@@ -465,7 +491,6 @@ class Network:
         _inp_pop.push_var_to_device("idx_dat")
 
         if self.plastic:
-
             _output_pop = self.neur_pops["neur_output_output_pop"]
 
             _output_pop.extra_global_params["u_trg"].view[:
@@ -483,7 +508,7 @@ class Network:
 
         ####################################################
 
-        for t in tqdm(range(T)):
+        for t in tqdm(range(T), disable=not show_progress):
 
             # manual variable manipulation
 
@@ -508,11 +533,11 @@ class Network:
                         time_signatures_ext_data[k] = time_signatures_ext_data[k][1:]
 
             if data_validation and self.plastic:
-                if(idx_validation_runs < t_sign_validation.shape[0]
+                if (idx_validation_runs < t_sign_validation.shape[0]
                         and t_sign_validation[idx_validation_runs] == t):
-
                     results_validation.append(
-                        self.run_validation(**data_validation[idx_validation_runs]))
+                        self.run_validation(**data_validation[idx_validation_runs],
+                                            show_progress=show_progress_val))
 
                     idx_validation_runs += 1
 
@@ -523,12 +548,11 @@ class Network:
                 if time_signatures_readout_neur_pop[k].shape[0] > 0:
 
                     if time_signatures_readout_neur_pop[k][0] == t:
-
                         self.neur_pops[readout_pop].pull_var_from_device(
                             readout_var)
                         _dict_name = f'{readout_pop}_{readout_var}'
                         readout_neur_arrays[_dict_name][idx_readout_neur_pop_heads[k]
-                                                        ] = readout_views[_dict_name]
+                        ] = readout_views[_dict_name]
 
                         idx_readout_neur_pop_heads[k] += 1
 
@@ -538,8 +562,7 @@ class Network:
 
                 if time_signatures_readout_syn_pop[k].shape[0] > 0:
 
-                    if(time_signatures_readout_syn_pop[k][0] == t):
-
+                    if time_signatures_readout_syn_pop[k][0] == t:
                         self.syn_pops[readout_pop].pull_var_from_device(
                             readout_var)
                         _dict_name = f'{readout_pop}_{readout_var}'
@@ -552,14 +575,20 @@ class Network:
                         idx_readout_syn_pop_heads[k] += 1
 
                         time_signatures_readout_syn_pop[k] = time_signatures_readout_syn_pop[k][1:]
-            
+
+        self.genn_model.pull_recording_buffers_from_device()
+
+        readout_spikes = {}
+
+        for _pop in self.spike_rec_pops:
+            readout_spikes[_pop] = self.neur_pops[_pop].spike_recording_data
 
         if data_validation:
-            return readout_neur_arrays, readout_syn_arrays, results_validation
-        return readout_neur_arrays, readout_syn_arrays
+            return readout_neur_arrays, readout_syn_arrays, readout_spikes, results_validation
+        return readout_neur_arrays, readout_syn_arrays, readout_spikes
 
-    def run_validation(self, T, t_sign, ext_data_input, ext_data_pop_vars,
-                       readout_neur_pop_vars):
+    def run_validation(self, t_sign, ext_data_input, ext_data_pop_vars,
+                       readout_neur_pop_vars, show_progress=True):
         '''
         This method runs a network simulation on the
         static twin after copying the current weight
@@ -573,7 +602,6 @@ class Network:
         weights = {}
 
         for key, syn_pop in self.syn_pops.items():
-
             view = syn_pop.vars["g"].view
 
             syn_pop.pull_var_from_device("g")
@@ -585,15 +613,15 @@ class Network:
 
         # transfer the copied weights to the temporary network
         for key, syn_pop in self.static_twin_net.syn_pops.items():
-
             view = syn_pop.vars["g"].view
 
             view[:] = weights[key]
 
             syn_pop.push_var_to_device("g")
 
-        result_neur_arrays, _ = self.static_twin_net.run_sim(
-            T, t_sign, ext_data_input, np.ndarray(0),
-            ext_data_pop_vars, readout_neur_pop_vars, [])
+        result_neur_arrays, _, result_spikes = self.static_twin_net.run_sim(
+            t_sign, ext_data_input, np.ndarray(0),
+            ext_data_pop_vars, readout_neur_pop_vars, [], show_progress=show_progress)
 
-        return result_neur_arrays
+        return {"neur_var_rec": result_neur_arrays,
+                "spike_rec": result_spikes}
