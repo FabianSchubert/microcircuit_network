@@ -56,7 +56,7 @@ N_OUT = 10
 N_HIDDEN_TEACHER = 20
 
 T_SHOW_PATTERNS = 50
-N_PATTERNS = 300000
+N_PATTERNS = 500000
 
 T_OFFSET = 0
 
@@ -118,8 +118,9 @@ data_validation = []
 
 targ_output_validation = []
 
-for k in range(N_VALIDATION):
-    (t_ax_val, val_input,
+# generate a single validataion example
+
+(t_ax_val, val_input,
      val_output, _, _) = gen_input_output_data(N_IN,
                                                N_HIDDEN_TEACHER,
                                                N_OUT,
@@ -127,6 +128,9 @@ for k in range(N_VALIDATION):
                                                T_SHOW_PATTERNS,
                                                0,
                                                (W_10, W_21))
+
+for k in range(N_VALIDATION):
+
 
     # {T, t_sign, ext_data_input, ext_data_pop_vars, readout_neur_pop_vars}
 
@@ -154,7 +158,7 @@ for k in range(N_VALIDATION):
 
 #######################################
 # set populations to record spikes from
-neur_pops_spike_rec = ["neur_hidden0_pyr_pop"]
+neur_pops_spike_rec = ["neur_output_output_pop"]
 #######################################
 
 ##########################
@@ -336,8 +340,9 @@ fig.savefig("./tests/teacher_network/plots/train_loss.png", dpi=600)
 
 plt.show()
 
+'''
 for k in range(T_SIGN_VALIDATION.shape[0]):
-    spike_times, spike_indices = results_validation[k]["spike_rec"]["neur_hidden0_pyr_pop"]
+    spike_times, spike_indices = results_validation[k]["spike_rec"]["neur_output_output_pop"]
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 5))
 
@@ -364,19 +369,67 @@ for k in range(T_SIGN_VALIDATION.shape[0]):
     ax.legend()
 
     fig.tight_layout()
-
+    
     fig.savefig(
         f'./tests/teacher_network/plots/validation_t_{T_SIGN_VALIDATION[k]}.png',
         dpi=300)
-
+    
     plt.close()
     #plt.show()
 
-W_op_hp = results_syn["syn_hidden0_pyr_pop_to_output_output_pop_g"]
-I_vb = np.ndarray(vb_output.shape)
+'''
 
-for t in tqdm(range(I_vb.shape[0])):
-    I_vb[t] = W_op_hp[t] @ r_pyr_hidden[t]
+T_HIST_SPIKES = 200.
+N_BINS_SPIKES = 200
+
+spike_times = results_spikes["neur_output_output_pop"][0]
+
+spike_times_val = results_validation[int(N_VALIDATION/2)]["spike_rec"]["neur_output_output_pop"][0]
+
+# find the time where new input is presented that
+# is closest to spike_times.max() * 0.5,
+# so that the histogram starts at the onset of
+# new input.
+T_START_BIN = spike_times.max() * 0.5
+T_START_BIN = t_ax_train[np.abs(T_START_BIN - t_ax_train*DT).argmin()]*DT
+
+T_START_BIN_VAL = 0.0
+
+spike_bins = np.linspace(T_START_BIN, T_START_BIN + T_HIST_SPIKES, N_BINS_SPIKES + 1)
+spike_bins_val = np.linspace(T_START_BIN_VAL, T_START_BIN_VAL + T_HIST_SPIKES, N_BINS_SPIKES + 1)
+
+h_spikes = np.histogram(spike_times, bins=spike_bins)
+rate_est_spikes = h_spikes[0] * N_BINS_SPIKES / (T_HIST_SPIKES * N_OUT)
+
+h_spikes_val = np.histogram(spike_times_val, bins=spike_bins_val)
+rate_est_spikes_val = h_spikes_val[0] * N_BINS_SPIKES / (T_HIST_SPIKES * N_OUT)
+
+fig, ax = plt.subplots(1, 1, figsize=(10, 5))
+
+ax.stairs(rate_est_spikes, h_spikes[1] - T_START_BIN,
+           fill=True, facecolor=col_cycle[0]+"50",
+           edgecolor=col_cycle[0], linewidth=1.5, label="plast")
+
+ax.stairs(rate_est_spikes_val, h_spikes_val[1] - T_START_BIN_VAL,
+           fill=True, facecolor=col_cycle[1]+"50",
+           edgecolor=col_cycle[1], linewidth=1.5, label="val")
+
+ax.set_ylabel("avg. spike rate")
+ax.set_xlabel("time")
+
+ax.legend()
+
+fig.tight_layout()
+
+fig.savefig("./tests/teacher_network/plots/spike_rates.png", dpi=300)
+
+plt.show()
+
+# W_op_hp = results_syn["syn_hidden0_pyr_pop_to_output_output_pop_g"]
+# I_vb = np.ndarray(vb_output.shape)
+
+# for t in tqdm(range(I_vb.shape[0])):
+#     I_vb[t] = W_op_hp[t] @ r_pyr_hidden[t]
 
 plt.ion()
 pdb.set_trace()

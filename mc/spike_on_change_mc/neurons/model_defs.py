@@ -8,14 +8,17 @@ from pygenn.genn_model import create_dpf_class
 from ..utils import act_func
 
 TH_COND_CODE = "abs($(r)-$(r_last)) >= $(change_th)"
-RESET_CODE = "$(r_last) = $(r);"
+RESET_CODE = """
+$(r_sec_last) = $(r_last);
+$(r_last) = $(r);
+"""
 
 pyr_model = {
     "class_name": "pyr",
     "param_names": ["glk", "gb", "ga", "sigm_noise", "change_th"],
     "var_name_types": [("u", "scalar"), ("r", "scalar"),
                        ("r_last", "scalar"),
-                       # ("r_sec_last", "scalar"),
+                       ("r_sec_last", "scalar"),
                        ("va_int", "scalar"), ("va_exc", "scalar"),
                        ("va", "scalar"),
                        ("vb", "scalar"),
@@ -41,6 +44,7 @@ pyr_model = {
     "threshold_condition_code": TH_COND_CODE,
     "reset_code": RESET_CODE,
     "is_auto_refractory_required": False
+
 }
 
 output_model = {
@@ -50,7 +54,7 @@ output_model = {
     "var_name_types": [("u", "scalar"), ("r", "scalar"),
                        ("vb", "scalar"), ("gnudge", "scalar"),
                        ("vnudge", "scalar"), ("idx_dat", "int"),
-                       ("r_last", "scalar"),# ("r_sec_last", "scalar"),
+                       ("r_last", "scalar"), ("r_sec_last", "scalar"),
                        ("t_last_spike", "scalar")],
     "additional_input_vars": [("Isyn_vb", "scalar", 0.0)],
     "derived_params": [("DTSQRT",
@@ -78,13 +82,14 @@ output_model = {
                             ("t_sign", "int*"),
                             ("size_t_sign", "int")],
     "is_auto_refractory_required": False
+
 }
 
 int_model = {
     "class_name": "int",
     "param_names": ["glk", "gd", "gsom", "change_th"],
     "var_name_types": [("u", "scalar"), ("v", "scalar"), ("r", "scalar"),
-                       ("r_last", "scalar"),# ("r_sec_last", "scalar"),
+                       ("r_last", "scalar"), ("r_sec_last", "scalar"),
                        ("t_last_spike", "scalar")],
     "additional_input_vars": [("u_td", "scalar", 0.0)],
     "sim_code": f"""
@@ -100,13 +105,14 @@ int_model = {
     "threshold_condition_code": TH_COND_CODE,
     "reset_code": RESET_CODE,
     "is_auto_refractory_required": False
+
 }
 
 input_model = {
     "class_name": "input",
     "param_names": ["pop_size", "change_th"],
     "var_name_types": [("r", "scalar"), ("idx_dat", "int"),
-                       ("r_last", "scalar"),# ("r_sec_last", "scalar"),
+                       ("r_last", "scalar"), ("r_sec_last", "scalar"),
                        ("t_last_spike", "scalar")],
     "sim_code": """
     if($(idx_dat) < $(size_t_sign)){
@@ -122,4 +128,5 @@ input_model = {
                             ("t_sign", "int*"),
                             ("size_t_sign", "int")],
     "is_auto_refractory_required": False
+
 }
