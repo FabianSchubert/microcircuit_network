@@ -9,7 +9,6 @@ from ..utils import act_func
 
 TH_COND_CODE = "abs($(r)-$(r_last)) >= $(change_th)"
 RESET_CODE = """
-$(r_sec_last) = $(r_last);
 $(r_last) = $(r);
 """
 
@@ -18,7 +17,7 @@ pyr_model = {
     "param_names": ["glk", "gb", "ga", "sigm_noise", "change_th"],
     "var_name_types": [("u", "scalar"), ("r", "scalar"),
                        ("r_last", "scalar"),
-                       ("r_sec_last", "scalar"),
+                       ("r_prev_last", "scalar"),
                        ("va_int", "scalar"), ("va_exc", "scalar"),
                        ("va", "scalar"),
                        ("vb", "scalar"),
@@ -29,6 +28,9 @@ pyr_model = {
     "derived_params": [("DTSQRT",
                         create_dpf_class(lambda pars, dt: dt**.5)())],
     "sim_code": f"""
+                // Save the r_last of the previous time step
+                $(r_prev_last) = $(r_last);
+                
                 $(vb) = $(Isyn_vb);
                 $(va_int) = $(Isyn_va_int);
                 $(va_exc) = $(Isyn_va_exc);
@@ -54,12 +56,14 @@ output_model = {
     "var_name_types": [("u", "scalar"), ("r", "scalar"),
                        ("vb", "scalar"), ("gnudge", "scalar"),
                        ("vnudge", "scalar"), ("idx_dat", "int"),
-                       ("r_last", "scalar"), ("r_sec_last", "scalar"),
+                       ("r_last", "scalar"), ("r_prev_last", "scalar"),
                        ("t_last_spike", "scalar")],
     "additional_input_vars": [("Isyn_vb", "scalar", 0.0)],
     "derived_params": [("DTSQRT",
                         create_dpf_class(lambda pars, dt: dt**.5)())],
     "sim_code": f"""
+                $(r_prev_last) = $(r_last);
+                
                 $(vb) = $(Isyn_vb);
                 if($(idx_dat) < $(size_t_sign)){{
                     if($(t)>=$(t_sign)[$(idx_dat)]*DT){{
@@ -89,10 +93,12 @@ int_model = {
     "class_name": "int",
     "param_names": ["glk", "gd", "gsom", "change_th"],
     "var_name_types": [("u", "scalar"), ("v", "scalar"), ("r", "scalar"),
-                       ("r_last", "scalar"), ("r_sec_last", "scalar"),
+                       ("r_last", "scalar"), ("r_prev_last", "scalar"),
                        ("t_last_spike", "scalar")],
     "additional_input_vars": [("u_td", "scalar", 0.0)],
     "sim_code": f"""
+                $(r_prev_last) = $(r_last);
+                
                 $(v) = $(Isyn);
                 // relaxation
                 $(u) += DT * ( -$(glk)*$(u)
@@ -112,9 +118,11 @@ input_model = {
     "class_name": "input",
     "param_names": ["pop_size", "change_th"],
     "var_name_types": [("r", "scalar"), ("idx_dat", "int"),
-                       ("r_last", "scalar"), ("r_sec_last", "scalar"),
+                       ("r_last", "scalar"), ("r_prev_last", "scalar"),
                        ("t_last_spike", "scalar")],
     "sim_code": """
+    $(r_prev_last) = $(r_last);
+                
     if($(idx_dat) < $(size_t_sign)){
         if($(t)>=$(t_sign)[$(idx_dat)]*DT){
             $(r) = $(u)[$(id)+$(idx_dat)*$(size_u)];

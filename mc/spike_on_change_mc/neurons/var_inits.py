@@ -1,5 +1,5 @@
 '''
-Parameter values for weight update models.
+Parameter values for weight neuron models.
 '''
 
 pyr_var_space = {
@@ -10,7 +10,7 @@ pyr_var_space = {
     "vb": 0.0,
     "r": 0.0,
     "r_last": 1.0,
-    "r_sec_last": 1.0,
+    "r_prev_last": 1.0,
     "t_last_spike": 0.0
 }
 
@@ -19,7 +19,7 @@ int_var_space = {
     "v": 0.0,
     "r": 0.0,
     "r_last": 1.0,
-    "r_sec_last": 1.0,
+    "r_prev_last": 1.0,
     "t_last_spike": 0.0
 }
 
@@ -27,7 +27,7 @@ input_var_space = {
     "r": 0.0,
     "idx_dat": 0,
     "r_last": 1.0,
-    "r_sec_last": 1.0,
+    "r_prev_last": 1.0,
     "t_last_spike": 0.0
 }
 
@@ -39,6 +39,6 @@ output_var_space = {
     "vnudge": 0.0,
     "idx_dat": 0,
     "r_last": 1.0,
-    "r_sec_last": 1.0,
+    "r_prev_last": 1.0,
     "t_last_spike": 0.0
 }

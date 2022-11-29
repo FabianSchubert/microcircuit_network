@@ -512,6 +512,9 @@ class Network:
 
             # manual variable manipulation
 
+            self.push_ext_data(t, n_inputs, time_signatures_ext_data, ext_data_pop_vars, input_views, idx_data_heads)
+
+            '''
             for k in range(n_inputs):
 
                 # if the array of time signatures is not empty...
@@ -531,6 +534,7 @@ class Network:
                         # remove the current first element of the
                         # time signatures after use.
                         time_signatures_ext_data[k] = time_signatures_ext_data[k][1:]
+            '''
 
             if data_validation and self.plastic:
                 if (idx_validation_runs < t_sign_validation.shape[0]
@@ -543,6 +547,7 @@ class Network:
 
             self.genn_model.step_time()
 
+            '''
             for k, (readout_pop, readout_var, _) in enumerate(readout_neur_pop_vars):
 
                 if time_signatures_readout_neur_pop[k].shape[0] > 0:
@@ -557,7 +562,11 @@ class Network:
                         idx_readout_neur_pop_heads[k] += 1
 
                         time_signatures_readout_neur_pop[k] = time_signatures_readout_neur_pop[k][1:]
+            '''
+            self.pull_neur_var_data(t, readout_neur_pop_vars, time_signatures_readout_neur_pop,
+                                    readout_neur_arrays, readout_views, idx_readout_neur_pop_heads)
 
+            '''
             for k, (readout_pop, readout_var, _) in enumerate(readout_syn_pop_vars):
 
                 if time_signatures_readout_syn_pop[k].shape[0] > 0:
@@ -575,6 +584,9 @@ class Network:
                         idx_readout_syn_pop_heads[k] += 1
 
                         time_signatures_readout_syn_pop[k] = time_signatures_readout_syn_pop[k][1:]
+            '''
+            self.pull_syn_var_data(t, readout_syn_pop_vars, time_signatures_readout_syn_pop,
+                              readout_syn_arrays, idx_readout_syn_pop_heads)
 
         self.genn_model.pull_recording_buffers_from_device()
 
@@ -625,3 +637,64 @@ class Network:
 
         return {"neur_var_rec": result_neur_arrays,
                 "spike_rec": result_spikes}
+
+    def push_ext_data(self, t, n_inputs, time_signatures_ext_data, ext_data_pop_vars, input_views, idx_data_heads):
+
+        for k in range(n_inputs):
+
+            # if the array of time signatures is not empty...
+            if time_signatures_ext_data[k].shape[0] > 0:
+
+                # check if the current time is equal to the
+                # current first element in the
+                # array of time signatures.
+                if time_signatures_ext_data[k][0] == t:
+                    input_views[k][:] = ext_data_pop_vars[k][0][idx_data_heads[k]]
+
+                    self.neur_pops[ext_data_pop_vars[k][2]].push_var_to_device(
+                        ext_data_pop_vars[k][3])
+
+                    idx_data_heads[k] += 1
+
+                    # remove the current first element of the
+                    # time signatures after use.
+                    time_signatures_ext_data[k] = time_signatures_ext_data[k][1:]
+
+    def pull_neur_var_data(self, t, readout_neur_pop_vars, time_signatures_readout_neur_pop,
+                           readout_neur_arrays, readout_views, idx_readout_neur_pop_heads):
+
+        for k, (readout_pop, readout_var, _) in enumerate(readout_neur_pop_vars):
+
+            if time_signatures_readout_neur_pop[k].shape[0] > 0:
+
+                if time_signatures_readout_neur_pop[k][0] == t:
+                    self.neur_pops[readout_pop].pull_var_from_device(
+                        readout_var)
+                    _dict_name = f'{readout_pop}_{readout_var}'
+                    readout_neur_arrays[_dict_name][idx_readout_neur_pop_heads[k]
+                    ] = readout_views[_dict_name]
+
+                    idx_readout_neur_pop_heads[k] += 1
+
+                    time_signatures_readout_neur_pop[k] = time_signatures_readout_neur_pop[k][1:]
+
+    def pull_syn_var_data(self, t, readout_syn_pop_vars, time_signatures_readout_syn_pop,
+                          readout_syn_arrays, idx_readout_syn_pop_heads):
+
+        for k, (readout_pop, readout_var, _) in enumerate(readout_syn_pop_vars):
+
+            if time_signatures_readout_syn_pop[k].shape[0] > 0:
+
+                if time_signatures_readout_syn_pop[k][0] == t:
+                    self.syn_pops[readout_pop].pull_var_from_device(
+                        readout_var)
+                    _dict_name = f'{readout_pop}_{readout_var}'
+
+                    readout_syn_arrays[_dict_name][idx_readout_syn_pop_heads[k]] = np.reshape(
+                        self.syn_pops[readout_pop].get_var_values(
+                            readout_var),
+                        readout_syn_arrays[_dict_name].shape[1:], order='F')
+
+                    idx_readout_syn_pop_heads[k] += 1
+
+                    time_signatures_readout_syn_pop[k] = time_signatures_readout_syn_pop[k][1:]

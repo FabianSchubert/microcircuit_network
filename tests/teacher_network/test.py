@@ -6,11 +6,11 @@ a randomly teacher network with one hidden
 layer and randomly generated weights.
 '''
 
-# import cProfile
-# import io
+import cProfile
+import io
 import pdb
-# import pstats
-# from pstats import SortKey
+import pstats
+from pstats import SortKey
 
 import ipdb
 import matplotlib.pyplot as plt
@@ -40,8 +40,6 @@ GLK_INT = int_param_space["glk"]
 GD_INT = int_param_space["gd"]
 GSOM_INT = int_param_space["gsom"]
 
-# pr = cProfile.Profile()
-
 ##################
 # Model parameters
 DT = 0.5
@@ -56,7 +54,7 @@ N_OUT = 10
 N_HIDDEN_TEACHER = 20
 
 T_SHOW_PATTERNS = 50
-N_PATTERNS = 500000
+N_PATTERNS = 15000
 
 T_OFFSET = 0
 
@@ -66,7 +64,7 @@ T = N_PATTERNS * T_SHOW_PATTERNS + T_OFFSET
 ######################
 # recording parameters
 
-T_SKIP_REC = T_SHOW_PATTERNS * 50
+T_SKIP_REC = T_SHOW_PATTERNS
 T_OFFSET_REC = 140
 T_AX_READOUT = np.arange(T)[::T_SKIP_REC] + T_OFFSET_REC
 ######################
@@ -81,11 +79,11 @@ T_SKIP_PLOT = 10
 #######################
 # validation parameters
 
-N_VALIDATION = 30
+N_VALIDATION = 10
 
 T_INTERVAL_VALIDATION = int(T / N_VALIDATION)
 
-N_VAL_PATTERNS = 100
+N_VAL_PATTERNS = 200
 
 T_RUN_VALIDATION = T_SHOW_PATTERNS * N_VAL_PATTERNS
 
@@ -120,7 +118,12 @@ targ_output_validation = []
 
 # generate a single validataion example
 
-(t_ax_val, val_input,
+
+
+for k in range(N_VALIDATION):
+
+
+    (t_ax_val, val_input,
      val_output, _, _) = gen_input_output_data(N_IN,
                                                N_HIDDEN_TEACHER,
                                                N_OUT,
@@ -128,9 +131,6 @@ targ_output_validation = []
                                                T_SHOW_PATTERNS,
                                                0,
                                                (W_10, W_21))
-
-for k in range(N_VALIDATION):
-
 
     # {T, t_sign, ext_data_input, ext_data_pop_vars, readout_neur_pop_vars}
 
@@ -242,7 +242,8 @@ syn_readout_list = [("syn_hidden0_int_pop_to_pyr_pop",
                     ("syn_input_input_pop_to_hidden0_pyr_pop",
                      "g", T_AX_READOUT)]
 
-# pr.enable()
+pr = cProfile.Profile()
+pr.enable()
 
 (results_neur, results_syn,
  results_spikes,
@@ -255,12 +256,12 @@ syn_readout_list = [("syn_hidden0_int_pop_to_pyr_pop",
                                    data_validation,
                                    show_progress_val=False)
 
-# pr.disable()
-# s = io.StringIO()
-# sortby = SortKey.CUMULATIVE
-# ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-# ps.print_stats()
-# print(s.getvalue())
+pr.disable()
+s = io.StringIO()
+sortby = SortKey.CUMULATIVE
+ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+ps.print_stats()
+print(s.getvalue())
 
 
 '''
@@ -340,7 +341,7 @@ fig.savefig("./tests/teacher_network/plots/train_loss.png", dpi=600)
 
 plt.show()
 
-'''
+
 for k in range(T_SIGN_VALIDATION.shape[0]):
     spike_times, spike_indices = results_validation[k]["spike_rec"]["neur_output_output_pop"]
 
@@ -376,8 +377,6 @@ for k in range(T_SIGN_VALIDATION.shape[0]):
     
     plt.close()
     #plt.show()
-
-'''
 
 T_HIST_SPIKES = 200.
 N_BINS_SPIKES = 200
