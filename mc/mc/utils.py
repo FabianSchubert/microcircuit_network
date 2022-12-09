@@ -88,7 +88,7 @@ def merge_wu_def(class_name, def_1, def_2):
 
         # if both codes are None, set the resulting
         # code to None.
-        if(code_1 is None and code_2 is None):
+        if code_1 is None and code_2 is None:
             wu_def[code] = None
         else:
             # else, set either code variables to

@@ -6,38 +6,8 @@ from pygenn.genn_model import (create_custom_weight_update_class,
                                create_custom_postsynaptic_class,
                                init_connectivity, init_var)
 
-from .postsyn.model_defs import ps_model_integrator_update
-
-from .postsyn.params import ps_param_space_integrator_update
-
-from .postsyn.var_inits import ps_var_space_integrator_update
-
-from .weight_update.model_defs import (wu_model_transmit_rate_diff,
-                                       wu_model_pp_basal,
-                                       wu_model_pp_apical,
-                                       wu_model_pinp,
-                                       wu_model_ip,
-                                       wu_model_ip_back,
-                                       wu_model_pi)
-
-from .weight_update.params import (wu_param_space_transmit_rate_diff,
-                                   wu_param_space_pp_basal,
-                                   wu_param_space_pp_apical,
-                                   wu_param_space_ip,
-                                   wu_param_space_pi,
-                                   wu_param_space_ip_back,
-                                   wu_param_space_pinp)
-
-from .weight_update.var_inits import (wu_var_space_transmit_rate_diff,
-                                      wu_var_space_pp_basal,
-                                      wu_var_space_pp_apical,
-                                      wu_var_space_pinp,
-                                      wu_var_space_ip,
-                                      wu_var_space_pi,
-                                      wu_var_space_ip_back)
-
-from ..utils import (merge_wu_def, merge_dicts,
-                     merge_ps_def)
+from .utils import (merge_wu_def, merge_dicts,
+                    merge_ps_def)
 
 SCALE_WEIGHT_INIT = 0.5
 
@@ -46,21 +16,21 @@ SCALE_WEIGHT_INIT = 0.5
 class SynapseBase:
     matrix_type: str = None  # = "DENSE_INDIVIDUALG"
     delay_steps: int = 0
-    w_update_model_transmit: dict = field(default_factory = lambda: wu_model_transmit_rate_diff)
+    w_update_model_transmit: dict = field(default_factory=dict)
     w_update_model_plast: dict = field(default_factory=dict)
-    wu_param_space_transmit: dict = field(default_factory=lambda: wu_param_space_transmit_rate_diff)
+    wu_param_space_transmit: dict = field(default_factory=dict)
     wu_param_space_plast: dict = field(default_factory=dict)
-    wu_var_space_transmit: dict = field(default_factory=lambda: wu_var_space_transmit_rate_diff)
+    wu_var_space_transmit: dict = field(default_factory=dict)
     wu_var_space_plast: dict = field(default_factory=dict)
     wu_pre_var_space_transmit: dict = field(default_factory=dict)
     wu_pre_var_space_plast: dict = field(default_factory=dict)
     wu_post_var_space_transmit: dict = field(default_factory=dict)
     wu_post_var_space_plast: dict = field(default_factory=dict)
-    ps_model_transmit: dict = field(default_factory=lambda: ps_model_integrator_update)
+    ps_model_transmit: dict = field(default_factory=dict)
     ps_model_plast: dict = field(default_factory=dict)
-    ps_param_space_transmit: dict = field(default_factory=lambda: ps_param_space_integrator_update)
+    ps_param_space_transmit: dict = field(default_factory=dict)
     ps_param_space_plast: dict = field(default_factory=dict)
-    ps_var_space_transmit: dict = field(default_factory=lambda: ps_var_space_integrator_update)
+    ps_var_space_transmit: dict = field(default_factory=dict)
     ps_var_space_plast: dict = field(default_factory=dict)
     connectivity_initialiser: "typing.Any" = None
     ps_target_var: str = "Isyn"
@@ -184,6 +154,7 @@ class SynapsePPBasal(SynapseDense):
 
         self.ps_model_plast = None
 
+        '''
         self.w_update_model_transmit = wu_model_transmit_rate_diff
         self.w_update_model_plast = wu_model_pp_basal
 
@@ -191,6 +162,7 @@ class SynapsePPBasal(SynapseDense):
         self.wu_param_space_plast = wu_param_space_pp_basal
 
         self.wu_var_space_plast = wu_var_space_pp_basal
+        '''
 
         self.wu_var_space_transmit["g"] = init_var(
             "Uniform",
@@ -211,10 +183,13 @@ class SynapsePINP(SynapseDense):
 
         super().__init__(*args[:-1], **kwargs)
 
+
+
         n_norm = args[-1]
 
         self.ps_model_plast = None
 
+        '''
         self.w_update_model_transmit = wu_model_transmit_rate_diff
         self.w_update_model_plast = wu_model_pinp
 
@@ -222,6 +197,7 @@ class SynapsePINP(SynapseDense):
         self.wu_param_space_plast = wu_param_space_pinp
 
         self.wu_var_space_plast = wu_var_space_pinp
+        '''
 
         self.wu_var_space_transmit["g"] = init_var(
                 "Uniform",
@@ -246,14 +222,6 @@ class SynapsePPApical(SynapseDense):
 
         self.ps_model_plast = None
 
-        self.w_update_model_transmit = wu_model_transmit_rate_diff
-        self.w_update_model_plast = wu_model_pp_apical
-
-        self.wu_param_space_transmit = wu_param_space_transmit_rate_diff
-        self.wu_param_space_plast = wu_param_space_pp_apical
-
-        self.wu_var_space_plast = wu_var_space_pp_apical
-
         self.wu_var_space_transmit["g"] = init_var(
                 "Uniform",
                 {"min": -SCALE_WEIGHT_INIT/n_norm**.5,
@@ -275,8 +243,9 @@ class SynapseIP(SynapseDense):
 
         n_norm = args[-1]
 
-        self.ps_model_plast = None
+        #self.ps_model_plast = None
 
+        '''
         self.w_update_model_transmit = wu_model_transmit_rate_diff
         self.w_update_model_plast = wu_model_ip
 
@@ -284,6 +253,7 @@ class SynapseIP(SynapseDense):
         self.wu_param_space_plast = wu_param_space_ip
 
         self.wu_var_space_plast = wu_var_space_ip
+        '''
 
         self.wu_var_space_transmit["g"] = init_var(
                 "Uniform",
@@ -304,6 +274,7 @@ class SynapseIPBack(SynapseSparseOneToOne):
 
         self.ps_model_plast = None
 
+        '''
         self.w_update_model_transmit = wu_model_transmit_rate_diff
         self.w_update_model_plast = wu_model_ip_back
 
@@ -311,6 +282,7 @@ class SynapseIPBack(SynapseSparseOneToOne):
         self.wu_param_space_plast = wu_param_space_ip_back
 
         self.wu_var_space_plast = wu_var_space_ip_back
+        '''
 
         self.wu_var_space_transmit["g"] = 1.0
 
@@ -329,6 +301,7 @@ class SynapsePI(SynapseDense):
 
         self.ps_model_plast = None
 
+        '''
         self.w_update_model_transmit = wu_model_transmit_rate_diff
         self.w_update_model_plast = wu_model_pi
 
@@ -336,6 +309,7 @@ class SynapsePI(SynapseDense):
         self.wu_param_space_plast = wu_param_space_pi
 
         self.wu_var_space_plast = wu_var_space_pi
+        '''
 
         self.wu_var_space_transmit["g"] = init_var(
                 "Uniform",
