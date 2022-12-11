@@ -444,12 +444,24 @@ class Network:
         # which to load when the next time data is pushed to a population.
         idx_data_heads = []
 
+        t_sign = np.ndarray((0)) if t_sign is None else t_sign
+
+        ext_data_pop_vars = [] if ext_data_pop_vars is None else ext_data_pop_vars
+
         n_inputs = len(ext_data_pop_vars)
+
+        readout_neur_pop_vars = [] if readout_neur_pop_vars is None else readout_neur_pop_vars
+
+        readout_syn_pop_vars = [] if readout_syn_pop_vars is None else readout_syn_pop_vars
+
+        ext_data_input = np.ndarray((0)) if ext_data_input is None else ext_data_input
+        ext_data_output = np.ndarray((0)) if ext_data_output is None else ext_data_output
 
         # List for copies of time signatures for extra input data.
         time_signatures_ext_data = []
 
         if data_validation:
+
             assert t_sign_validation is not None, \
                 """Error: validation data was provided,
                 but no time signatures were given.
