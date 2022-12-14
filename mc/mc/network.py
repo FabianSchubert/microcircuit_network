@@ -135,6 +135,7 @@ class Network:
         for k in range(self.n_hidden_layers - 1):
             _l_size = self.size_hidden[k]
             _l_next_size = self.size_hidden[k + 1]
+
             self.layers.append(
                 HiddenLayer(f'hidden{k}',
                             self.genn_model,
@@ -264,6 +265,7 @@ class Network:
 
         self.update_syn_pops()
 
+
         #
         #################################################
 
@@ -276,6 +278,8 @@ class Network:
         ############################
 
         self.genn_model.build()
+
+
 
         # initialize the extra global parameters required for
         # putting the input to the gpu
@@ -300,6 +304,25 @@ class Network:
         _output_pop.set_extra_global_param("size_t_sign", self.t_inp_max)
 
         self.genn_model.load(num_recording_timesteps=self.spike_buffer_size)
+
+        ############################
+        # normalize weights
+        for synpop in self.syn_pops.values():
+            norm = synpop.norm_after_init
+            assert norm in (False, "lin", "sqrt") , \
+                """Error: wrong synapse normalisation argument"""
+            if norm:
+                weightview = synpop.vars["g"].view
+                synpop.pull_var_from_device("g")
+                
+                if norm == "lin":
+                    normfact = synpop.src.size
+                else:
+                    normfact = np.sqrt(synpop.src.size)
+
+                weightview[:] = weightview[:] / normfact
+                synpop.push_var_to_device("g")
+        ############################
 
         # only if this instance is plastic, we create a static
         # twin of the network as a member variable of itself

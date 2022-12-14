@@ -17,10 +17,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 
-from mc.mc.network import Network
-from mc.mc.neurons.params import (int_param_space,
-                                  output_param_space,
-                                  pyr_hidden_param_space)
+from mc.network import Network
+
+from tests import test_model_rate_spikes as net_model
 
 from .utils import gen_input_output_data
 
@@ -28,21 +27,21 @@ from test_tasks.utils import calc_loss_interp
 
 col_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
-GB_PYR = pyr_hidden_param_space["gb"]
-GA_PYR = pyr_hidden_param_space["ga"]
-GLK_PYR = pyr_hidden_param_space["glk"]
+GB_PYR = net_model.neurons.pyr.param_space["gb"]
+GA_PYR = net_model.neurons.pyr.param_space["ga"]
+GLK_PYR = net_model.neurons.pyr.param_space["glk"]
 
-GB_OUT = output_param_space["gb"]
-GA_OUT = output_param_space["ga"]
-GLK_OUT = output_param_space["glk"]
+GB_OUT = net_model.neurons.output.param_space["gb"]
+GA_OUT = net_model.neurons.output.param_space["ga"]
+GLK_OUT = net_model.neurons.output.param_space["glk"]
 
-GLK_INT = int_param_space["glk"]
-GD_INT = int_param_space["gd"]
-GSOM_INT = int_param_space["gsom"]
+GLK_INT = net_model.neurons.int.param_space["glk"]
+GD_INT = net_model.neurons.int.param_space["gd"]
+GSOM_INT = net_model.neurons.int.param_space["gsom"]
 
 ##################
 # Model parameters
-DT = 0.5
+DT = 0.05
 ##################
 
 #####################
@@ -53,8 +52,8 @@ N_OUT = 10
 
 N_HIDDEN_TEACHER = 20
 
-T_SHOW_PATTERNS = 100
-N_PATTERNS = 200000
+T_SHOW_PATTERNS = 300
+N_PATTERNS = 200
 
 T_OFFSET = 0
 
@@ -81,11 +80,11 @@ T_SKIP_PLOT = 10
 #######################
 # validation parameters
 
-N_VALIDATION = 20
+N_VALIDATION = 1
 
 T_INTERVAL_VALIDATION = int(T / N_VALIDATION)
 
-N_VAL_PATTERNS = 200
+N_VAL_PATTERNS = 50
 
 T_RUN_VALIDATION = T_SHOW_PATTERNS * N_VAL_PATTERNS
 
@@ -119,13 +118,11 @@ ext_data_pop_vars = []
 data_validation = []
 
 targ_output_validation = []
+input_validation = []
 
-# generate a single validataion example
-
-
+# generate a single validation example
 
 for k in range(N_VALIDATION):
-
 
     (t_ax_val, val_input,
      val_output, _, _) = gen_input_output_data(N_IN,
@@ -155,22 +152,27 @@ for k in range(N_VALIDATION):
                                                       ("neur_input_input_pop",
                                                        "r", T_AX_READOUT_VAL),
                                                       ("neur_hidden0_pyr_pop",
-                                                       "vb", T_AX_READOUT_VAL)]
+                                                       "vb", T_AX_READOUT_VAL),
+                                                      ("neur_hidden0_pyr_pop",
+                                                       "u", T_AX_READOUT_VAL)]
 
     data_validation.append(_dict_data_validation)
 
     targ_output_validation.append(val_output)
+    input_validation.append(val_input)
 
 #######################################
 # set populations to record spikes from
 neur_pops_spike_rec = ["neur_output_output_pop"]
-neur_pops_spike_rec_val = ["neur_output_output_pop"]
+neur_pops_spike_rec_val = ["neur_output_output_pop","neur_input_input_pop","neur_hidden0_pyr_pop"]
 #######################################
 
 ##########################
 # Initialize network
 
-net = Network("testnet", N_IN, N_HIDDEN, N_OUT,
+net = Network("testnet",
+              net_model,
+              N_IN, N_HIDDEN, N_OUT,
               N_PATTERNS,
               T_SPIKE_REC,
               T_SPIKE_REC_VALIDATION,
@@ -359,16 +361,20 @@ plt.show()
 
 
 for k in range(T_SIGN_VALIDATION.shape[0]):
-    spike_times, spike_indices = results_validation[k]["spike_rec"]["neur_output_output_pop"]
+    spike_times, spike_indices = results_validation[k]["spike_rec"]["neur_hidden0_pyr_pop"]
 
     fig, ax = plt.subplots(1, 1, figsize=(10, 5))
 
-    stpplot = ax.step(t_ax_val*DT, np.reshape(targ_output_validation[k], (N_VAL_PATTERNS, N_OUT))[:, 0],
-                      where="post", label=r'$u_{trg}$', zorder=5)
+    stpplot = ax.step(t_ax_val*DT, np.reshape(input_validation[k], (N_VAL_PATTERNS, N_IN))[:, 0],
+                      where="post", label=r'$u_{inp}$', zorder=5)
 
     lnplot = ax.plot(T_AX_READOUT_VAL*DT,
-                     results_validation[k]["neur_var_rec"]["neur_output_output_pop_u"][:, 0],
-                     label=r'$\hat{v}_b$', zorder=10)
+                      results_validation[k]["neur_var_rec"]["neur_hidden0_pyr_pop_vb"][:, 0],
+                      label=r'$\hat{v}_b$', zorder=10)
+
+    lnplot2 = ax.plot(T_AX_READOUT_VAL * DT,
+                      results_validation[k]["neur_var_rec"]["neur_hidden0_pyr_pop_u"][:, 0],
+                      label=r'$u$', zorder=20)
 
     ax.vlines(x=spike_times[np.where(spike_indices == 0)[0]],
               colors="k",
@@ -381,7 +387,7 @@ for k in range(T_SIGN_VALIDATION.shape[0]):
 
     ax.set_xlabel(r"$Time$")
 
-    ax.set_xlim([0.,500.])
+    ax.set_xlim([0.,100.])
 
     ax.legend()
 
@@ -394,12 +400,13 @@ for k in range(T_SIGN_VALIDATION.shape[0]):
     plt.close()
     #plt.show()
 
+'''
 T_HIST_SPIKES = 600.
 N_BINS_SPIKES = 200
 
 spike_times = results_spikes["neur_output_output_pop"][0]
 
-spike_times_val = results_validation[int(N_VALIDATION/2)]["spike_rec"]["neur_output_output_pop"][0]
+spike_times_val = results_validation[int(N_VALIDATION/2)]["spike_rec"]["neur_input_input_pop"][0]
 
 # find the time where new input is presented that
 # is closest to spike_times.max() * 0.5,
@@ -439,6 +446,8 @@ fig.tight_layout()
 fig.savefig("./test_tasks/teacher_network/plots/spike_rates.png", dpi=300)
 
 plt.show()
+
+'''
 
 # W_op_hp = results_syn["syn_hidden0_pyr_pop_to_output_output_pop_g"]
 # I_vb = np.ndarray(vb_output.shape)

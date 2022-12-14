@@ -1,5 +1,5 @@
 #! /usr/bin/env python3
-
+import typing
 from dataclasses import dataclass, field
 
 from pygenn.genn_model import (create_custom_weight_update_class,
@@ -34,6 +34,7 @@ class SynapseBase:
     ps_var_space_plast: dict = field(default_factory=dict)
     connectivity_initialiser: "typing.Any" = None
     ps_target_var: str = "Isyn"
+    norm_after_init: typing.Any = False
 
     def build_wu_model(self, plastic):
         '''
@@ -76,18 +77,20 @@ class SynapseBase:
         ps_model = self.build_ps_model(plastic)
 
         if plastic:
-            wu_param_space = merge_dicts(self.wu_param_space_transmit,
-                                         self.wu_param_space_plast)
-            wu_var_space = merge_dicts(self.wu_var_space_transmit,
-                                       self.wu_var_space_plast)
-            wu_pre_var_space = merge_dicts(self.wu_pre_var_space_transmit,
-                                           self.wu_pre_var_space_plast)
-            wu_post_var_space = merge_dicts(self.wu_post_var_space_transmit,
-                                            self.wu_post_var_space_plast)
-            ps_param_space = merge_dicts(self.ps_param_space_transmit,
-                                         self.ps_param_space_plast)
-            ps_var_space = merge_dicts(self.ps_var_space_transmit,
-                                       self.ps_var_space_plast)
+            wu_param_space = merge_dicts(self.wu_param_space_plast,
+                                         self.wu_param_space_transmit)
+            wu_var_space = merge_dicts(self.wu_var_space_plast,
+                                       self.wu_var_space_transmit)
+
+            wu_pre_var_space = merge_dicts(self.wu_pre_var_space_plast,
+                                           self.wu_pre_var_space_transmit)
+            wu_post_var_space = merge_dicts(self.wu_post_var_space_plast,
+                                            self.wu_post_var_space_transmit)
+
+            ps_param_space = merge_dicts(self.ps_param_space_plast,
+                                         self.ps_param_space_transmit)
+            ps_var_space = merge_dicts(self.ps_var_space_plast,
+                                       self.ps_var_space_transmit)
         else:
             wu_param_space = dict(self.wu_param_space_transmit)
             wu_var_space = dict(self.wu_var_space_transmit)
@@ -105,6 +108,8 @@ class SynapseBase:
             self.connectivity_initialiser
         )
         _syn_pop.ps_target_var = self.ps_target_var
+
+        _syn_pop.norm_after_init = self.norm_after_init
 
         return _syn_pop
 
@@ -150,30 +155,6 @@ class SynapsePPBasal(SynapseDense):
 
         super().__init__(*args[:-1], **kwargs)
 
-        n_norm = args[-1]
-
-        self.ps_model_plast = None
-
-        '''
-        self.w_update_model_transmit = wu_model_transmit_rate_diff
-        self.w_update_model_plast = wu_model_pp_basal
-
-        self.wu_param_space_transmit = wu_param_space_transmit_rate_diff
-        self.wu_param_space_plast = wu_param_space_pp_basal
-
-        self.wu_var_space_plast = wu_var_space_pp_basal
-        '''
-
-        self.wu_var_space_transmit["g"] = init_var(
-            "Uniform",
-            {"min": -SCALE_WEIGHT_INIT/n_norm**.5,
-            "max": SCALE_WEIGHT_INIT/n_norm**.5})
-
-        self.wu_var_space_plast["g"] = init_var(
-            "Uniform",
-            {"min": -SCALE_WEIGHT_INIT/n_norm**.5,
-            "max": SCALE_WEIGHT_INIT/n_norm**.5})
-
         self.ps_target_var = "Isyn_vb"
 
 
@@ -182,32 +163,6 @@ class SynapsePINP(SynapseDense):
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args[:-1], **kwargs)
-
-
-
-        n_norm = args[-1]
-
-        self.ps_model_plast = None
-
-        '''
-        self.w_update_model_transmit = wu_model_transmit_rate_diff
-        self.w_update_model_plast = wu_model_pinp
-
-        self.wu_param_space_transmit = wu_param_space_transmit_rate_diff
-        self.wu_param_space_plast = wu_param_space_pinp
-
-        self.wu_var_space_plast = wu_var_space_pinp
-        '''
-
-        self.wu_var_space_transmit["g"] = init_var(
-                "Uniform",
-                {"min": -SCALE_WEIGHT_INIT/n_norm**.5,
-                 "max": SCALE_WEIGHT_INIT/n_norm**.5})
-
-        self.wu_var_space_plast["g"] = init_var(
-                "Uniform",
-                {"min": -SCALE_WEIGHT_INIT/n_norm**.5,
-                 "max": SCALE_WEIGHT_INIT/n_norm**.5})
 
         self.ps_target_var = "Isyn_vb"
 
@@ -218,20 +173,6 @@ class SynapsePPApical(SynapseDense):
 
         super().__init__(*args[:-1], **kwargs)
 
-        n_norm = args[-1]
-
-        self.ps_model_plast = None
-
-        self.wu_var_space_transmit["g"] = init_var(
-                "Uniform",
-                {"min": -SCALE_WEIGHT_INIT/n_norm**.5,
-                 "max": SCALE_WEIGHT_INIT/n_norm**.5})
-
-        self.wu_var_space_plast["g"] = init_var(
-                "Uniform",
-                {"min": -SCALE_WEIGHT_INIT/n_norm**.5,
-                 "max": SCALE_WEIGHT_INIT/n_norm**.5})
-
         self.ps_target_var = "Isyn_va_exc"
 
 
@@ -241,52 +182,12 @@ class SynapseIP(SynapseDense):
 
         super().__init__(*args[:-1], **kwargs)
 
-        n_norm = args[-1]
-
-        #self.ps_model_plast = None
-
-        '''
-        self.w_update_model_transmit = wu_model_transmit_rate_diff
-        self.w_update_model_plast = wu_model_ip
-
-        self.wu_param_space_transmit = wu_param_space_transmit_rate_diff
-        self.wu_param_space_plast = wu_param_space_ip
-
-        self.wu_var_space_plast = wu_var_space_ip
-        '''
-
-        self.wu_var_space_transmit["g"] = init_var(
-                "Uniform",
-                {"min": -SCALE_WEIGHT_INIT/n_norm**.5,
-                 "max": SCALE_WEIGHT_INIT/n_norm**.5})
-
-        self.wu_var_space_plast["g"] = init_var(
-                "Uniform",
-                {"min": -SCALE_WEIGHT_INIT/n_norm**.5,
-                 "max": SCALE_WEIGHT_INIT/n_norm**.5})
-
 
 class SynapseIPBack(SynapseSparseOneToOne):
 
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
-
-        self.ps_model_plast = None
-
-        '''
-        self.w_update_model_transmit = wu_model_transmit_rate_diff
-        self.w_update_model_plast = wu_model_ip_back
-
-        self.wu_param_space_transmit = wu_param_space_transmit_rate_diff
-        self.wu_param_space_plast = wu_param_space_ip_back
-
-        self.wu_var_space_plast = wu_var_space_ip_back
-        '''
-
-        self.wu_var_space_transmit["g"] = 1.0
-
-        self.wu_var_space_plast["g"] = 1.0
 
         self.ps_target_var = "u_td"
 
@@ -296,29 +197,5 @@ class SynapsePI(SynapseDense):
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args[:-1], **kwargs)
-
-        n_norm = args[-1]
-
-        self.ps_model_plast = None
-
-        '''
-        self.w_update_model_transmit = wu_model_transmit_rate_diff
-        self.w_update_model_plast = wu_model_pi
-
-        self.wu_param_space_transmit = wu_param_space_transmit_rate_diff
-        self.wu_param_space_plast = wu_param_space_pi
-
-        self.wu_var_space_plast = wu_var_space_pi
-        '''
-
-        self.wu_var_space_transmit["g"] = init_var(
-                "Uniform",
-                {"min": -SCALE_WEIGHT_INIT/n_norm**.5,
-                 "max": SCALE_WEIGHT_INIT/n_norm**.5})
-
-        self.wu_var_space_plast["g"] = init_var(
-                "Uniform",
-                {"min": -SCALE_WEIGHT_INIT/n_norm**.5,
-                 "max": SCALE_WEIGHT_INIT/n_norm**.5})
 
         self.ps_target_var = "Isyn_va_int"

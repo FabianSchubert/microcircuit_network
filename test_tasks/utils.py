@@ -2,6 +2,14 @@
 Some tools for running test simulations.
 """
 import numpy as np
+import matplotlib.pyplot as plt
+
+
+def plot_spike_times(sp, ax=None, color='k'):
+
+    _ax = ax if ax else plt.gca()
+
+    _ax.plot(sp[0], sp[1], '.', c=color, markersize=1)
 
 
 def squ_loss(x, y):

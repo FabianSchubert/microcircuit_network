@@ -9,6 +9,17 @@ from .synapses import SynapseIP, SynapsePI
 from pygenn.genn_model import create_custom_neuron_class
 
 
+'''
+f'hidden{k}',
+self.genn_model,
+self.model_def.neurons.pyr.mod_dat,
+self.model_def.neurons.int.mod_dat,
+self.model_def.synapses.IP.mod_dat,
+self.model_def.synapses.PI.mod_dat,
+_l_size, _l_next_size,
+plastic=self.plastic
+'''
+
 class LayerBase:
 
     def __init__(self, name, genn_model, plastic=True):
