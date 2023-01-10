@@ -6,7 +6,8 @@ from pygenn.genn_model import init_var
 w_update_model_transmit = dict(WU_TRANSMIT)
 wu_param_space_transmit = dict(WU_TRANSMIT_PARAM)
 wu_var_space_transmit = dict(WU_TRANSMIT_VAR)
-wu_var_space_transmit["g"] = init_var("Uniform", {"min": 0.0, "max": 1.0})
+WEIGHT_SCALE = 0.25
+wu_var_space_transmit["g"] = init_var("Uniform", {"min": 0.0, "max": WEIGHT_SCALE})
 
 w_update_model_plast = {
     "class_name": "weight_update_model_pyr_to_pyr_back_def",

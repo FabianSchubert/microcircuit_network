@@ -5,7 +5,8 @@ from ..utils import (WU_TRANSMIT, WU_TRANSMIT_VAR, WU_TRANSMIT_PARAM,
 w_update_model_transmit = dict(WU_TRANSMIT)
 wu_param_space_transmit = dict(WU_TRANSMIT_PARAM)
 wu_var_space_transmit = dict(WU_TRANSMIT_VAR)
-wu_var_space_transmit["g"] = init_var("Uniform", {"min": -1.0, "max": 0.0})
+WEIGHT_SCALE = 0.25
+wu_var_space_transmit["g"] = init_var("Uniform", {"min": -WEIGHT_SCALE, "max": 0.0})
 
 w_update_model_plast = {
     "class_name": "weight_update_model_int_to_pyr_def",
@@ -14,10 +15,11 @@ w_update_model_plast = {
     "sim_code": f"""
         // SIM CODE PI
         $(g) += -$(muPI) * $(va_post);
+        $(g) = min(0.,$(g));
     """
 }
 
-wu_param_space_plast = {"muPI": 0}#8e-4}
+wu_param_space_plast = {"muPI": 1*0.25*8e-4}
 
 wu_var_space_plast = {
     #"g": init_var("Uniform", {"min": -1.0, "max": 0.0})

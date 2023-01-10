@@ -607,7 +607,7 @@ class Network:
 
         ####################################################
 
-        for t in tqdm(range(T), disable=not show_progress):
+        for t in tqdm(range(T), disable=not show_progress, leave=self.plastic):
 
             # manual variable manipulation
 
@@ -743,3 +743,64 @@ class Network:
                     idx_readout_syn_pop_heads[k] += 1
 
                     time_signatures_readout_syn_pop[k] = time_signatures_readout_syn_pop[k][1:]
+
+    def init_self_pred_state(self):
+        """
+        Modify the PI and IP weights such that the
+        network is in the self-predicting state,
+        given the current state of the PP-forward
+        and PP-backward weights.
+        This can only be called after the genn model
+        was loaded.
+        """
+
+        for _l in self.layers:
+
+            if type(_l) == HiddenLayer:
+
+                # really bad approach - skip the "hidden" part
+                # the layer name, which is always "hidden<idx>"
+                idx = int(_l.name[6:])
+
+                _name_this_layer = _l.name
+
+                if idx < (self.n_hidden_layers - 1):
+                    _name_next_layer = f'hidden{idx + 1}'
+                    _name_next_pyr = "pyr_pop"
+                else:
+                    _name_next_layer = "output"
+                    _name_next_pyr = "output_pop"
+
+                _name_pp_fwd = f'syn_{_name_this_layer}_pyr_pop_to_{_name_next_layer}_{_name_next_pyr}'
+                _pp_fwd = self.syn_pops[_name_pp_fwd]
+                _synview_pp_fwd = _pp_fwd.vars["g"].view
+
+                _name_pp_back = f'syn_{_name_next_layer}_{_name_next_pyr}_to_{_name_this_layer}_pyr_pop'
+                _pp_back = self.syn_pops[_name_pp_back]
+                _synview_pp_back = _pp_back.vars["g"].view
+
+                _pi = _l.syn_pops["int_pop_to_pyr_pop"]
+                _synview_pi = _pi.vars["g"].view
+                _ip = _l.syn_pops["pyr_pop_to_int_pop"]
+                _synview_ip = _ip.vars["g"].view
+
+                # set the PI weights to the negative of the PP_back weights
+                _pp_back.pull_var_from_device("g")
+                _synview_pi[:] = -_synview_pp_back
+                _pi.push_var_to_device("g")
+
+                # set the IP weights to the PP_fwd weights, scaled
+                # by (gb + glk)/(gb+ga+glk) (parameters referring
+                # to the post-population of PP_fwd)
+                _trg = _pp_fwd.trg
+                _GLK = _trg.params.get_initialisers()[_pp_fwd.trg.param_names.index("glk")]
+                _GB = _trg.params.get_initialisers()[_pp_fwd.trg.param_names.index("gb")]
+                _GA = _trg.params.get_initialisers()[_pp_fwd.trg.param_names.index("ga")]
+
+                _pp_fwd.pull_var_from_device("g")
+                _synview_ip[:] = _synview_pp_fwd * (_GB + _GLK) / (_GB + _GA + _GLK)
+                _ip.push_var_to_device("g")
+
+
+
+

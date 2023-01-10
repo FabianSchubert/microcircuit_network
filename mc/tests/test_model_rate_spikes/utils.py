@@ -11,7 +11,7 @@ TH_COND_CODE = "$(gennrand_uniform) <= $(r)*DT"
 #RESET_CODE = "$(t_last_spike) = $(t);"
 RESET_CODE = ""
 
-TAU_TRANSMIT = 1.0
+TAU_TRANSMIT = 10.0
 
 WU_TRANSMIT = {
     "class_name": "weight_update_model_transmit_spike",
@@ -41,5 +41,6 @@ PS_TRANSMIT_PARAM = {"tau": TAU_TRANSMIT}
 
 def act_func(x):
     #return f'3.0*log(1.0+exp(1.0*({x})))'
-    return f'5.0*max(0.0,{x})'
+    #return f'3.5*max(0.0,{x}-0.2)'
+    return f'3.5*log(1.0+exp(({x}-0.2)*15.0))/15.0'
 

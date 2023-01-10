@@ -7,7 +7,8 @@ from pygenn.genn_model import init_var
 w_update_model_transmit = dict(WU_TRANSMIT)
 wu_param_space_transmit = dict(WU_TRANSMIT_PARAM)
 wu_var_space_transmit = dict(WU_TRANSMIT_VAR)
-wu_var_space_transmit["g"] = init_var("Uniform", {"min": 0.0, "max": 1.0})
+WEIGHT_SCALE = 0.25
+wu_var_space_transmit["g"] = init_var("Uniform", {"min": 0.0, "max": WEIGHT_SCALE})
 
 w_update_model_plast = {
     "class_name": "weight_update_model_pyr_to_int_def",
@@ -15,13 +16,14 @@ w_update_model_plast = {
     "var_name_types": [("g", "scalar"), ("vEff", "scalar")],
     "sim_code": f"""
         // SIM CODE IP
-        $(vEff) = $(v_post) * $(gd_post)/($(glk_post)+$(gd_post));
+        //$(vEff) = $(v_post) * $(gd_post)/($(glk_post)+$(gd_post));
         
-        $(g) += -$(muIP) * ($(u_post) - $(vEff));
+        $(g) += $(muIP) * ($(u_post) - $(vEff_post));
+        $(g) = max(0.,$(g));
     """
 }
 
-wu_param_space_plast = {"muIP": 0}#1e-2}
+wu_param_space_plast = {"muIP": 1*1e-3}
 
 wu_var_space_plast = {
     # no "g", because it's set in the transmit model vars

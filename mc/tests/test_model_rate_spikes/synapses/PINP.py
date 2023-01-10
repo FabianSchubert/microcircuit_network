@@ -6,7 +6,8 @@ from pygenn.genn_model import init_var
 w_update_model_transmit = dict(WU_TRANSMIT)
 wu_param_space_transmit = dict(WU_TRANSMIT_PARAM)
 wu_var_space_transmit = dict(WU_TRANSMIT_VAR)
-wu_var_space_transmit["g"] = init_var("Uniform", {"min": 0.0, "max": 1.0})
+WEIGHT_SCALE = 0.25
+wu_var_space_transmit["g"] = init_var("Uniform", {"min": 0.0, "max": WEIGHT_SCALE})
 
 w_update_model_plast = {
     "class_name": "weight_update_model_input_to_pyr",
@@ -14,14 +15,15 @@ w_update_model_plast = {
     "var_name_types": [("g", "scalar"), ("vbEff", "scalar")],
     "sim_code": f"""
         // SIM CODE PINP
-        $(vbEff) = $(vb_post) * $(gb_post)/($(glk_post)+$(gb_post)+$(ga_post));
-        $(g) += $(muPINP)*($(u_post) - $(vbEff));
+        //$(vbEff) = $(vb_post) * $(gb_post)/($(glk_post)+$(gb_post)+$(ga_post));
+        $(g) += $(muPINP)*($(u_post) - $(vbEff_post));
+        $(g) = max(0.,$(g));
     """
 }
 
 
 
-wu_param_space_plast = {"muPINP": 0}#4e-3}
+wu_param_space_plast = {"muPINP": 1*0.25*4e-3}
 
 wu_var_space_plast = {
     #"g": init_var("Uniform", {"min": 0.0, "max": 1.0}),

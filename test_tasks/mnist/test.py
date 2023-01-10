@@ -1,11 +1,3 @@
-"""
-This test runs a microcircuit model
-with one hidden layer on input data
-that consists of randomly generated
-patterns that are shown over a certain
-period of time.
-"""
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -18,11 +10,23 @@ from ..utils import plot_spike_times, calc_loss_interp
 col_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 import pdb
+import ipdb
+
+import mnist
+
+######################################################
+# adjust model parameters
+
+#net_model.synapses.IP.mod_dat["wu_param_space_plast"]["muIP"] = 1e-4
+#net_model.synapses.PI.mod_dat["wu_param_space_plast"]["muPI"] = 3e-5
+#net_model.synapses.PINP.mod_dat["wu_param_space_plast"]["muPINP"] = 1e-3
+#net_model.synapses.PPBasal.mod_dat["wu_param_space_plast"]["muPP_basal"] = 1e-4
+######################################################
 
 ######################################################
 # network parameters
-N_IN = 30
-N_HIDDEN = [40]
+N_IN = 784
+N_HIDDEN = [500]
 N_OUT = 10
 
 DT = 0.2
@@ -30,11 +34,11 @@ DT = 0.2
 
 ######################################################
 # simulation run parameters
-T = 15000000
+T = 60000
 NT = int(T / DT)
 T = NT * DT
 
-T_VAL = 5000
+T_VAL = 30000
 NT_VAL = int(T_VAL / DT)
 T_VAL = NT_VAL * DT
 
@@ -48,7 +52,7 @@ N_UPDATE_PATTERNS = T_IND_UPDATE_PATTERNS.shape[0]
 T_IND_UPDATE_PATTERNS_VAL = np.arange(NT_VAL)[::NT_SHOW_PATTERNS]
 N_UPDATE_PATTERNS_VAL = T_IND_UPDATE_PATTERNS_VAL.shape[0]
 
-NT_SKIP_REC = 1500
+NT_SKIP_REC = 600
 T_IND_REC = np.arange(NT)[::NT_SKIP_REC]
 N_REC = T_IND_REC.shape[0]
 
@@ -61,41 +65,43 @@ T_IND_VAL_RUNS = np.linspace(0., NT - 1, N_VAL_RUNS).astype("int")
 ######################################################
 
 ######################################################
-# teacher network
-N_HIDDEN_TEACHER = 20
-
-W_10 = 1.0 * np.random.rand(N_HIDDEN_TEACHER, N_IN) / N_IN
-W_21 = 1.0 * np.random.rand(N_OUT, N_HIDDEN_TEACHER) / N_HIDDEN_TEACHER
-
-def phi(x):
-    #return 3.5 * np.maximum(0., x - 0.2)
-    return 3.5*np.log(1.0+np.exp((x-0.2)*15.0))/15.0
-######################################################
-
-######################################################
 # generate some training data
-# random voltage values -> if smaller zero, no output
-U_MAX = 1.0
-U_MIN = -3.0
+train_images = np.array(2.0 * mnist.train_images()/255.)
+N_TRAIN_SAMPLES = train_images.shape[0]
+train_labels = np.array(mnist.train_labels()).astype("int")
 
-INPUT_DATA = np.random.rand(N_UPDATE_PATTERNS, N_IN) * (U_MAX - U_MIN) + U_MIN
+# no epochs, just a sequence of random indices for the training samples without
+# constraints regarding redundancy.
+# (e.g. this does not guarantee that all training samples will be shown before
+# an image is presented for the second, third, etc. time )
+ind_sample_train = np.random.randint(0, N_TRAIN_SAMPLES, N_UPDATE_PATTERNS)
+
+INPUT_DATA = np.reshape(train_images[ind_sample_train], (N_UPDATE_PATTERNS, N_IN))
 INPUT_DATA_FLAT = INPUT_DATA.flatten()
 
-V_HIDDEN = (W_10 @ phi(INPUT_DATA.T)).T
-R_HIDDEN = phi(V_HIDDEN)
+# V_HIDDEN = (W_10 @ phi(INPUT_DATA.T)).T
+# R_HIDDEN = phi(V_HIDDEN)
 
-OUTPUT_DATA = (W_21 @ R_HIDDEN.T).T
+OUTPUT_DATA = np.zeros((N_UPDATE_PATTERNS, N_OUT))
+OUTPUT_DATA[np.arange(N_UPDATE_PATTERNS), train_labels[ind_sample_train]] = 2.0
 OUTPUT_DATA_FLAT = OUTPUT_DATA.flatten()
 ######################################################
 
 ######################################################
 # generate validation data
 
+val_images = 2.0 * mnist.test_images()/255.
+N_VAL_SAMPLES = val_images.shape[0]
+val_labels = mnist.test_labels()
+
+ind_sample_val = np.random.randint(0, N_VAL_SAMPLES, N_UPDATE_PATTERNS_VAL)
+
 # generate a single validation example
-INPUT_DATA_VAL = np.random.rand(N_UPDATE_PATTERNS_VAL, N_IN) * (U_MAX - U_MIN) + U_MIN
+INPUT_DATA_VAL = np.reshape(val_images[ind_sample_val], (N_UPDATE_PATTERNS_VAL, N_IN))
 INPUT_DATA_VAL_FLAT = INPUT_DATA_VAL.flatten()
 
-OUTPUT_DATA_VAL = (W_21 @ phi(W_10 @ phi(INPUT_DATA_VAL.T))).T
+OUTPUT_DATA_VAL = np.zeros((N_UPDATE_PATTERNS_VAL, N_OUT))
+OUTPUT_DATA_VAL[np.arange(N_UPDATE_PATTERNS_VAL), val_labels[ind_sample_val]] = 2.0
 OUTPUT_DATA_VAL_FLAT = OUTPUT_DATA_VAL.flatten()
 
 NEUR_READOUT_VAL = [("neur_input_input_pop", "r", T_IND_REC_VAL),
