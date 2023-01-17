@@ -11,7 +11,7 @@ import numpy as np
 
 from mc.network import Network
 
-from tests import test_model_rate_spikes as net_model
+from tests import test_model_rates as net_model
 
 from ..utils import plot_spike_times, calc_loss_interp
 
@@ -30,14 +30,14 @@ N_HIDDEN = [40]
 N_OUT = 10
 
 N_BATCH = 128
-N_BATCH_VAL = 10
+N_BATCH_VAL = 5
 
 DT = 0.2
 ######################################################
 
 ######################################################
 # simulation run parameters
-T = 1000000
+T = 3000000
 NT = int(T / DT)
 T = NT * DT
 
@@ -55,7 +55,7 @@ N_UPDATE_PATTERNS = T_IND_UPDATE_PATTERNS.shape[0]
 T_IND_UPDATE_PATTERNS_VAL = np.arange(NT_VAL)[::NT_SHOW_PATTERNS]
 N_UPDATE_PATTERNS_VAL = T_IND_UPDATE_PATTERNS_VAL.shape[0]
 
-NT_SKIP_REC = 1500
+NT_SKIP_REC = 5000
 T_IND_REC = np.arange(NT)[::NT_SKIP_REC]
 N_REC = T_IND_REC.shape[0]
 
@@ -63,7 +63,7 @@ NT_SKIP_REC_VAL = 10
 T_IND_REC_VAL = np.arange(NT_VAL)[::NT_SKIP_REC_VAL]
 N_REC_VAL = T_IND_REC_VAL.shape[0]
 
-N_VAL_RUNS = 20
+N_VAL_RUNS = 10
 T_IND_VAL_RUNS = np.linspace(0., NT - 1, N_VAL_RUNS).astype("int")
 ######################################################
 
@@ -71,15 +71,15 @@ T_IND_VAL_RUNS = np.linspace(0., NT - 1, N_VAL_RUNS).astype("int")
 # teacher network
 N_HIDDEN_TEACHER = 20
 
-W_10 = 3.0 * np.maximum(0., 3.0 * np.random.rand(N_HIDDEN_TEACHER, N_IN) - 2.0) / N_IN
-W_21 = 10.0 * np.maximum(0., 3.0 * np.random.rand(N_OUT, N_HIDDEN_TEACHER) - 2.0) / N_HIDDEN_TEACHER
+W_10 = 2.0 * (np.random.rand(N_HIDDEN_TEACHER, N_IN) - 0.5) / np.sqrt(N_IN)
+W_21 = 2.0 * (np.random.rand(N_OUT, N_HIDDEN_TEACHER) - 0.5) / np.sqrt(N_HIDDEN_TEACHER)
 ######################################################
 
 ######################################################
 # generate some training data
 # random voltage values -> if smaller zero, no output
 U_MAX = 1.0
-U_MIN = -3.0
+U_MIN = -1.0
 
 INPUT_DATA = np.random.rand(N_UPDATE_PATTERNS, N_BATCH, N_IN) * (U_MAX - U_MIN) + U_MIN
 INPUT_DATA_FLAT = INPUT_DATA.flatten()
@@ -128,20 +128,12 @@ DICT_DATA_VALIDATION = {"T": NT_VAL,
 # copy it for each validation
 DATA_VALIDATION = [DICT_DATA_VALIDATION] * N_VAL_RUNS
 
-NEUR_POPS_SPIKE_REC_VAL = ["neur_input_input_pop",
-                           "neur_hidden0_pyr_pop",
-                           "neur_hidden0_int_pop",
-                           "neur_output_output_pop"]
+NEUR_POPS_SPIKE_REC_VAL = None
 ######################################################
 
 ######################################################
 # recording settings
-NEUR_POPS_SPIKE_REC = []
-
-'''["neur_input_input_pop",
-                       "neur_hidden0_pyr_pop",
-                       "neur_hidden0_int_pop",
-                       "neur_output_output_pop"]'''
+NEUR_POPS_SPIKE_REC = None
 
 NEUR_READOUT = [("neur_input_input_pop", "r", T_IND_REC),
                 ("neur_hidden0_pyr_pop", "vb", T_IND_REC),
@@ -172,28 +164,12 @@ SYN_READOUT = [("syn_input_input_pop_to_hidden0_pyr_pop",
 ######################################################
 
 ######################################################
-'''
-name: str
-model_def: types.ModuleType
-size_input: int
-size_hidden: list
-size_output: int
-t_inp_max: int
-spike_buffer_size: int
-spike_buffer_size_val: int
-spike_rec_pops: list = field(default_factory=list)
-spike_rec_pops_val: list = field(default_factory=list)
-dt: float = 0.1
-plastic: bool = True
-t_inp_static_max: int = 0
-'''
 # Initialize network
 net = Network("testnet",
               net_model,
               N_IN, N_HIDDEN, N_OUT,
               N_UPDATE_PATTERNS,
-              NT,
-              NT_VAL,
+              0, 0,  # spike buffer size, spike buffer size validation
               dt=DT,
               spike_rec_pops=NEUR_POPS_SPIKE_REC,
               spike_rec_pops_val=NEUR_POPS_SPIKE_REC_VAL,
@@ -227,28 +203,25 @@ net.init_self_pred_state()
 ######################################################
 # result vars
 inp_r = results_neur["neur_input_input_pop_r"]
-#inp_sp = results_spike["neur_input_input_pop"]
 
 p_vb = results_neur["neur_hidden0_pyr_pop_vb"]
 p_vbeff = results_neur["neur_hidden0_pyr_pop_vbEff"]
 p_va = results_neur["neur_hidden0_pyr_pop_va"]
 p_u = results_neur["neur_hidden0_pyr_pop_u"]
 p_r = results_neur["neur_hidden0_pyr_pop_r"]
-#p_sp = results_spike["neur_hidden0_pyr_pop"]
 
 i_v = results_neur["neur_hidden0_int_pop_v"]
 i_veff = results_neur["neur_hidden0_int_pop_vEff"]
 i_u = results_neur["neur_hidden0_int_pop_u"]
 i_r = results_neur["neur_hidden0_int_pop_r"]
-#i_sp = results_spike["neur_hidden0_int_pop"]
 
 out_vb = results_neur["neur_output_output_pop_vb"]
 out_vbeff = results_neur["neur_output_output_pop_vbEff"]
 out_u = results_neur["neur_output_output_pop_u"]
 out_r = results_neur["neur_output_output_pop_r"]
-#out_sp = results_spike["neur_output_output_pop"]
 ######################################################
 
+######################################################
 loss = np.ndarray((N_VAL_RUNS))
 
 for k in range(N_VAL_RUNS):
@@ -259,6 +232,7 @@ for k in range(N_VAL_RUNS):
                                T_IND_REC_VAL,
                                OUTPUT_DATA_VAL, _u_readout,
                                perc_readout_targ_change=0.9)
+######################################################
 
 plt.ion()
 
@@ -273,19 +247,28 @@ ax_loss.set_xlabel(r'$t$')
 ######################################################
 
 ######################################################
-fig_pred, ax_pred = plt.subplots(1,1)
-ax_pred.step(T_IND_UPDATE_PATTERNS_VAL,OUTPUT_DATA_VAL[:,0,0],where="post")
-ax_pred.plot(T_IND_REC_VAL,results_validation[-1]["neur_var_rec"]["neur_output_output_pop_u"][:,0,0])
+fig_pred, ax_pred = plt.subplots(1, 1)
+ax_pred.step(T_IND_UPDATE_PATTERNS_VAL[int(0.1*T_IND_UPDATE_PATTERNS_VAL.shape[0]):],
+             OUTPUT_DATA_VAL[int(0.1*T_IND_UPDATE_PATTERNS_VAL.shape[0]):, 0, 0],where="post",
+             label=r'$u_{\rm trg}$')
+ax_pred.plot(T_IND_REC_VAL[int(0.1*T_IND_REC_VAL.shape[0]):],
+             results_validation[-1]["neur_var_rec"]["neur_output_output_pop_u"][int(0.1*T_IND_REC_VAL.shape[0]):, 0, 0],
+             label=r'$u$')
+
+ax_pred.legend()
+
+ax_pred.set_xlabel(r'$t$')
 ######################################################
 
 ######################################################
-fig_w, ax_w = plt.subplots(1,1)
+fig_w, ax_w = plt.subplots(1, 1)
 
 for readout in SYN_READOUT:
-    _wrec = np.linalg.norm(results_syn[f'{readout[0]}_g'], axis=(1,2))
-    ax_w.plot(_wrec, label = readout[0])
+    _wrec = results_syn[f'{readout[0]}_g'][::1,0,0]
+    ax_w.plot(T_IND_REC[::1],_wrec, label = readout[0])
 
 ax_w.legend()
+ax_w.set_xlabel(r'$t$')
 ######################################################
 
 ######################################################
@@ -297,3 +280,5 @@ fig_loss.savefig(os.path.join(PLOT_FOLD, "loss.png"), dpi=600)
 ######################################################
 
 pdb.set_trace()
+
+

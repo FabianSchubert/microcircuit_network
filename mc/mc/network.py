@@ -14,7 +14,6 @@ from .layers import HiddenLayer, InputLayer, OutputLayer
 from .synapses import (SynapseIPBack, SynapsePINP,
                        SynapsePPApical, SynapsePPBasal)
 
-
 @dataclass
 class Network:
     """
@@ -112,10 +111,14 @@ class Network:
     dt: float = 0.1
     plastic: bool = True
     t_inp_static_max: int = 0
+    n_batches: int = 2
+    n_batches_val: int = 1
 
     def __post_init__(self):
 
         self.genn_model = GeNNModel("float", self.name, backend="CUDA")
+
+        self.genn_model.batch_size = self.n_batches
 
         self.genn_model.dT = self.dt
 
@@ -144,7 +147,8 @@ class Network:
                             self.model_def.synapses.IP.mod_dat,
                             self.model_def.synapses.PI.mod_dat,
                             _l_size, _l_next_size,
-                            plastic=self.plastic))
+                            plastic=self.plastic,
+                            read_only_weights=self.plastic))
 
         self.layers.append(
             HiddenLayer(f'hidden{self.n_hidden_layers - 1}',
@@ -155,7 +159,8 @@ class Network:
                         self.model_def.synapses.PI.mod_dat,
                         self.size_hidden[self.n_hidden_layers - 1],
                         self.size_output,
-                        plastic=self.plastic))
+                        plastic=self.plastic,
+                        read_only_weights=self.plastic))
 
         self.layers.append(
             OutputLayer("output",
@@ -179,7 +184,8 @@ class Network:
                 self.genn_model,
                 self.neur_pops["neur_hidden0_pyr_pop"],
                 self.neur_pops["neur_input_input_pop"],
-                plastic=self.plastic
+                plastic=self.plastic,
+                read_only=self.plastic
             )
         )
 
@@ -197,7 +203,8 @@ class Network:
                     self.genn_model,
                     _l_next.neur_pops["pyr_pop"],
                     _l.neur_pops["pyr_pop"],
-                    plastic=self.plastic
+                    plastic=self.plastic,
+                    read_only=self.plastic
                 )
             )
 
@@ -211,7 +218,8 @@ class Network:
                     self.genn_model,
                     _l.neur_pops["pyr_pop"],
                     _l_next.neur_pops["pyr_pop"],
-                    plastic=self.plastic
+                    plastic=self.plastic,
+                    read_only=self.plastic
                 )
             )
 
@@ -221,7 +229,8 @@ class Network:
                     self.genn_model,
                     _l.neur_pops["int_pop"],
                     _l_next.neur_pops["pyr_pop"],
-                    plastic=self.plastic
+                    plastic=self.plastic,
+                    read_only=self.plastic
                 )
             )
 
@@ -235,7 +244,8 @@ class Network:
                 self.genn_model,
                 self.layers[-1].neur_pops["output_pop"],
                 self.layers[-2].neur_pops["pyr_pop"],
-                plastic=self.plastic
+                plastic=self.plastic,
+                read_only=self.plastic
             )
         )
 
@@ -249,7 +259,8 @@ class Network:
                 self.genn_model,
                 self.layers[-2].neur_pops["pyr_pop"],
                 self.layers[-1].neur_pops["output_pop"],
-                plastic=self.plastic
+                plastic=self.plastic,
+                read_only=self.plastic
             )
         )
 
@@ -259,7 +270,8 @@ class Network:
                 self.genn_model,
                 self.layers[-2].neur_pops["int_pop"],
                 self.layers[-1].neur_pops["output_pop"],
-                plastic=self.plastic
+                plastic=self.plastic,
+                read_only=self.plastic
             )
         )
 
@@ -271,6 +283,8 @@ class Network:
 
         ############################
         # set up the spike recording
+        if self.spike_rec_pops is None:
+            self.spike_rec_pops = []
 
         for _pop in self.spike_rec_pops:
             self.neur_pops[_pop].spike_recording_enabled = True
@@ -287,21 +301,23 @@ class Network:
 
         _inp_pop = self.neur_pops["neur_input_input_pop"]
 
-        _u_input_init = np.zeros((_inp_pop.size * self.t_inp_max))
+        _u_input_init = np.zeros((_inp_pop.size * self.n_batches * self.t_inp_max))
 
         _inp_pop.set_extra_global_param("u", _u_input_init)
         _inp_pop.set_extra_global_param("t_sign", _t_sign_init)
         _inp_pop.set_extra_global_param("size_u", self.size_input)
         _inp_pop.set_extra_global_param("size_t_sign", self.t_inp_max)
+        _inp_pop.set_extra_global_param("batch_size", self.n_batches)
 
         _output_pop = self.neur_pops["neur_output_output_pop"]
 
-        _u_trg_init = np.zeros((_output_pop.size * self.t_inp_max))
+        _u_trg_init = np.zeros((_output_pop.size * self.n_batches * self.t_inp_max))
 
         _output_pop.set_extra_global_param("u_trg", _u_trg_init)
         _output_pop.set_extra_global_param("t_sign", _t_sign_init)
         _output_pop.set_extra_global_param("size_u_trg", self.size_output)
         _output_pop.set_extra_global_param("size_t_sign", self.t_inp_max)
+        _output_pop.set_extra_global_param("batch_size", self.n_batches)
 
         self.genn_model.load(num_recording_timesteps=self.spike_buffer_size)
 
@@ -369,7 +385,7 @@ class Network:
             self.t_inp_static_max,
             self.spike_buffer_size_val, 0,
             spike_rec_pops=self.spike_rec_pops_val,
-            dt=self.dt, plastic=False)
+            dt=self.dt, plastic=False, n_batches=self.n_batches_val)
 
     def run_sim(self, T,
                 t_sign,
@@ -501,14 +517,22 @@ class Network:
             idx_validation_runs = 0
 
         for ext_dat, numpy_times, target_pop, target_var in ext_data_pop_vars:
-            assert ext_dat.ndim == 2, \
+            assert ext_dat.ndim == (2 if self.n_batches == 1 else 3), \
                 """Input data array does
-                not have two dimensions."""
+                not have appropriate dimensions.
+                Needs to be 2 if n_batches = 2, else 3"""
 
             _target_pop = self.neur_pops[target_pop]
-            assert ext_dat.shape[1] == _target_pop.size, \
-                """Input data size and
+            assert ext_dat.shape[-1] == _target_pop.size, \
+                """Input data size in last dimension and
                 input population size do not match."""
+
+            if self.n_batches > 1:
+                assert ext_dat.shape[1] == self.n_batches, \
+                """
+                Input data in second dimension and
+                batch size do not match.
+                """
 
             assert len(
                 numpy_times) > 0, """Error: Passed empty input
@@ -545,7 +569,7 @@ class Network:
             _view = self.neur_pops[readout_pop].vars[readout_var].view
             readout_views[_dict_name] = _view
             readout_neur_arrays[_dict_name] = np.ndarray(
-                (t_sign_readout.shape[0], self.neur_pops[readout_pop].size))
+                (t_sign_readout.shape[0], self.n_batches, self.neur_pops[readout_pop].size))
 
             time_signatures_readout_neur_pop.append(np.array(t_sign_readout))
             idx_readout_neur_pop_heads.append(0)
@@ -582,7 +606,7 @@ class Network:
         _inp_pop.extra_global_params["size_t_sign"].view[:] = t_sign.shape[0]
 
         _inp_pop.push_extra_global_param_to_device(
-            "u", self.size_input * self.t_inp_max)
+            "u", self.size_input * self.n_batches * self.t_inp_max)
         _inp_pop.push_extra_global_param_to_device("t_sign", self.t_inp_max)
 
         # reset the input index counter before running the simulation
@@ -598,7 +622,7 @@ class Network:
             _output_pop.extra_global_params["size_t_sign"].view[:] = t_sign.shape[0]
 
             _output_pop.push_extra_global_param_to_device(
-                "u_trg", self.size_output * self.t_inp_max)
+                "u_trg", self.size_output * self.n_batches * self.t_inp_max)
             _output_pop.push_extra_global_param_to_device(
                 "t_sign", self.t_inp_max)
 
@@ -625,6 +649,10 @@ class Network:
                     idx_validation_runs += 1
 
             self.genn_model.step_time()
+
+            if self.plastic:
+                self.genn_model.custom_update("WeightChangeBatchReduce")
+                self.genn_model.custom_update("Plast")
 
             self.pull_neur_var_data(t, readout_neur_pop_vars, time_signatures_readout_neur_pop,
                                     readout_neur_arrays, readout_views, idx_readout_neur_pop_heads)

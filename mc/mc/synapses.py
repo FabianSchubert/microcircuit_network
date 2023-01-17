@@ -4,10 +4,14 @@ from dataclasses import dataclass, field
 
 from pygenn.genn_model import (create_custom_weight_update_class,
                                create_custom_postsynaptic_class,
-                               init_connectivity, init_var)
+                               init_connectivity, init_var,
+                               create_wu_var_ref)
+
+from pygenn.genn_wrapper.Models import VarAccess_READ_ONLY
 
 from .utils import (merge_wu_def, merge_dicts,
-                    merge_ps_def)
+                    merge_ps_def,
+                    weight_change_batch_reduce, update_weight_change)
 
 SCALE_WEIGHT_INIT = 0.5
 
@@ -34,9 +38,11 @@ class SynapseBase:
     ps_var_space_plast: dict = field(default_factory=dict)
     connectivity_initialiser: "typing.Any" = None
     ps_target_var: str = "Isyn"
-    norm_after_init: typing.Any = False
+    norm_after_init: typing.Any = False,
+    low: float = -1000.0
+    high: float = 10000.0
 
-    def build_wu_model(self, plastic):
+    def build_wu_model(self, plastic, read_only):
         '''
         Build either a "plastic" weight update
         model by merging the transmission and
@@ -45,13 +51,19 @@ class SynapseBase:
         model definition.
         '''
         if plastic:
-            merged_wu_model_def = merge_wu_def("plastic_wu_model",
+            _wu_model_def = merge_wu_def("plastic_wu_model",
                                                self.w_update_model_transmit,
                                                self.w_update_model_plast)
 
-            return create_custom_weight_update_class(**merged_wu_model_def)
+        else:
+            _wu_model_def = dict(self.w_update_model_transmit)
 
-        return create_custom_weight_update_class(**self.w_update_model_transmit)
+        if read_only:
+            _var_name_types = _wu_model_def["var_name_types"]
+            idx_g = _var_name_types.index(("g", "scalar"))
+            _var_name_types[idx_g] = ("g", "scalar", VarAccess_READ_ONLY)
+
+        return create_custom_weight_update_class(**_wu_model_def)
 
     def build_ps_model(self, plastic):
         '''
@@ -71,9 +83,9 @@ class SynapseBase:
         return create_custom_postsynaptic_class(**self.ps_model_transmit)
 
     def connect_pops(self, name, genn_model,
-                     target, source, plastic=True):
+                     target, source, plastic=True, read_only=False):
 
-        wu_model = self.build_wu_model(plastic)
+        wu_model = self.build_wu_model(plastic, read_only)
         ps_model = self.build_ps_model(plastic)
 
         if plastic:
@@ -91,6 +103,7 @@ class SynapseBase:
                                          self.ps_param_space_transmit)
             ps_var_space = merge_dicts(self.ps_var_space_plast,
                                        self.ps_var_space_transmit)
+
         else:
             wu_param_space = dict(self.wu_param_space_transmit)
             wu_var_space = dict(self.wu_var_space_transmit)
@@ -110,6 +123,33 @@ class SynapseBase:
         _syn_pop.ps_target_var = self.ps_target_var
 
         _syn_pop.norm_after_init = self.norm_after_init
+
+        if plastic:
+
+            _update_reduce_batch_weight_change_var_refs = {
+                "change": create_wu_var_ref(_syn_pop, "dg")
+            }
+
+            _update_reduce_batch_weight_change = genn_model.add_custom_update(
+                                         f"reduce_batch_weight_change_{name}",
+                                         "WeightChangeBatchReduce",
+                                         weight_change_batch_reduce,
+                                         {}, {"reducedChange": 0.0},
+                                         _update_reduce_batch_weight_change_var_refs)
+
+            _update_plast_step_reduced_var_refs = {
+                "change": create_wu_var_ref(_update_reduce_batch_weight_change, "reducedChange"),
+                "variable": create_wu_var_ref(_syn_pop, "g")
+            }
+
+            genn_model.add_custom_update(
+                f"plast_step_reduced_{name}",
+                "Plast",
+                update_weight_change,
+                {"batch_size": genn_model.batch_size,
+                 "low": self.low, "high": self.high}, {},
+                _update_plast_step_reduced_var_refs
+            )
 
         return _syn_pop
 

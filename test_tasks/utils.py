@@ -39,12 +39,24 @@ def calc_loss_interp(t_ax_targ, t_ax_readout,
     be increasing.
     """
 
-    d_targ = data_targ.shape[1]
-    d_readout = data_readout.shape[1]
+    d_targ = data_targ.shape[-1]
+    d_readout = data_readout.shape[-1]
 
-    assert d_targ == d_readout, 'Error: Dimensionality of target data does not match dimensionality of readout data.'
+    assert d_targ == d_readout, \
+        '''Error: Dimensionality of target data vectors do
+        not match dimensionality of readout data vectors.'''
+
+    assert data_targ.ndim == data_readout.ndim, \
+        '''Error: target data array does not have the
+        same number of dimensions as readout data array.
+        '''
+
+    if data_targ.ndim == 3:
+        assert data_targ.shape[1] == data_readout.shape[1], \
+            '''Error: batch sizes do not match.'''
 
     d = d_targ
+    n_batch = (data_targ.shape[1] if data_targ.ndim == 3 else 1)
 
     # sort the data by increasing time (in case it is not sorted already)
 
@@ -62,13 +74,14 @@ def calc_loss_interp(t_ax_targ, t_ax_readout,
 
     n_readout_comp = t_ax_readout_comp.shape[0]
 
-    data_readout_comp = np.ndarray((n_readout_comp, d))
+    data_readout_comp = np.ndarray((n_readout_comp, n_batch, d))
 
-    for k in range(d):
-        data_readout_comp[:, k] = np.interp(
-            t_ax_readout_comp,
-            t_ax_readout, data_readout[:, k]
-        )
+    for k in range(n_batch):
+        for l in range(d):
+            data_readout_comp[:, k, l] = np.interp(
+                t_ax_readout_comp,
+                t_ax_readout, data_readout[:, k, l]
+            )
 
     loss = loss_func(data_readout_comp, data_targ[:-1])
 

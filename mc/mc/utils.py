@@ -1,9 +1,31 @@
 #! /usr/bin/env python3
 
+from pygenn.genn_wrapper.Models import VarAccess_REDUCE_BATCH_SUM
+
+from pygenn.genn_model import create_custom_custom_update_class
+
 act_func = lambda x: f'log(1.0+exp(1.0*({x})))'
 # act_func = lambda x: f'tanh({x})'
-#act_func = lambda x: f'{x}'
+# act_func = lambda x: f'{x}'
 
+weight_change_batch_reduce = create_custom_custom_update_class(
+    "weight_change_batch_reduce",
+    var_name_types=[("reducedChange", "scalar", VarAccess_REDUCE_BATCH_SUM)],
+    var_refs=[("change", "scalar")],
+    update_code="""
+    $(reducedChange) = $(change);
+    $(change) = 0;
+    """)
+
+update_weight_change = create_custom_custom_update_class(
+    "update_weight_change",
+    var_refs=[("change", "scalar"), ("variable", "scalar")],
+    param_names=["batch_size", "low", "high"],
+    update_code="""
+    // Update
+    $(variable) += $(change) / $(batch_size);
+    $(variable) = min($(high), max($(low), $(variable)));
+    """)
 
 def merge_dicts(dict_1, dict_2):
 

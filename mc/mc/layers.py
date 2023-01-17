@@ -22,12 +22,13 @@ plastic=self.plastic
 
 class LayerBase:
 
-    def __init__(self, name, genn_model, plastic=True):
+    def __init__(self, name, genn_model, plastic=True, read_only_weights=False):
         self.name = name
         self.genn_model = genn_model
         self.neur_pops = {}
         self.syn_pops = {}
         self.plastic = plastic
+        self.read_only_weights = read_only_weights
 
     def add_neur_pop(self, pop_name, size, neur_model, param_init, var_init):
         _full_name = f'neur_{self.name}_{pop_name}'
@@ -42,7 +43,7 @@ class LayerBase:
         self.syn_pops[f'{source}_to_{target}'] = syn_model.connect_pops(
             f'syn_{self.name}_{source}_to_{target}',
             self.genn_model, self.neur_pops[target], self.neur_pops[source],
-            plastic=self.plastic)
+            plastic=self.plastic, read_only=self.read_only_weights)
 
 
 class HiddenLayer(LayerBase):
