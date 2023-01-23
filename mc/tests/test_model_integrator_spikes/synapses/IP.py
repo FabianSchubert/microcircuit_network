@@ -16,9 +16,7 @@ w_update_model_plast = {
     "var_name_types": [("g", "scalar"), ("dg", "scalar")],
     "sim_code": f"""
         // SIM CODE IP
-        $(dg) += $(muIP) * ($(u_post) - $(vEff_post)) / $(tau);
-        //$(g) += $(muIP) * ($(u_post) - $(vEff_post));
-        //$(g) = max(0.,$(g));
+        $(dg) += $(muIP) * ($(ca_post) - $(rEff_post)) / $(tau);
     """,
     "synapse_dynamics_code": f"""
         $(dg) += -DT * $(dg) / $(tau);

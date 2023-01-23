@@ -15,9 +15,7 @@ w_update_model_plast = {
     "var_name_types": [("g", "scalar"), ("dg", "scalar")],
     "sim_code": f"""
         // SIM CODE PINP
-        $(dg) += $(muPINP) * ($(u_post) - $(vbEff_post)) / $(tau);
-        //$(g) += $(muPINP)*($(u_post) - $(vbEff_post));
-        //$(g) = max(0.,$(g));
+        $(dg) += $(muPINP) * ($(ca_post) - $(rEff_post)) / $(tau);
     """,
     "synapse_dynamics_code": f"""
         $(dg) += -DT * $(dg) / $(tau);

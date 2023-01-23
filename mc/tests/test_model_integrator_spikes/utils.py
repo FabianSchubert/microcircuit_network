@@ -3,13 +3,13 @@ Some helper functions for creating the model definitions.
 """
 from pygenn.genn_model import init_var
 
-#TH_COND_CODE = "$(u) >= $(u_th)"
+TH_COND_CODE = "$(u) >= $(u_th)"
 #TH_COND_CODE = "$(t)-$(t_last_spike) >= 1./$(r)"
-TH_COND_CODE = "$(gennrand_uniform) <= $(r)*DT"
+#TH_COND_CODE = "$(gennrand_uniform) <= $(r)*DT"
 
-#RESET_CODE = "$(u) = $(u_r);"
+RESET_CODE = "$(u) = $(u_r);"
 #RESET_CODE = "$(t_last_spike) = $(t);"
-RESET_CODE = ""
+#RESET_CODE = ""
 
 TAU_TRANSMIT = 10.0
 
@@ -39,8 +39,15 @@ PS_TRANSMIT_VAR = {}
 PS_TRANSMIT_PARAM = {"tau": TAU_TRANSMIT}
 
 
-def act_func(x):
-    #return f'3.0*log(1.0+exp(1.0*({x})))'
-    #return f'3.5*max(0.0,{x}-0.2)'
-    return f'3.5*log(1.0+exp(({x}-0.2)*15.0))/15.0'
+#def act_func(v, ut, ur, g):
+#    return f'{g}/log(({soft_relu_exp(f"{v}-{ut}","300.0")}+{ut}-{ur})/({soft_relu_exp(f"{v}-{ut}","300.0")}))'
 
+def act_func(v, ut, ur):
+    return f'max(0.0,({v}))/(({ut})-({ur}))'
+
+def soft_relu_exp(x,m):
+    return f'(({x}) > 0 ? (({x}) + 1.0 / ({m})) : (exp(({x})*({m}))/({m})))'
+    #return f'((({x}) > 0) ? ( ({x}) + 1.0 / ({m}) : exp(({x}) * ({m})) / ({m})))'
+
+def act_func_input(x):
+    return f'3.5*log(1.0+exp(({x}-0.2)*15.0))/15.0'
