@@ -13,15 +13,21 @@ w_update_model_plast = {
     "class_name": "weight_update_model_input_to_pyr",
     "param_names": ["muPINP", "muHomScaling", "tau"],
     "var_name_types": [("g", "scalar"), ("dg", "scalar")],
-    "sim_code": f"""
+    "sim_code": """
         // SIM CODE PINP
         $(dg) += $(muPINP) * $(va_post);
+        if($(id_pre)==0 && $(id_post)==0 && $(t) < 100 && $(batch) == 0){
+            printf("post code: %f, %f, %f, %f\\n", $(t), $(prev_sT_post), $(sT_post));
+        }
     """,
     "learn_post_code": """
         $(dg) += $(muHomScaling) * $(g)
-         * ($(r_targ_post)*( $(t) - $(t_last_spike_post)) - 1.0);
+         * ($(r_targ_post)*( $(t) - $(prev_sT_post)) - 1.0);
+        if($(id_pre)==0 && $(id_post)==0 && $(t) < 100 && $(batch) == 0){
+            printf("post code: %f, %f, %f, %f\\n", $(t), $(prev_sT_post), $(sT_post));
+        }
     """,
-    "is_prev_post_spike_time_required": False
+    "is_prev_post_spike_time_required": True
 }
 
 wu_param_space_plast = {"muPINP": 1e-3,
@@ -45,5 +51,5 @@ mod_dat = {
     "ps_param_space_transmit": ps_param_space_transmit,
     "ps_var_space_transmit": ps_var_space_transmit,
     "norm_after_init": "lin",
-    "low": 0.0
+    #"low": 0.0
 }

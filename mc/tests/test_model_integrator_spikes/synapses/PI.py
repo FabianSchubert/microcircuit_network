@@ -23,7 +23,7 @@ w_update_model_plast = {
     """
 }
 
-wu_param_space_plast = {"muPI": 10*0.25*8e-3,
+wu_param_space_plast = {"muPI": 1e-3,
                         "tau": 20.0}
 
 wu_var_space_plast = {"dg": 0.0}

@@ -14,14 +14,11 @@ w_update_model_plast = {
     "var_name_types": [("g", "scalar"), ("dg", "scalar")],
     "sim_code": f"""
         // SIM CODE PP BASAL
-        $(dg) += $(muPP_basal) * ($(ca_post) - $(rEff_post)) / $(tau);
-    """,
-    "synapse_dynamics_code": f"""
-        $(dg) += -DT * $(dg) / $(tau);
+        $(dg) += $(muPP_basal) * $(va_post);
     """
 }
 
-wu_param_space_plast = {"muPP_basal": 10*0.25*4e-2,
+wu_param_space_plast = {"muPP_basal": 1e-3,
                         "tau": 20.0}
 
 wu_var_space_plast = {"dg": 0.0}

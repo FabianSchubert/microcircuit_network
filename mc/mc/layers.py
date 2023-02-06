@@ -50,6 +50,7 @@ class HiddenLayer(LayerBase):
 
     def __init__(self, *args, **kwargs):
 
+
         super().__init__(*args[:-6], **kwargs)
 
         pyr_model_def = args[-6]["model_def"]
@@ -72,6 +73,8 @@ class HiddenLayer(LayerBase):
                           pyr_param_space, pyr_var_space)
         self.add_neur_pop("int_pop", Nint, _int_model,
                           int_param_space, int_var_space)
+
+
 
         _synapseIP = SynapseIP(Npyr, **synapseIP_def)
         _synapsePI = SynapsePI(Nint, **synapsePI_def)

@@ -12,19 +12,22 @@ wu_var_space_transmit["g"] = init_var("Uniform", {"min": 0.0, "max": WEIGHT_SCAL
 
 w_update_model_plast = {
     "class_name": "weight_update_model_pyr_to_int_def",
-    "param_names": ["muIP", "tau"],
+    "param_names": ["muIP", "muHomScaling", "tau"],
     "var_name_types": [("g", "scalar"), ("dg", "scalar")],
     "sim_code": f"""
         // SIM CODE IP
-        $(dg) += $(muIP) * ($(ca_post) - $(rEff_post)) / $(tau);
+        $(dg) += $(muIP) * ($(ca_post) - $(rEff_post));
     """,
-    "synapse_dynamics_code": f"""
-        $(dg) += -DT * $(dg) / $(tau);
-    """
+    "learn_post_code": f"""
+        $(dg) += $(muHomScaling) * $(g)
+         * ($(r_targ_post)*( $(t) - $(t_last_spike_post)) - 1.0);
+    """,
+    "is_prev_post_spike_time_required": False
 }
 
-wu_param_space_plast = {"muIP": 10*1e-2,
-                        "tau": 0.0}
+wu_param_space_plast = {"muIP": 1e-3,
+                        "muHomScaling": 3e-3,
+                        "tau": 20.0}
 
 wu_var_space_plast = {"dg": 0.0}
 

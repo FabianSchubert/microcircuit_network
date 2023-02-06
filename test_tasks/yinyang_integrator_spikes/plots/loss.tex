@@ -1,0 +1,37 @@
+% This file was created with tikzplotlib v0.10.1.
+\begin{tikzpicture}
+
+\definecolor{darkcyan0114178}{RGB}{0,114,178}
+\definecolor{darkgray176}{RGB}{176,176,176}
+
+\begin{axis}[
+height=\figLossH,
+log basis y={10},
+tick pos=left,
+width=\figLossW,
+x grid style={darkgray176},
+xlabel={\(\displaystyle t\)},
+xmin=-24999.99, xmax=524999.79,
+xtick style={color=black},
+y grid style={darkgray176},
+ylabel={MSE},
+ymin=0.161653571195867, ymax=0.236424630894194,
+ymode=log,
+ytick style={color=black}
+]
+\addplot [semithick, darkcyan0114178, mark=*, mark size=3, mark options={solid}]
+table {%
+0 0.232374162278531
+55555.4 0.167412858015944
+111111 0.165747549730452
+166666.6 0.164888670477469
+222222 0.164471323007508
+277777.6 0.164910758551144
+333333.2 0.167065870616577
+388888.6 0.166916401220517
+444444.2 0.165195416194783
+499999.8 0.165207628292737
+};
+\end{axis}
+
+\end{tikzpicture}

@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-from pygenn.genn_wrapper.Models import VarAccess_REDUCE_BATCH_SUM
+from pygenn.genn_wrapper.Models import VarAccess_REDUCE_BATCH_SUM, VarAccessMode_READ_ONLY
 
 from pygenn.genn_model import create_custom_custom_update_class
 
@@ -24,6 +24,21 @@ update_weight_change = create_custom_custom_update_class(
     update_code="""
     // Update
     $(variable) += $(change) / $(batch_size);
+    $(variable) = min($(high), max($(low), $(variable)));
+    """)
+
+adam_optimizer_model = create_custom_custom_update_class(
+    "adam_optimizer",
+    param_names=["beta1", "beta2", "epsilon", "batch_size", "low", "high"],
+    var_name_types=[("m", "scalar"), ("v", "scalar")],
+    var_refs=[("change", "scalar"), ("variable", "scalar")],
+    update_code="""
+    // Update biased first moment estimate
+    $(m) = $(beta1) * $(m) + (1.0 - $(beta1)) * $(change) / $(batch_size);
+    // Update biased second moment estimate
+    $(v) = $(beta2) * $(v) + (1.0 - $(beta2)) * $(change) * $(change) / ($(batch_size) * $(batch_size));
+    // Add gradient to variable, scaled by learning rate
+    $(variable) += $(m) / (sqrt($(v)) + $(epsilon));
     $(variable) = min($(high), max($(low), $(variable)));
     """)
 

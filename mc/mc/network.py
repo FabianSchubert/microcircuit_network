@@ -116,6 +116,7 @@ class Network:
 
     def __post_init__(self):
 
+
         self.genn_model = GeNNModel("float", self.name, backend="CUDA")
 
         self.genn_model.batch_size = self.n_batches
@@ -135,6 +136,8 @@ class Network:
         # there must be at least one hidden layer.
         assert len(self.size_hidden) > 0
 
+
+
         for k in range(self.n_hidden_layers - 1):
             _l_size = self.size_hidden[k]
             _l_next_size = self.size_hidden[k + 1]
@@ -149,6 +152,7 @@ class Network:
                             _l_size, _l_next_size,
                             plastic=self.plastic,
                             read_only_weights=self.plastic))
+
 
         self.layers.append(
             HiddenLayer(f'hidden{self.n_hidden_layers - 1}',
@@ -168,7 +172,10 @@ class Network:
                         self.model_def.neurons.output.mod_dat,
                         self.size_output))
 
+
+
         self.update_neur_pops()
+
 
         ##############################################
         # cross-layer synapse populations
@@ -395,7 +402,8 @@ class Network:
                 t_sign_validation=None,
                 data_validation=None,
                 show_progress=True,
-                show_progress_val=True):
+                show_progress_val=True,
+                T_skip_batch_plast=1):
         """
         run_sim simulates the network and allows the user
         to provide input data as well as specify targets
@@ -475,6 +483,16 @@ class Network:
             show_progress_val (bool):
 
                         Same as show_progress, but for the static twin.
+
+            T_skip_batch_plast (int):
+
+                        Number of time steps between an update where
+                        the synaptic changes stored in the individual batch
+                        instances under dg are reduced (averaged over the batches)
+                        and added to the weights. After this, the synaptic
+                        dg variables are set back to zero. The default
+                        value of 1 means that this happens every time
+                        step (generally not recommended for performance).
         """
 
         input_views = []
@@ -650,7 +668,7 @@ class Network:
 
             self.genn_model.step_time()
 
-            if self.plastic:
+            if self.plastic and (t%T_skip_batch_plast == 0):
                 self.genn_model.custom_update("WeightChangeBatchReduce")
                 self.genn_model.custom_update("Plast")
 

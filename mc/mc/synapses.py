@@ -11,7 +11,7 @@ from pygenn.genn_wrapper.Models import VarAccess_READ_ONLY
 
 from .utils import (merge_wu_def, merge_dicts,
                     merge_ps_def,
-                    weight_change_batch_reduce, update_weight_change)
+                    weight_change_batch_reduce, update_weight_change, adam_optimizer_model)
 
 SCALE_WEIGHT_INIT = 0.5
 
@@ -88,6 +88,9 @@ class SynapseBase:
         wu_model = self.build_wu_model(plastic, read_only)
         ps_model = self.build_ps_model(plastic)
 
+
+
+
         if plastic:
             wu_param_space = merge_dicts(self.wu_param_space_plast,
                                          self.wu_param_space_transmit)
@@ -104,6 +107,8 @@ class SynapseBase:
             ps_var_space = merge_dicts(self.ps_var_space_plast,
                                        self.ps_var_space_transmit)
 
+
+
         else:
             wu_param_space = dict(self.wu_param_space_transmit)
             wu_var_space = dict(self.wu_var_space_transmit)
@@ -111,6 +116,8 @@ class SynapseBase:
             wu_post_var_space = dict(self.wu_post_var_space_transmit)
             ps_param_space = dict(self.ps_param_space_transmit)
             ps_var_space = dict(self.ps_var_space_transmit)
+
+
 
         _syn_pop = genn_model.add_synapse_population(
             name, self.matrix_type, self.delay_steps,
@@ -120,6 +127,9 @@ class SynapseBase:
             ps_param_space, ps_var_space,
             self.connectivity_initialiser
         )
+
+
+
         _syn_pop.ps_target_var = self.ps_target_var
 
         _syn_pop.norm_after_init = self.norm_after_init
@@ -137,11 +147,14 @@ class SynapseBase:
                                          {}, {"reducedChange": 0.0},
                                          _update_reduce_batch_weight_change_var_refs)
 
+
+
             _update_plast_step_reduced_var_refs = {
                 "change": create_wu_var_ref(_update_reduce_batch_weight_change, "reducedChange"),
                 "variable": create_wu_var_ref(_syn_pop, "g")
             }
 
+            '''
             genn_model.add_custom_update(
                 f"plast_step_reduced_{name}",
                 "Plast",
@@ -149,7 +162,22 @@ class SynapseBase:
                 {"batch_size": genn_model.batch_size,
                  "low": self.low, "high": self.high}, {},
                 _update_plast_step_reduced_var_refs
+            )'''
+
+
+
+            genn_model.add_custom_update(
+                f"plast_step_reduced_{name}",
+                "Plast",
+                adam_optimizer_model,
+                {"batch_size": genn_model.batch_size,
+                 "low": self.low, "high": self.high,
+                 "beta1": 0.99, "beta2": 0.9999, "epsilon": 7e-2},
+                {"m": 0.0, "v": 1.0},
+                _update_plast_step_reduced_var_refs
             )
+
+
 
         return _syn_pop
 

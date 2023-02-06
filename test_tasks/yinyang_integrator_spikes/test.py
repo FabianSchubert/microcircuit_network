@@ -14,7 +14,7 @@ import pickle
 
 from mc.network import Network
 
-from tests import test_model_integrator_spikes as net_model
+from tests import test_model_yinyang_integrator_spikes as net_model
 
 from ..utils import plot_spike_times, calc_loss_interp
 
@@ -33,9 +33,9 @@ BASE_FOLD = os.path.dirname(__import__(__name__).__file__)
 
 ######################################################
 # network parameters
-N_IN = 30
+N_IN = 2
 N_HIDDEN = [30]
-N_OUT = 10
+N_OUT = 4
 
 N_BATCH = 128
 N_BATCH_VAL = 10
@@ -77,34 +77,16 @@ N_VAL_RUNS = 10
 T_IND_VAL_RUNS = np.linspace(0., NT - 1, N_VAL_RUNS).astype("int")
 ######################################################
 
-
-######################################################
-# teacher network
-N_HIDDEN_TEACHER = 20
-
-'''
-W_10 = 3.0 * np.maximum(0., 3.0 * np.random.rand(N_HIDDEN_TEACHER, N_IN) - 2.0) / N_IN
-W_21 = 10.0 * np.maximum(0., 3.0 * np.random.rand(N_OUT, N_HIDDEN_TEACHER) - 2.0) / N_HIDDEN_TEACHER
-
-np.savez(os.path.join(BASE_FOLD, "weights.npz"),
-         W_10=W_10,
-         W_21=W_21)
-'''
-weights = np.load(os.path.join(BASE_FOLD, "weights.npz"))
-W_10 = weights["W_10"]
-W_21 = weights["W_21"]
-######################################################
-
 ######################################################
 # generate some training data
 # random voltage values -> if smaller zero, no output
 U_MAX = 1.0
-U_MIN = -3.0
+U_MIN = 0.0
 
 INPUT_DATA = np.random.rand(N_UPDATE_PATTERNS, N_BATCH, N_IN) * (U_MAX - U_MIN) + U_MIN
 INPUT_DATA_FLAT = INPUT_DATA.flatten()
 
-V_HIDDEN, OUTPUT_DATA = gen_output_data([W_10, W_21], INPUT_DATA)
+OUTPUT_DATA = gen_output_data(INPUT_DATA)
 
 OUTPUT_DATA_FLAT = OUTPUT_DATA.flatten()
 ######################################################
@@ -116,7 +98,7 @@ OUTPUT_DATA_FLAT = OUTPUT_DATA.flatten()
 INPUT_DATA_VAL = np.random.rand(N_UPDATE_PATTERNS_VAL, N_BATCH_VAL, N_IN) * (U_MAX - U_MIN) + U_MIN
 INPUT_DATA_VAL_FLAT = INPUT_DATA_VAL.flatten()
 
-V_HIDDEN_VAL, OUTPUT_DATA_VAL = gen_output_data([W_10, W_21], INPUT_DATA_VAL)
+OUTPUT_DATA_VAL = gen_output_data(INPUT_DATA_VAL)
 
 OUTPUT_DATA_VAL_FLAT = OUTPUT_DATA_VAL.flatten()
 
