@@ -19,7 +19,7 @@ from tqdm import tqdm
 
 from mc.network import Network
 
-from tests import test_model_rate_spikes as net_model
+from models import rate_spikes as net_model
 
 from .utils import gen_input_output_data
 

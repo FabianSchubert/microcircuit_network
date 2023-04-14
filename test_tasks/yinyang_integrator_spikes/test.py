@@ -14,7 +14,7 @@ import pickle
 
 from mc.network import Network
 
-from tests import test_model_yinyang_integrator_spikes as net_model
+from models import test_model_yinyang_integrator_spikes as net_model
 
 from ..utils import plot_spike_times, calc_loss_interp
 

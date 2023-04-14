@@ -14,6 +14,7 @@ from .layers import HiddenLayer, InputLayer, OutputLayer
 from .synapses import (SynapseIPBack, SynapsePINP,
                        SynapsePPApical, SynapsePPBasal)
 
+
 @dataclass
 class Network:
     """
@@ -394,9 +395,15 @@ class Network:
             spike_rec_pops=self.spike_rec_pops_val,
             dt=self.dt, plastic=False, n_batches=self.n_batches_val)
 
+    def add_input_current_source(self, cs_in):
+        self.cs_in = self.genn_model.add_current_source(*args, pop=self.neur_pops["neur_input_input_pop"], **kwargs)
+
+    def add_output_current_source(self, *args, **kwargs):
+        self.cs_out = self.genn_model.add_current_source(*args, pop=self.neur_pops["neur_output_output_pop"], **kwargs)
+
     def run_sim(self, T,
                 t_sign,
-                ext_data_input, ext_data_output,
+                #ext_data_input, ext_data_output,
                 ext_data_pop_vars, readout_neur_pop_vars,
                 readout_syn_pop_vars,
                 t_sign_validation=None,

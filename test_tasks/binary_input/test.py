@@ -11,7 +11,7 @@ import numpy as np
 
 from mc.network import Network
 
-from tests import test_model_rate_spikes as net_model
+from models import rate_spikes as net_model
 
 from ..utils import plot_spike_times, calc_loss_interp
 

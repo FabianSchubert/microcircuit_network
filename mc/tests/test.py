@@ -1,5 +1,5 @@
 """
-unit tests
+unit models
 """
 import numpy as np
 
@@ -7,8 +7,7 @@ import unittest
 
 from mc.network import Network
 
-from . import test_model
-
+from models import test_model
 
 class TestNetwork(unittest.TestCase):
 
