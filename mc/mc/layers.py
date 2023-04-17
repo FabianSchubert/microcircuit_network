@@ -96,7 +96,7 @@ class OutputLayer(LayerBase):
         N = args[-1]
 
         _output_param_space = dict(output_param_space)
-        _output_param_space["pop_size"] = N
+        #_output_param_space["pop_size"] = N
 
         _output_model = create_custom_neuron_class(**output_model_def)
 
@@ -117,7 +117,7 @@ class InputLayer(LayerBase):
         N = args[-1]
 
         _input_param_space = dict(input_param_space)
-        _input_param_space["pop_size"] = N
+        #_input_param_space["pop_size"] = N
 
         _input_model = create_custom_neuron_class(**input_model_def)
 

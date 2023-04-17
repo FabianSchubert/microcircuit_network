@@ -70,8 +70,6 @@ class TestNetwork(unittest.TestCase):
 
         data_validation = [{
             "T": 1000,
-            "t_sign": None,
-            "ext_data_input": None,
             "ext_data_pop_vars": None,
             "readout_neur_pop_vars": None
         }] * N_VAL
@@ -79,9 +77,63 @@ class TestNetwork(unittest.TestCase):
         self.assertIsInstance(net, Network)
 
         readout_neur_arrays, readout_syn_arrays, readout_spikes, results_validation = net.run_sim(
-            T_RUN, None, None, None, None, None, None,
+            T_RUN, None, None, None,
             t_sign_validation = T_SIGN_VAL,
             data_validation = data_validation
+        )
+
+    def test_run_sim_val_ext_inp(self):
+
+        T_RUN = 10000
+
+        net = Network("testnet", test_model,
+                      50, [40], 30,  # network size
+                      0,  # maximum number of input arrays for external input
+                      T_RUN,  # spike buffer size
+                      0,  # validation spike buffer size
+                      [],  # spike buffer populations
+                      [],  # validation spike buffer populations
+                      cs_in_init={
+                          "model": test_model.cs_sources.test_source,
+                          "params": {"amplitude": 1.0},
+                          "vars": {},
+                          "extra_global_params": {}
+                      },
+                      cs_out_init={
+                          "model": test_model.cs_sources.test_source,
+                          "params": {"amplitude": 1.0},
+                          "vars": {},
+                          "extra_global_params": {}
+                      },
+                      cs_in_init_static_twin={
+                          "model": test_model.cs_sources.test_source,
+                          "params": {"amplitude": 1.0},
+                          "vars": {},
+                          "extra_global_params": {}
+                      },
+                      cs_out_init_static_twin={
+                          "model": test_model.cs_sources.test_source,
+                          "params": {"amplitude": 1.0},
+                          "vars": {},
+                          "extra_global_params": {}
+                      }
+                      )
+
+        T_SIGN_VAL = np.arange(T_RUN)[::1000]
+        N_VAL = T_SIGN_VAL.shape[0]
+
+        data_validation = [{
+            "T": 1000,
+            "ext_data_pop_vars": None,
+            "readout_neur_pop_vars": None
+        }] * N_VAL
+
+        self.assertIsInstance(net, Network)
+
+        readout_neur_arrays, readout_syn_arrays, readout_spikes, results_validation = net.run_sim(
+            T_RUN, None, None, None,
+            t_sign_validation=T_SIGN_VAL,
+            data_validation=data_validation
         )
 
 if __name__ == '__main__':

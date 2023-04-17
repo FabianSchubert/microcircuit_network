@@ -4,7 +4,7 @@ construct an instance of the dendritic microcircuit model.
 """
 
 import types
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, InitVar
 
 import numpy as np
 from pygenn.genn_model import GeNNModel
@@ -13,6 +13,8 @@ from tqdm import tqdm
 from .layers import HiddenLayer, InputLayer, OutputLayer
 from .synapses import (SynapseIPBack, SynapsePINP,
                        SynapsePPApical, SynapsePPBasal)
+
+import typing
 
 
 @dataclass
@@ -114,9 +116,15 @@ class Network:
     t_inp_static_max: int = 0
     n_batches: int = 2
     n_batches_val: int = 1
+    cs_in_init: InitVar[typing.Any] = None
+    cs_out_init: InitVar[typing.Any] = None
+    cs_in: typing.Any = field(init=False)
+    cs_out: typing.Any = field(init=False)
+    cs_in_init_static_twin: InitVar[typing.Any] = None
+    cs_out_init_static_twin: InitVar[typing.Any] = None
 
-    def __post_init__(self):
-
+    def __post_init__(self, cs_in_init, cs_out_init,
+                      cs_in_init_static_twin, cs_out_init_static_twin):
 
         self.genn_model = GeNNModel("float", self.name, backend="CUDA")
 
@@ -290,6 +298,25 @@ class Network:
         #################################################
 
         ############################
+        # current sources
+        if cs_in_init:
+            self.add_input_current_source(cs_in_init["model"],
+                                          cs_in_init["params"],
+                                          cs_in_init["vars"],
+                                          cs_in_init["extra_global_params"])
+        else:
+            self.cs_in = None
+
+        if cs_out_init:
+            self.add_output_current_source(cs_out_init["model"],
+                                           cs_out_init["params"],
+                                           cs_out_init["vars"],
+                                           cs_out_init["extra_global_params"])
+        else:
+            self.cs_out = None
+        ############################
+
+        ############################
         # set up the spike recording
         if self.spike_rec_pops is None:
             self.spike_rec_pops = []
@@ -305,27 +332,27 @@ class Network:
 
         # initialize the extra global parameters required for
         # putting the input to the gpu
-        _t_sign_init = np.zeros(self.t_inp_max)
+        #_t_sign_init = np.zeros(self.t_inp_max)
 
-        _inp_pop = self.neur_pops["neur_input_input_pop"]
+        #_inp_pop = self.neur_pops["neur_input_input_pop"]
 
-        _u_input_init = np.zeros((_inp_pop.size * self.n_batches * self.t_inp_max))
+        #_u_input_init = np.zeros((_inp_pop.size * self.n_batches * self.t_inp_max))
 
-        _inp_pop.set_extra_global_param("u", _u_input_init)
-        _inp_pop.set_extra_global_param("t_sign", _t_sign_init)
-        _inp_pop.set_extra_global_param("size_u", self.size_input)
-        _inp_pop.set_extra_global_param("size_t_sign", self.t_inp_max)
-        _inp_pop.set_extra_global_param("batch_size", self.n_batches)
+        #_inp_pop.set_extra_global_param("u", _u_input_init)
+        #_inp_pop.set_extra_global_param("t_sign", _t_sign_init)
+        #_inp_pop.set_extra_global_param("size_u", self.size_input)
+        #_inp_pop.set_extra_global_param("size_t_sign", self.t_inp_max)
+        #_inp_pop.set_extra_global_param("batch_size", self.n_batches)
 
-        _output_pop = self.neur_pops["neur_output_output_pop"]
+        #_output_pop = self.neur_pops["neur_output_output_pop"]
 
-        _u_trg_init = np.zeros((_output_pop.size * self.n_batches * self.t_inp_max))
+        #_u_trg_init = np.zeros((_output_pop.size * self.n_batches * self.t_inp_max))
 
-        _output_pop.set_extra_global_param("u_trg", _u_trg_init)
-        _output_pop.set_extra_global_param("t_sign", _t_sign_init)
-        _output_pop.set_extra_global_param("size_u_trg", self.size_output)
-        _output_pop.set_extra_global_param("size_t_sign", self.t_inp_max)
-        _output_pop.set_extra_global_param("batch_size", self.n_batches)
+        #_output_pop.set_extra_global_param("u_trg", _u_trg_init)
+        #_output_pop.set_extra_global_param("t_sign", _t_sign_init)
+        #_output_pop.set_extra_global_param("size_u_trg", self.size_output)
+        #_output_pop.set_extra_global_param("size_t_sign", self.t_inp_max)
+        #_output_pop.set_extra_global_param("batch_size", self.n_batches)
 
         self.genn_model.load(num_recording_timesteps=self.spike_buffer_size)
 
@@ -353,7 +380,8 @@ class Network:
         # (otherwise, calling create_static_twin() would lead
         # to an infinite recursive loop).
         if self.plastic:
-            self.create_static_twin()
+            self.create_static_twin(cs_in_init=cs_in_init_static_twin,
+                                    cs_out_init=cs_out_init_static_twin)
 
     def update_neur_pops(self):
         """updates the dictionary self.neur_pops
@@ -380,7 +408,7 @@ class Network:
         for pop in self.cross_layer_syn_pops:
             self.syn_pops[pop.name] = pop
 
-    def create_static_twin(self):
+    def create_static_twin(self, cs_in_init=None, cs_out_init=None):
         """create a non-plastic copy of the
         network by removing the plastic component
         in the weight update rules for the copy.
@@ -393,16 +421,33 @@ class Network:
             self.t_inp_static_max,
             self.spike_buffer_size_val, 0,
             spike_rec_pops=self.spike_rec_pops_val,
-            dt=self.dt, plastic=False, n_batches=self.n_batches_val)
+            dt=self.dt, plastic=False, n_batches=self.n_batches_val,
+            cs_in_init=cs_in_init,
+            cs_out_init=cs_out_init
+        )
 
-    def add_input_current_source(self, cs_in):
-        self.cs_in = self.genn_model.add_current_source(*args, pop=self.neur_pops["neur_input_input_pop"], **kwargs)
+    def add_input_current_source(self, cs_model,
+                                 cs_params, cs_vars,
+                                 cs_extra_global_params):
 
-    def add_output_current_source(self, *args, **kwargs):
-        self.cs_out = self.genn_model.add_current_source(*args, pop=self.neur_pops["neur_output_output_pop"], **kwargs)
+        self.cs_in = self.genn_model.add_current_source("cs_in", cs_model,
+                                                        self.neur_pops["neur_input_input_pop"],
+                                                        cs_params, cs_vars)
+        for pkey, pval in cs_extra_global_params:
+            self.cs_in.set_extra_global_param(pkey, pval)
+
+    def add_output_current_source(self, cs_model,
+                                  cs_params, cs_vars,
+                                  cs_extra_global_params):
+
+        self.cs_out = self.genn_model.add_current_source("cs_out", cs_model,
+                                                         self.neur_pops["neur_output_output_pop"],
+                                                         cs_params, cs_vars)
+        for pkey, pval in cs_extra_global_params:
+            self.cs_out.set_extra_global_param(pkey, pval)
 
     def run_sim(self, T,
-                t_sign,
+                #t_sign,
                 #ext_data_input, ext_data_output,
                 ext_data_pop_vars, readout_neur_pop_vars,
                 readout_syn_pop_vars,
@@ -423,16 +468,6 @@ class Network:
                         Time signatures for the update
                         of the input rates and the values
                         of u_trg in the output population.
-
-            ext_data_input (numpy.ndarray):
-
-                        Data array for the input rates.
-                        Should be of size (len(t_sign) * size_input).
-
-            ext_data_output (numpy.ndarray):
-
-                        Data array for the u_trg variables.
-                        Should be of size (len(t_sign) * size_output).
 
             ext_data_pop_vars (list):
 
@@ -508,7 +543,7 @@ class Network:
         # which to load when the next time data is pushed to a population.
         idx_data_heads = []
 
-        t_sign = np.ndarray((0)) if t_sign is None else t_sign
+        #t_sign = np.ndarray((0)) if t_sign is None else t_sign
 
         ext_data_pop_vars = [] if ext_data_pop_vars is None else ext_data_pop_vars
 
@@ -518,8 +553,8 @@ class Network:
 
         readout_syn_pop_vars = [] if readout_syn_pop_vars is None else readout_syn_pop_vars
 
-        ext_data_input = np.ndarray((0)) if ext_data_input is None else ext_data_input
-        ext_data_output = np.ndarray((0)) if ext_data_output is None else ext_data_output
+        #ext_data_input = np.ndarray((0)) if ext_data_input is None else ext_data_input
+        #ext_data_output = np.ndarray((0)) if ext_data_output is None else ext_data_output
 
         # List for copies of time signatures for extra input data.
         time_signatures_ext_data = []
@@ -623,36 +658,37 @@ class Network:
             _pop.in_syn = np.zeros(_pop.trg.size)
             _pop.push_in_syn_to_device()
 
-        _inp_pop = self.neur_pops["neur_input_input_pop"]
+        #_inp_pop = self.neur_pops["neur_input_input_pop"]
 
-        _inp_pop.extra_global_params["u"].view[:
-                                               ext_data_input.shape[0]] = ext_data_input
-        _inp_pop.extra_global_params["t_sign"].view[:t_sign.shape[0]] = t_sign
-        _inp_pop.extra_global_params["size_t_sign"].view[:] = t_sign.shape[0]
+        #_inp_pop.extra_global_params["u"].view[:
+                                              # ext_data_input.shape[0]] = ext_data_input
+        #_inp_pop.extra_global_params["t_sign"].view[:t_sign.shape[0]] = t_sign
+        #_inp_pop.extra_global_params["size_t_sign"].view[:] = t_sign.shape[0]
 
-        _inp_pop.push_extra_global_param_to_device(
-            "u", self.size_input * self.n_batches * self.t_inp_max)
-        _inp_pop.push_extra_global_param_to_device("t_sign", self.t_inp_max)
+        #_inp_pop.push_extra_global_param_to_device(
+        #    "u", self.size_input * self.n_batches * self.t_inp_max)
+        #_inp_pop.push_extra_global_param_to_device("t_sign", self.t_inp_max)
 
         # reset the input index counter before running the simulation
-        _inp_pop.vars["idx_dat"].view[:] = 0
-        _inp_pop.push_var_to_device("idx_dat")
+        #_inp_pop.vars["idx_dat"].view[:] = 0
+        #_inp_pop.push_var_to_device("idx_dat")
 
         if self.plastic:
-            _output_pop = self.neur_pops["neur_output_output_pop"]
+            pass
+            #_output_pop = self.neur_pops["neur_output_output_pop"]
 
-            _output_pop.extra_global_params["u_trg"].view[:
-                                                          ext_data_output.shape[0]] = ext_data_output
-            _output_pop.extra_global_params["t_sign"].view[:t_sign.shape[0]] = t_sign
-            _output_pop.extra_global_params["size_t_sign"].view[:] = t_sign.shape[0]
+            #_output_pop.extra_global_params["u_trg"].view[:
+            #                                              ext_data_output.shape[0]] = ext_data_output
+            #_output_pop.extra_global_params["t_sign"].view[:t_sign.shape[0]] = t_sign
+            #_output_pop.extra_global_params["size_t_sign"].view[:] = t_sign.shape[0]
+            #
+            #_output_pop.push_extra_global_param_to_device(
+            #    "u_trg", self.size_output * self.n_batches * self.t_inp_max)
+            #_output_pop.push_extra_global_param_to_device(
+            #    "t_sign", self.t_inp_max)
 
-            _output_pop.push_extra_global_param_to_device(
-                "u_trg", self.size_output * self.n_batches * self.t_inp_max)
-            _output_pop.push_extra_global_param_to_device(
-                "t_sign", self.t_inp_max)
-
-            _output_pop.vars["idx_dat"].view[:] = 0
-            _output_pop.push_var_to_device("idx_dat")
+            #_output_pop.vars["idx_dat"].view[:] = 0
+            #_output_pop.push_var_to_device("idx_dat")
 
         ####################################################
 
@@ -697,7 +733,9 @@ class Network:
             return readout_neur_arrays, readout_syn_arrays, readout_spikes, results_validation
         return readout_neur_arrays, readout_syn_arrays, readout_spikes
 
-    def run_validation(self, T, t_sign, ext_data_input, ext_data_pop_vars,
+    def run_validation(self, T, #t_sign,
+                       #ext_data_input,
+                       ext_data_pop_vars,
                        readout_neur_pop_vars, show_progress=True):
         '''
         This method runs a network simulation on the
@@ -730,7 +768,8 @@ class Network:
             syn_pop.push_var_to_device("g")
 
         result_neur_arrays, _, result_spikes = self.static_twin_net.run_sim(
-            T, t_sign, ext_data_input, np.ndarray(0),
+            T, #t_sign,
+            #ext_data_input, np.ndarray(0),
             ext_data_pop_vars, readout_neur_pop_vars, [], show_progress=show_progress)
 
         return {"neur_var_rec": result_neur_arrays,

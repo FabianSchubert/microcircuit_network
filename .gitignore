@@ -4,6 +4,9 @@
 # ignore npz
 *.npz
 
+# ignore idx file format (datasets etc)
+*idx*-ubyte*
+
 # Do not commit the generated c++ code
 *_CODE/
 
