@@ -1,11 +1,5 @@
 from pygenn.genn_model import create_custom_current_source_class
 
-import torch
-
-from torchvision.datasets import MNIST
-
-import numpy as np
-
 test_source = create_custom_current_source_class(
     "test_source",
     param_names=["amplitude"],
@@ -14,28 +8,25 @@ test_source = create_custom_current_source_class(
     """
 )
 
-mnist_dataset_train = MNIST(root="./mnist", train=True, download=True)
-mnist_dataset_test = MNIST(root="./mnist", train=False, download=True)
-
-train_input = np.reshape(mnist_dataset_train.data.numpy(), (60000, 784))
-train_output = torch.nn.functional.one_hot(mnist_dataset_train.targets, num_classes=10).numpy()
-
-mnist_step_source_model = create_custom_current_source_class(
-    "mnist_source",
+step_source_model = create_custom_current_source_class(
+    "step_source",
     param_names=["n_samples_set", "pop_size", "batch_size",
-                 "T", "n_sample_lst"],
-    var_name_types=[("idx", "int"), ("t_last", "scalar")],
+                 "input_id_list_size", "input_times_list_size"],
+    var_name_types=[("idx", "int"), ("t_next", "scalar")],
     extra_global_params=[("data", "scalar*"),
-                         ("sample_lst", "int*")],
+                         ("input_id_list", "int*"),
+                         ("input_times_list", "scalar*")],
     injection_code="""
-        //increase idx every T
+        // increase idx every time t surpasses the current next time to change
+        // to a new pattern, except if we are at the end of the times list.
         
-        if($(t) - $(t_last) >= $(T)){
-            $(t_last) = $(t);
-            $(idx)++;
+        if($(idx) < ($(input_times_list_size) - 1)){
+            if($(t) >= $(input_times_list)[$(idx)+1]){
+                $(idx)++;
+            }
         }
         
-        // sample_lst contains indices for samples to be drawn
+        // input_id_list contains indices for samples to be drawn
         // from the dataset, and these are drawn concurrently
         // in batches. It starts back from the beginning of the list
         // if the list length is exceeded. This means that
@@ -43,12 +34,12 @@ mnist_step_source_model = create_custom_current_source_class(
         // indices from both the end and the start of sample_lst if
         // the length of sample_lst is not divisible by the batch size.
         
-        const int sample_id = $(sample_lst)[($(idx)*$(batch_size)+$(batch))%$(n_sample_lst)];
+        const int sample_id = $(input_id_list)[($(idx)*int($(batch_size))+$(batch))%int($(input_id_list_size))];
         
         // the original data is of size (n_sample, pop_size)
         // and is flattened c-style.
         const int data_id = $(pop_size) * sample_id + $(id);
-        $(injectCurrent, $data[data_id]);
+        $(injectCurrent, $(data)[data_id]);
         
         // if you want to simulate multiple epochs, 
         // sample_lst should contain randomly shuffled versions
@@ -58,3 +49,5 @@ mnist_step_source_model = create_custom_current_source_class(
         // [0,...,n_samples_set-1] (or even less if you are subsampling).
     """
 )
+
+

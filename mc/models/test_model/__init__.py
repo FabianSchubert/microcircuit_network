@@ -1,1 +1,1 @@
-from . import neurons, synapses, cs_sources
+from . import neurons, synapses

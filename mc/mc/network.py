@@ -145,8 +145,6 @@ class Network:
         # there must be at least one hidden layer.
         assert len(self.size_hidden) > 0
 
-
-
         for k in range(self.n_hidden_layers - 1):
             _l_size = self.size_hidden[k]
             _l_next_size = self.size_hidden[k + 1]
@@ -433,7 +431,7 @@ class Network:
         self.cs_in = self.genn_model.add_current_source("cs_in", cs_model,
                                                         self.neur_pops["neur_input_input_pop"],
                                                         cs_params, cs_vars)
-        for pkey, pval in cs_extra_global_params:
+        for pkey, pval in cs_extra_global_params.items():
             self.cs_in.set_extra_global_param(pkey, pval)
 
     def add_output_current_source(self, cs_model,
@@ -443,7 +441,7 @@ class Network:
         self.cs_out = self.genn_model.add_current_source("cs_out", cs_model,
                                                          self.neur_pops["neur_output_output_pop"],
                                                          cs_params, cs_vars)
-        for pkey, pval in cs_extra_global_params:
+        for pkey, pval in cs_extra_global_params.items():
             self.cs_out.set_extra_global_param(pkey, pval)
 
     def run_sim(self, T,
@@ -536,6 +534,9 @@ class Network:
                         value of 1 means that this happens every time
                         step (generally not recommended for performance).
         """
+
+        NT = int(T / self.dt)
+        NT_skip_batch_plast = int(T_skip_batch_plast / self.dt)
 
         input_views = []
 
@@ -692,7 +693,7 @@ class Network:
 
         ####################################################
 
-        for t in tqdm(range(T), disable=not show_progress, leave=self.plastic):
+        for t in tqdm(range(NT), disable=not show_progress, leave=self.plastic):
 
             # manual variable manipulation
 
@@ -702,7 +703,8 @@ class Network:
             # executed in this time step.
             if data_validation and self.plastic:
                 if (idx_validation_runs < t_sign_validation.shape[0]
-                        and t_sign_validation[idx_validation_runs] == t):
+                        and t_sign_validation[idx_validation_runs] <= t*self.dt):
+
                     results_validation.append(
                         self.run_validation(**data_validation[idx_validation_runs],
                                             show_progress=show_progress_val))
@@ -711,7 +713,7 @@ class Network:
 
             self.genn_model.step_time()
 
-            if self.plastic and (t%T_skip_batch_plast == 0):
+            if self.plastic and (t%NT_skip_batch_plast == 0):
                 self.genn_model.custom_update("WeightChangeBatchReduce")
                 self.genn_model.custom_update("Plast")
 
@@ -785,7 +787,7 @@ class Network:
                 # check if the current time is equal to the
                 # current first element in the
                 # array of time signatures.
-                if time_signatures_ext_data[k][0] == t:
+                if time_signatures_ext_data[k][0] <= t*self.dt:
                     input_views[k][:] = ext_data_pop_vars[k][0][idx_data_heads[k]]
 
                     self.neur_pops[ext_data_pop_vars[k][2]].push_var_to_device(
@@ -804,7 +806,7 @@ class Network:
 
             if time_signatures_readout_neur_pop[k].shape[0] > 0:
 
-                if time_signatures_readout_neur_pop[k][0] == t:
+                if time_signatures_readout_neur_pop[k][0] <= t*self.dt:
                     self.neur_pops[readout_pop].pull_var_from_device(
                         readout_var)
                     _dict_name = f'{readout_pop}_{readout_var}'
@@ -822,7 +824,7 @@ class Network:
 
             if time_signatures_readout_syn_pop[k].shape[0] > 0:
 
-                if time_signatures_readout_syn_pop[k][0] == t:
+                if time_signatures_readout_syn_pop[k][0] <= t*self.dt:
                     self.syn_pops[readout_pop].pull_var_from_device(
                         readout_var)
                     _dict_name = f'{readout_pop}_{readout_var}'
