@@ -453,7 +453,7 @@ class Network:
                 data_validation=None,
                 show_progress=True,
                 show_progress_val=True,
-                T_skip_batch_plast=1):
+                NT_skip_batch_plast=1):
         """
         run_sim simulates the network and allows the user
         to provide input data as well as specify targets
@@ -524,7 +524,7 @@ class Network:
 
                         Same as show_progress, but for the static twin.
 
-            T_skip_batch_plast (int):
+            NT_skip_batch_plast (int):
 
                         Number of time steps between an update where
                         the synaptic changes stored in the individual batch
@@ -536,7 +536,6 @@ class Network:
         """
 
         NT = int(T / self.dt)
-        NT_skip_batch_plast = int(T_skip_batch_plast / self.dt)
 
         input_views = []
 
@@ -581,7 +580,7 @@ class Network:
             assert ext_dat.ndim == (2 if self.n_batches == 1 else 3), \
                 """Input data array does
                 not have appropriate dimensions.
-                Needs to be 2 if n_batches = 2, else 3"""
+                Needs to be 2 if n_batches = 1, else 3"""
 
             _target_pop = self.neur_pops[target_pop]
             assert ext_dat.shape[-1] == _target_pop.size, \
@@ -692,6 +691,7 @@ class Network:
             #_output_pop.push_var_to_device("idx_dat")
 
         ####################################################
+
 
         for t in tqdm(range(NT), disable=not show_progress, leave=self.plastic):
 
@@ -883,16 +883,9 @@ class Network:
                 _synview_pi[:] = -_synview_pp_back
                 _pi.push_var_to_device("g")
 
-                # set the IP weights to the PP_fwd weights, scaled
-                # by (gb + glk)/(gb+ga+glk) (parameters referring
-                # to the post-population of PP_fwd)
-                _trg = _pp_fwd.trg
-                _GLK = _trg.params.get_initialisers()[_pp_fwd.trg.param_names.index("glk")]
-                _GB = _trg.params.get_initialisers()[_pp_fwd.trg.param_names.index("gb")]
-                _GA = _trg.params.get_initialisers()[_pp_fwd.trg.param_names.index("ga")]
-
+                # set the IP weights to the PP_fwd weights
                 _pp_fwd.pull_var_from_device("g")
-                _synview_ip[:] = _synview_pp_fwd * (_GB + _GLK) / (_GB + _GA + _GLK)
+                _synview_ip[:] = _synview_pp_fwd
                 _ip.push_var_to_device("g")
 
 

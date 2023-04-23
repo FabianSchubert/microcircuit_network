@@ -230,7 +230,6 @@ class TestNetwork(unittest.TestCase):
         }
 
 
-
         net = Network("testnet", test_model,
                       784, [100], 10,  # network size
                       0,  # maximum number of input arrays for external input

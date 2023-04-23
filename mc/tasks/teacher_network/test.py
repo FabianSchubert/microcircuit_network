@@ -23,7 +23,7 @@ from models import rate_spikes as net_model
 
 from .utils import gen_input_output_data
 
-from test_tasks.utils import calc_loss_interp
+from tasks.utils import calc_loss_interp
 
 col_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
@@ -355,7 +355,7 @@ ax[1].set_yscale("log")
 
 fig.tight_layout()
 
-fig.savefig("./test_tasks/teacher_network/plots/train_loss.png", dpi=600)
+fig.savefig("./tasks/teacher_network/plots/train_loss.png", dpi=600)
 
 plt.show()
 
@@ -394,7 +394,7 @@ for k in range(T_SIGN_VALIDATION.shape[0]):
     fig.tight_layout()
     
     fig.savefig(
-        f'./test_tasks/teacher_network/plots/validation_t_{T_SIGN_VALIDATION[k]}.png',
+        f'./tasks/teacher_network/plots/validation_t_{T_SIGN_VALIDATION[k]}.png',
         dpi=300)
     
     plt.close()
@@ -443,7 +443,7 @@ ax.legend()
 
 fig.tight_layout()
 
-fig.savefig("./test_tasks/teacher_network/plots/spike_rates.png", dpi=300)
+fig.savefig("./tasks/teacher_network/plots/spike_rates.png", dpi=300)
 
 plt.show()
 
