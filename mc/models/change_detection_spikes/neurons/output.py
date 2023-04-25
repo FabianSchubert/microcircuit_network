@@ -8,21 +8,24 @@ model_def = {
                        ("r_eff", "scalar"), ("r_eff_prev", "scalar"),
                        ("r_eff_prev_prev", "scalar"),
                        ("r_target", "scalar"),
-                       ("u", "scalar"), ("delta", "scalar"),
+                       ("u", "scalar"),
                        ("va", "scalar"),
                        ("vb", "scalar"),
                        ("ga", "scalar")],
     "additional_input_vars": [("Isyn_vb", "scalar", 0.0)],
     "sim_code": f"""
         $(r_target) = $(Isyn);
-        $(va) += DT * ($(r_target) - $(r) - $(va));
+        $(va) = $(r_target) - $(r);
 
-        $(vb) += DT * ($(Isyn_vb) - $(vb));
-
+        $(vb) =$(Isyn_vb);
+        
+        //const scalar u_prev = $(u);
+        
+        //$(u) += DT*($(ga) * $(va) + $(vb) - $(u));
         $(u) = $(ga) * $(va) + $(vb);
 
-        $(r) = {act_func('$(u)')};
-        $(r_eff) = {act_func('$(vb)')};
+        $(r) = {act_func('$(u)', 0.025)};
+        $(r_eff) = {act_func('$(vb)', 0.025)};
     """,
     "threshold_condition_code": TH_COND_CODE,
     "reset_code": RESET_CODE,
@@ -30,7 +33,7 @@ model_def = {
 }
 
 param_space = {
-    "th": 0.05
+    "th": 0.005
 }
 
 var_space = {
@@ -42,10 +45,9 @@ var_space = {
     "r_eff_prev_prev": 0.0,
     "r_target": 0.0,
     "u": 0.0,
-    "delta": 0.0,
     "va": 0.0,
     "vb": 0.0,
-    "ga": 0.1
+    "ga": 0.2
 }
 
 mod_dat = {

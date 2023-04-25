@@ -23,9 +23,22 @@ update_weight_change = create_custom_custom_update_class(
     param_names=["batch_size", "low", "high"],
     update_code="""
     // Update
-    $(variable) += $(change) / $(batch_size);
+    $(variable) += $(change);
     $(variable) = min($(high), max($(low), $(variable)));
     """)
+
+update_weight_change_momentum = create_custom_custom_update_class(
+    "update_weight_change_momentum",
+    var_refs=[("change", "scalar"), ("variable", "scalar")],
+    var_name_types=[("m", "scalar")],
+    param_names=["batch_size", "beta", "low", "high"],
+    update_code="""
+    const scalar change_norm = $(change) / $(batch_size);
+    $(m) = $(beta) * $(m) + (1.0-$(beta)) * change_norm;
+    $(variable) += $(m);
+    $(variable) = min($(high), max($(low), $(variable)));
+    """
+)
 
 adam_optimizer_model = create_custom_custom_update_class(
     "adam_optimizer",
@@ -34,9 +47,10 @@ adam_optimizer_model = create_custom_custom_update_class(
     var_refs=[("change", "scalar"), ("variable", "scalar")],
     update_code="""
     // Update biased first moment estimate
-    $(m) = $(beta1) * $(m) + (1.0 - $(beta1)) * $(change) / $(batch_size);
+    const scalar change_norm = $(change) / $(batch_size);
+    $(m) = $(beta1) * $(m) + (1.0 - $(beta1)) * change_norm;
     // Update biased second moment estimate
-    $(v) = $(beta2) * $(v) + (1.0 - $(beta2)) * $(change) * $(change) / ($(batch_size) * $(batch_size));
+    $(v) = $(beta2) * $(v) + (1.0 - $(beta2)) * change_norm * change_norm;
     // Add gradient to variable, scaled by learning rate
     $(variable) += $(m) / (sqrt($(v)) + $(epsilon));
     $(variable) = min($(high), max($(low), $(variable)));

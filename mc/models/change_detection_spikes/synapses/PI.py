@@ -30,7 +30,7 @@ w_update_model_plast = {
     "is_prev_post_spike_time_required": True
 }
 
-wu_param_space_plast = {"muPI": 0e-3}
+wu_param_space_plast = {"muPI": 1e-3}
 
 wu_var_space_plast = {"dg": 0.0}
 

@@ -44,5 +44,7 @@ PS_TRANSMIT_VAR = {}
 
 PS_TRANSMIT_PARAM = {}
 
-def act_func(x):
-    return f'max(0.0, {x})'
+
+def act_func(x, l):
+    #return f'log(1.0+exp(({x})/{l}))*{l}'
+    return f'max(0.0, {x}) + 0.1*min(0.0, {x})'

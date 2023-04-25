@@ -453,7 +453,9 @@ class Network:
                 data_validation=None,
                 show_progress=True,
                 show_progress_val=True,
-                NT_skip_batch_plast=1):
+                NT_skip_batch_plast=1,
+                force_self_pred_state=False,
+                force_fb_align=False):
         """
         run_sim simulates the network and allows the user
         to provide input data as well as specify targets
@@ -717,6 +719,11 @@ class Network:
                 self.genn_model.custom_update("WeightChangeBatchReduce")
                 self.genn_model.custom_update("Plast")
 
+                if force_fb_align:
+                    self.align_fb_weights()
+                if force_self_pred_state:
+                    self.init_self_pred_state()
+
             self.pull_neur_var_data(t, readout_neur_pop_vars, time_signatures_readout_neur_pop,
                                     readout_neur_arrays, readout_views, idx_readout_neur_pop_heads)
 
@@ -888,6 +895,35 @@ class Network:
                 _synview_ip[:] = _synview_pp_fwd
                 _ip.push_var_to_device("g")
 
+    def align_fb_weights(self):
 
+        for _l in self.layers:
 
+            if type(_l) == HiddenLayer:
+
+                # really bad approach - skip the "hidden" part
+                # the layer name, which is always "hidden<idx>"
+                idx = int(_l.name[6:])
+
+                _name_this_layer = _l.name
+
+                if idx < (self.n_hidden_layers - 1):
+                    _name_next_layer = f'hidden{idx + 1}'
+                    _name_next_pyr = "pyr_pop"
+                else:
+                    _name_next_layer = "output"
+                    _name_next_pyr = "output_pop"
+
+                _name_pp_fwd = f'syn_{_name_this_layer}_pyr_pop_to_{_name_next_layer}_{_name_next_pyr}'
+                _pp_fwd = self.syn_pops[_name_pp_fwd]
+                _synview_pp_fwd = _pp_fwd.vars["g"].view
+
+                _w_pp_fwd = np.reshape(np.array(_synview_pp_fwd), (_pp_fwd.src.size, _pp_fwd.trg.size))
+
+                _name_pp_back = f'syn_{_name_next_layer}_{_name_next_pyr}_to_{_name_this_layer}_pyr_pop'
+                _pp_back = self.syn_pops[_name_pp_back]
+                _synview_pp_back = _pp_back.vars["g"].view
+
+                _synview_pp_back[:] = _w_pp_fwd.T.flatten()
+                _pp_back.push_var_to_device("g")
 

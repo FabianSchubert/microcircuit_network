@@ -11,7 +11,7 @@ from pygenn.genn_wrapper.Models import VarAccess_READ_ONLY
 
 from .utils import (merge_wu_def, merge_dicts,
                     merge_ps_def,
-                    weight_change_batch_reduce, update_weight_change, adam_optimizer_model)
+                    weight_change_batch_reduce, update_weight_change, adam_optimizer_model, update_weight_change_momentum)
 
 SCALE_WEIGHT_INIT = 0.5
 
@@ -164,18 +164,29 @@ class SynapseBase:
                 _update_plast_step_reduced_var_refs
             )'''
 
+            '''
+            genn_model.add_custom_update(
+                f"plast_step_reduced_{name}",
+                "Plast",
+                update_weight_change_momentum,
+                {"batch_size": genn_model.batch_size,
+                 "low": self.low, "high": self.high,
+                 "beta": 0.0},
+                {"m": 0.0},
+                _update_plast_step_reduced_var_refs
+            )'''
 
-
+            #'''
             genn_model.add_custom_update(
                 f"plast_step_reduced_{name}",
                 "Plast",
                 adam_optimizer_model,
                 {"batch_size": genn_model.batch_size,
                  "low": self.low, "high": self.high,
-                 "beta1": 0.99, "beta2": 0.9999, "epsilon": 7e-2},
+                 "beta1": 0.99, "beta2": 0.9999, "epsilon": 1e-7},
                 {"m": 0.0, "v": 1.0},
                 _update_plast_step_reduced_var_refs
-            )
+            )#'''
 
 
 
