@@ -2,7 +2,9 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 
-import pickle
+
+import torch
+from torchvision.datasets import MNIST
 
 from mc.network import Network
 
@@ -11,8 +13,10 @@ from models.cs_sources import step_source_model as stp_src
 
 from ..utils import plot_spike_times, calc_loss_interp
 
-import torch
-from torchvision.datasets import MNIST
+import os
+
+TASK_BASE_FOLD = os.path.dirname(__file__)
+
 
 mnist_dataset_train = MNIST(root="./data", train=True, download=True)
 mnist_dataset_test = MNIST(root="./data", train=False, download=True)
@@ -34,12 +38,12 @@ N_IN = 784
 N_HIDDEN = [1000]
 N_OUT = 10
 
-DT = .5
+DT = 1.0
 ############################
 
 
 ############################
-N_EPOCHS = 30
+N_EPOCHS = 4
 
 N_TRAIN = 60000
 N_TEST = 10000
@@ -264,3 +268,13 @@ plt.plot(1.-acc)
 
 import pdb
 pdb.set_trace()
+
+np.savez(os.path.join(TASK_BASE_FOLD, "results.npz"),
+        acc=acc,
+        out_r_test=out_r_test,
+        update_times_test=UPDATE_TIMES_TEST,
+        times_record_test=TIMES_RECORD_TEST,
+        test_output=test_output[SAMPLE_IDS_BATCHES_TEST]
+        )
+
+

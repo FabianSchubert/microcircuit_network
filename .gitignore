@@ -4,6 +4,9 @@
 # ignore npz
 *.npz
 
+# ignore npy
+*.npy
+
 # ignore idx file format (datasets etc)
 *idx*-ubyte*
 

@@ -9,7 +9,10 @@ TH_COND_CODE = """
 RESET_CODE = """
     $(r_prev_prev) = $(r_prev);
     $(r_prev) = $(r);
-    
+
+    $(d_ra_prev_prev) = $(d_ra_prev);
+    $(d_ra_prev) = $(d_ra);
+
     $(r_eff_prev_prev) = $(r_eff_prev);
     $(r_eff_prev) = $(r_eff);
 """
@@ -48,3 +51,6 @@ PS_TRANSMIT_PARAM = {}
 def act_func(x, l):
     #return f'log(1.0+exp(({x})/{l}))*{l}'
     return f'max(0.0, {x}) + 0.1*min(0.0, {x})'
+
+def d_act_func(x):
+    return f'(({x}) > 0.0 ? 1.0 : 0.1)'

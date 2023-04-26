@@ -18,11 +18,11 @@ w_update_model_plast = {
     "var_name_types": [("g", "scalar"), ("dg", "scalar")],
     "sim_code": f"""
         // SIM CODE IP
-        $(dg) += $(muIP) * ($(t) - max(max(0.0,$(prev_sT_pre)),$(sT_post))) * $(r_prev_prev_pre) * ($(r_prev_post) - $(r_eff_prev_post));
+        $(dg) += $(muIP) * ($(t) - max(max(0.0,$(prev_sT_pre)),$(sT_post))) * $(r_prev_prev_pre) * $(d_ra_prev_post);//($(r_prev_post) - $(r_eff_prev_post));
     """,
     "learn_post_code": f"""
         // LEARN POST CODE IP
-        $(dg) += $(muIP) * ($(t) - max(max(0.0,$(prev_sT_post)),$(sT_pre))) * $(r_prev_pre) * ($(r_prev_prev_post) - $(r_eff_prev_prev_post));
+        $(dg) += $(muIP) * ($(t) - max(max(0.0,$(prev_sT_post)),$(sT_pre))) * $(r_prev_pre) * $(d_ra_prev_prev_post);//($(r_prev_prev_post) - $(r_eff_prev_prev_post));
     """,
     "is_pre_spike_time_required": True,
     "is_post_spike_time_required": True,
@@ -30,7 +30,7 @@ w_update_model_plast = {
     "is_prev_post_spike_time_required": True
 }
 
-wu_param_space_plast = {"muIP": 1e-4}
+wu_param_space_plast = {"muIP": 1e-5}
 
 wu_var_space_plast = {"dg": 0.0}
 
