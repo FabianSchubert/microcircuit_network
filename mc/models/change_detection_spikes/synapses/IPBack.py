@@ -9,13 +9,13 @@ wu_var_space_transmit["inp_prev"] = 0.0
 
 w_update_model_plast = {
     "class_name": "weight_update_model_pyr_to_int_back",
-    "param_names": [],
+    "param_names": ["mu"],
     "var_name_types": [("g", "scalar"), ("dg", "scalar")],
     "is_pre_spike_time_required": False,
     "is_post_spike_time_required": False
 }
 
-wu_param_space_plast = {}
+wu_param_space_plast = {"mu": 0.0}
 
 wu_var_space_plast = {"dg": 0.0}
 

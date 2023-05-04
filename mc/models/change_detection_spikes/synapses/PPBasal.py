@@ -8,21 +8,21 @@ from pygenn.genn_model import init_var
 w_update_model_transmit = dict(WU_TRANSMIT)
 wu_param_space_transmit = dict(WU_TRANSMIT_PARAM)
 wu_var_space_transmit = dict(WU_TRANSMIT_VAR)
-WEIGHT_SCALE = 0.5
+WEIGHT_SCALE = 1.0
 wu_var_space_transmit["g"] = init_var("Uniform", {"min": -WEIGHT_SCALE, "max": WEIGHT_SCALE})
 wu_var_space_transmit["inp_prev"] = 0.0
 
 w_update_model_plast = {
     "class_name": "weight_update_model_pyr_to_pyr",
-    "param_names": ["muPP_basal"],
+    "param_names": ["mu"],
     "var_name_types": [("g", "scalar"), ("dg", "scalar")],
     "sim_code": f"""
         // SIM CODE PP_basal
-        $(dg) += $(muPP_basal) * ($(t) - max(max(0.0,$(prev_sT_pre)),$(sT_post))) * $(r_prev_prev_pre) * $(d_ra_prev_post);//($(r_prev_post) - $(r_eff_prev_post));
+        $(dg) += ($(t) - max(max(0.0,$(prev_sT_pre)),$(sT_post))) * $(r_prev_prev_pre) * $(d_ra_prev_post);//($(r_prev_post) - $(r_eff_prev_post));
     """,
     "learn_post_code": f"""
         // LEARN POST CODE IP
-        $(dg) += $(muPP_basal) * ($(t) - max(max(0.0,$(prev_sT_post)),$(sT_pre))) * $(r_prev_pre) * $(d_ra_prev_prev_post);//($(r_prev_prev_post) - $(r_eff_prev_prev_post));
+        $(dg) += ($(t) - max(max(0.0,$(prev_sT_post)),$(sT_pre))) * $(r_prev_pre) * $(d_ra_prev_prev_post);//($(r_prev_prev_post) - $(r_eff_prev_prev_post));
     """,
     "is_pre_spike_time_required": True,
     "is_post_spike_time_required": True,
@@ -30,7 +30,7 @@ w_update_model_plast = {
     "is_prev_post_spike_time_required": True
 }
 
-wu_param_space_plast = {"muPP_basal": 2e-4}
+wu_param_space_plast = {"mu": 3e-3/150.}
 
 wu_var_space_plast = {"dg": 0.0}
 

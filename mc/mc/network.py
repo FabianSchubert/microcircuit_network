@@ -717,6 +717,7 @@ class Network:
 
             if self.plastic and (t%NT_skip_batch_plast == 0):
                 self.genn_model.custom_update("WeightChangeBatchReduce")
+                self.genn_model.custom_update("BiasChangeBatchReduce")
                 self.genn_model.custom_update("Plast")
 
                 if force_fb_align:
@@ -741,6 +742,56 @@ class Network:
         if data_validation:
             return readout_neur_arrays, readout_syn_arrays, readout_spikes, results_validation
         return readout_neur_arrays, readout_syn_arrays, readout_spikes
+    
+    def get_weights(self):
+
+        weights = {}
+        
+        for key, syn_pop in self.syn_pops.items():
+            view = syn_pop.vars["g"].view
+
+            syn_pop.pull_var_from_device("g")
+
+            # copy weights into new numpy array
+            # (just storing a reference in the list could lead to
+            # very unpredictable behavior)
+            weights[key] = np.array(view)
+        
+        return weights
+    
+    def set_weights(self, weights):
+
+        for key, value in weights.items():
+            _syn_pop = self.syn_pops[key]
+
+            _view = _syn_pop.vars["g"].view
+            _view[:] = value
+
+            _syn_pop.push_var_to_device("g")
+
+    def get_biases(self):
+
+        biases = {}
+        
+        for key, neur_pop in self.neur_pops.items():
+            view = neur_pop.vars["b"].view
+
+            neur_pop.pull_var_from_device("b")
+
+            biases[key] = np.array(view)
+
+        return biases
+
+    def set_biases(self, biases):
+
+        for key, value in biases.items():
+            _neur_pop = self.neur_pops[key]
+
+            _view = _neur_pop.vars["b"].view
+            _view[:] = value
+
+            _neur_pop.push_var_to_device("b")
+
 
     def run_validation(self, T, #t_sign,
                        #ext_data_input,
@@ -755,26 +806,14 @@ class Network:
 
         self.static_twin_net.genn_model.reinitialise()
 
-        # store all the weights in the network
-        weights = {}
+        # store all the weights and biases in the network
+        # and copy them over to the static twin
 
-        for key, syn_pop in self.syn_pops.items():
-            view = syn_pop.vars["g"].view
+        weights = self.get_weights()
+        self.static_twin_net.set_weights(weights)
 
-            syn_pop.pull_var_from_device("g")
-
-            # copy weights into new numpy array
-            # (just storing a reference in the list could lead to
-            # very unpredictable behavior)
-            weights[key] = np.array(view)
-
-        # transfer the copied weights to the temporary network
-        for key, syn_pop in self.static_twin_net.syn_pops.items():
-            view = syn_pop.vars["g"].view
-
-            view[:] = weights[key]
-
-            syn_pop.push_var_to_device("g")
+        biases = self.get_biases()
+        self.static_twin_net.set_biases(biases)
 
         result_neur_arrays, _, result_spikes = self.static_twin_net.run_sim(
             T, #t_sign,
@@ -894,6 +933,14 @@ class Network:
                 _pp_fwd.pull_var_from_device("g")
                 _synview_ip[:] = _synview_pp_fwd
                 _ip.push_var_to_device("g")
+
+                # set biases of int pop in current layer to biases in next layer
+                _next_pyr_pop = self.neur_pops[f'neur_{_name_next_layer}_{_name_next_pyr}']
+                _int_pop = self.neur_pops[f'neur_{_name_this_layer}_int_pop']
+
+                _next_pyr_pop.pull_var_from_device("b")
+                _int_pop.vars["b"].view[:] = np.array(_next_pyr_pop.vars["b"].view)
+                _int_pop.push_var_to_device("b")
 
     def align_fb_weights(self):
 

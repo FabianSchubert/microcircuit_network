@@ -1,25 +1,31 @@
 from ..utils import act_func, TH_COND_CODE, RESET_CODE
 
+from pygenn.genn_wrapper.Models import VarAccess_READ_ONLY
+
 model_def = {
     "class_name": "input",
-    "param_names": ["th"],
+    "param_names": ["th", "tau_in"],
     "var_name_types": [("r", "scalar"), ("r_prev", "scalar"),
                        ("r_prev_prev", "scalar"),
                        ("r_eff", "scalar"), ("r_eff_prev", "scalar"),
                        ("r_eff_prev_prev", "scalar"),
                        ("d_ra", "scalar"), ("d_ra_prev", "scalar"),
                        ("d_ra_prev_prev", "scalar"),
-                       ("u", "scalar")],
+                       ("u", "scalar"),
+                       ("b", "scalar", VarAccess_READ_ONLY), ("db", "scalar")],
     "sim_code": f"""
-        $(u) = $(Isyn);
-        $(r) = {act_func('$(u)', 0.025)};
+        $(u) += DT * ($(Isyn) - $(u)) / $(tau_in);
+        $(r) = $(u);
     """,
     "threshold_condition_code": TH_COND_CODE,
     "reset_code": RESET_CODE,
     "is_auto_refractory_required": False
 }
 
-param_space = {"th": 1e-3}
+param_space = {
+    "th": 1e-4,
+    "tau_in": 1.
+}
 
 var_space = {
     "r": 0.0,
@@ -31,7 +37,9 @@ var_space = {
     "d_ra": 0.0,
     "d_ra_prev": 0.0,
     "d_ra_prev_prev": 0.0,
-    "u": 0.0
+    "u": 0.0,
+    "b": 0.0,
+    "db": 0.0
 }
 
 mod_dat = {

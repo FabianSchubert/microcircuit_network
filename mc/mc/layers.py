@@ -6,7 +6,10 @@ special layer classes.
 
 from .synapses import SynapseIP, SynapsePI
 
-from pygenn.genn_model import create_custom_neuron_class
+from pygenn.genn_model import (create_custom_neuron_class,
+                               create_var_ref)
+
+from .utils import adam_optimizer_model, update_param_change, update_param_change_momentum, param_change_batch_reduce
 
 
 '''
@@ -36,6 +39,62 @@ class LayerBase:
                                                          neur_model,
                                                          param_init,
                                                          var_init)
+
+        if self.plastic:
+
+            _update_reduce_batch_bias_change_var_refs = {
+                "change": create_var_ref(_new_pop, "db")
+            }
+
+            _update_reduce_batch_bias_change = self.genn_model.add_custom_update(
+                                         f"reduce_batch_bias_change_{_full_name}",
+                                         "BiasChangeBatchReduce",
+                                         param_change_batch_reduce,
+                                         {}, {"reducedChange": 0.0},
+                                         _update_reduce_batch_bias_change_var_refs)
+
+
+
+            _update_plast_step_reduced_var_refs = {
+                "change": create_var_ref(_update_reduce_batch_bias_change, "reducedChange"),
+                "variable": create_var_ref(_new_pop, "b")
+            }
+
+            '''
+            self.genn_model.add_custom_update(
+                f"plast_step_reduced_{_full_name}",
+                "Plast",
+                update_param_change,
+                {"batch_size": self.genn_model.batch_size,
+                 "low": -1000., "high": 1000.}, {},
+                _update_plast_step_reduced_var_refs
+            )#'''
+
+            #'''
+            self.genn_model.add_custom_update(
+                f"plast_step_reduced_{_full_name}",
+                "Plast",
+                update_param_change_momentum,
+                {"batch_size": self.genn_model.batch_size,
+                 "low": -1000., "high": 1000.,
+                 "beta": 0.5},
+                {"m": 0.0},
+                _update_plast_step_reduced_var_refs
+            )#'''
+
+            '''
+            self.genn_model.add_custom_update(
+                f"plast_step_reduced_{_full_name}",
+                "Plast",
+                adam_optimizer_model,
+                {"batch_size": self.genn_model.batch_size,
+                 "low": -1000., "high": 1000.,
+                 "beta1": 0.99, "beta2": 0.9999, "epsilon": 1e-3},
+                {"m": 0.0, "v": 1.0},
+                _update_plast_step_reduced_var_refs
+            )#'''
+
+
         self.neur_pops[pop_name] = _new_pop
 
     def add_syn_pop(self, target, source, syn_model):

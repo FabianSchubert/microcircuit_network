@@ -2,10 +2,6 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 
-
-import torch
-from torchvision.datasets import MNIST
-
 from mc.network import Network
 
 from models import change_detection_spikes as network_model
@@ -20,42 +16,43 @@ TASK_BASE_FOLD = os.path.dirname(__file__)
 OUT_MIN = 0.1
 OUT_MAX = 0.9
 
-mnist_dataset_train = MNIST(root="./data", train=True, download=True)
-mnist_dataset_test = MNIST(root="./data", train=False, download=True)
+yinyang_data = np.load("./data/yinyang/yinyang.npz")
 
-train_input = np.reshape(mnist_dataset_train.data.numpy(), (60000, 784))/255.
+train_input = yinyang_data["train_input"]
 train_input_flat = train_input.flatten()
-train_output = torch.nn.functional.one_hot(mnist_dataset_train.targets, num_classes=10).numpy() * (OUT_MAX - OUT_MIN) + OUT_MIN
+train_output = yinyang_data["train_output"] * (OUT_MAX - OUT_MIN) + OUT_MIN
 train_output_flat = train_output.flatten()
 
-test_input = np.reshape(mnist_dataset_test.data.numpy(), (10000, 784))/255.
+test_input = yinyang_data["test_input"]
 test_input_flat = test_input.flatten()
-test_output = torch.nn.functional.one_hot(mnist_dataset_test.targets, num_classes=10).numpy() * (OUT_MAX - OUT_MIN) + OUT_MIN
+test_output = yinyang_data["test_output"] * (OUT_MAX - OUT_MIN) + OUT_MIN
 test_output_flat = test_output.flatten()
 
 rng = np.random.default_rng()
 
 ############################
-N_IN = 784
-N_HIDDEN = [500]
-N_OUT = 10
+N_IN = train_input.shape[1]
+N_HIDDEN = [100]
+N_OUT = train_output.shape[1]
 
 DT = 1.0
 ############################
 
 
+
+
 ############################
-N_EPOCHS = 10
+N_EPOCHS = 1500
 
-N_TRAIN = 60000
-N_TEST = 10000
+N_TRAIN = train_input.shape[0]
+N_TEST = test_input.shape[0]
 
-N_BATCH = 128
+N_BATCH = 256
 
 N_UPDATE_PATTERN_TRAIN = int(N_EPOCHS * N_TRAIN / N_BATCH)
 N_UPDATE_PATTERN_TEST = int(N_TEST / N_BATCH)
 
-T_SHOW_PATTERN = 300.0
+T_SHOW_PATTERN = 150.0
 T_RUN_TRAIN = N_UPDATE_PATTERN_TRAIN * T_SHOW_PATTERN
 T_RUN_TEST = N_UPDATE_PATTERN_TEST * T_SHOW_PATTERN
 
@@ -69,13 +66,13 @@ N_SAMPLE_IDS_TEST = SAMPLE_IDS_TEST.shape[0]
 UPDATE_TIMES_TEST = np.arange(N_UPDATE_PATTERN_TEST) * T_SHOW_PATTERN
 N_UPDATE_TIMES_TEST = UPDATE_TIMES_TEST.shape[0]
 
-N_TEST_RUN = 10
+N_TEST_RUN = 20
 TIMES_TEST_RUN = np.linspace(0., T_RUN_TRAIN, N_TEST_RUN+1)[:-1]
 
-TIMES_RECORD_TEST = np.linspace(0., T_RUN_TEST, 15 * N_UPDATE_TIMES_TEST)
-TIMES_RECORD_TRAIN = np.linspace(0., T_RUN_TRAIN, 15 * N_UPDATE_TIMES_TRAIN)
+TIMES_RECORD_TEST = np.linspace(0., T_RUN_TEST, 30 * N_UPDATE_TIMES_TEST)
+TIMES_RECORD_TRAIN = np.linspace(0., T_RUN_TRAIN, int(0.25 * N_UPDATE_TIMES_TRAIN))
 
-NT_SKIP_BATCH_PLAST = 2 * int(T_SHOW_PATTERN / DT)
+NT_SKIP_BATCH_PLAST = int(T_SHOW_PATTERN / DT)
 
 PARAMS_TEST_RUN = [
     {
@@ -86,8 +83,9 @@ PARAMS_TEST_RUN = [
                 "neur_output_output_pop", "ga")
         ],
         "readout_neur_pop_vars": [
+            ("neur_input_input_pop", "r_prev", TIMES_RECORD_TEST),
             #("neur_output_output_pop", "u", TIMES_RECORD_TEST),
-            #("neur_output_output_pop", "vb", TIMES_RECORD_TEST),
+            ("neur_output_output_pop", "vb", TIMES_RECORD_TEST),
             ("neur_output_output_pop", "va", TIMES_RECORD_TEST),
             ("neur_output_output_pop", "d_ra", TIMES_RECORD_TEST),
             ("neur_output_output_pop", "d_ra_prev", TIMES_RECORD_TEST),
@@ -104,8 +102,9 @@ PARAMS_TEST_RUN = [
 ] * N_TEST_RUN
 
 TRAIN_READOUT = [
+    ("neur_input_input_pop", "r_prev", TIMES_RECORD_TRAIN),
     #("neur_output_output_pop", "u", TIMES_RECORD_TRAIN),
-    #("neur_output_output_pop", "vb", TIMES_RECORD_TRAIN),
+    ("neur_output_output_pop", "vb", TIMES_RECORD_TRAIN),
     ("neur_output_output_pop", "va", TIMES_RECORD_TRAIN),
     ("neur_output_output_pop", "d_ra", TIMES_RECORD_TRAIN)
     #("neur_output_output_pop", "r", TIMES_RECORD_TRAIN),
@@ -205,8 +204,18 @@ net = Network("network", network_model,
                       dt=DT
                       )
 
-net.align_fb_weights()
-net.init_self_pred_state()
+#net.align_fb_weights()
+#net.init_self_pred_state()
+
+'''weights = np.load("./data/yinyang/yinyang_weights.npz")
+
+net.set_weights(
+    {
+        "syn_input_input_pop_to_hidden0_pyr_pop": weights["w_10"].flatten(),
+        "syn_hidden0_pyr_pop_to_hidden1_pyr_pop": weights["w_21"].flatten(),
+        "syn_hidden1_pyr_pop_to_output_output_pop": weights["w_32"].flatten(),
+    }
+)#'''
 
 '''
 results = np.load(os.path.join(TASK_BASE_FOLD, "results.npz"), allow_pickle=True)
@@ -218,10 +227,6 @@ net.set_weights(weights)
 net.set_biases(biases)
 #'''
 
-net.syn_pops["syn_hidden0_pyr_pop_to_output_output_pop"].pull_var_from_device("g")
-w_pp = np.array(net.syn_pops["syn_hidden0_pyr_pop_to_output_output_pop"].vars["g"].view[:])
-w_pp = np.reshape(w_pp, (N_HIDDEN[0], N_OUT)).T
-
 readout_neur_arrays, readout_syn_arrays, readout_spikes, results_validation = net.run_sim(
             T_RUN_TRAIN, None, TRAIN_READOUT, None,
             t_sign_validation=TIMES_TEST_RUN,
@@ -230,11 +235,9 @@ readout_neur_arrays, readout_syn_arrays, readout_spikes, results_validation = ne
             force_self_pred_state=True,
             force_fb_align=True)
 
-net.syn_pops["syn_hidden0_pyr_pop_to_output_output_pop"].pull_var_from_device("g")
-w_pp_after = np.array(net.syn_pops["syn_hidden0_pyr_pop_to_output_output_pop"].vars["g"].view[:])
-w_pp_after = np.reshape(w_pp_after, (N_HIDDEN[0], N_OUT)).T
-
 #out_r = readout_neur_arrays["neur_output_output_pop_r"]
+inp_r_prev = readout_neur_arrays["neur_input_input_pop_r_prev"]
+out_vb = readout_neur_arrays["neur_output_output_pop_vb"]
 out_va = readout_neur_arrays["neur_output_output_pop_va"]
 out_d_ra = readout_neur_arrays["neur_output_output_pop_d_ra"]
 #pyr_r_prev = readout_neur_arrays["neur_hidden0_pyr_pop_r_prev"]
@@ -252,7 +255,9 @@ int_vb = readout_neur_arrays["neur_hidden0_int_pop_vb"]
 int_va = readout_neur_arrays["neur_hidden0_int_pop_va"]
 '''
 
+inp_r_prev_test = [results_validation[k]["neur_var_rec"]["neur_input_input_pop_r_prev"] for k in range(N_TEST_RUN)]
 out_r_test = [results_validation[k]["neur_var_rec"]["neur_output_output_pop_r"] for k in range(N_TEST_RUN)]
+out_vb_test = [results_validation[k]["neur_var_rec"]["neur_output_output_pop_vb"] for k in range(N_TEST_RUN)]
 out_va_test = [results_validation[k]["neur_var_rec"]["neur_output_output_pop_va"] for k in range(N_TEST_RUN)]
 out_d_ra_test = [results_validation[k]["neur_var_rec"]["neur_output_output_pop_d_ra"] for k in range(N_TEST_RUN)]
 out_d_ra_prev_test = [results_validation[k]["neur_var_rec"]["neur_output_output_pop_d_ra_prev"] for k in range(N_TEST_RUN)]

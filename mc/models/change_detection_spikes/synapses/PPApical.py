@@ -6,19 +6,19 @@ from pygenn.genn_model import init_var
 w_update_model_transmit = dict(WU_TRANSMIT)
 wu_param_space_transmit = dict(WU_TRANSMIT_PARAM)
 wu_var_space_transmit = dict(WU_TRANSMIT_VAR)
-WEIGHT_SCALE = 0.5
+WEIGHT_SCALE = 2.0
 wu_var_space_transmit["g"] = init_var("Uniform", {"min": -WEIGHT_SCALE, "max": WEIGHT_SCALE})
 wu_var_space_transmit["inp_prev"] = 0.0
 
 w_update_model_plast = {
     "class_name": "weight_update_model_pyr_to_pyr_back",
-    "param_names": ["muPP_apical"],
+    "param_names": ["mu"],
     "var_name_types": [("g", "scalar"), ("dg", "scalar")],
     "is_pre_spike_time_required": False,
     "is_post_spike_time_required": False
 }
 
-wu_param_space_plast = {"muPP_apical": 0.}
+wu_param_space_plast = {"mu": 0.}
 
 wu_var_space_plast = {"dg": 0.0}
 

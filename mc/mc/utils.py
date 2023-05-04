@@ -8,8 +8,8 @@ act_func = lambda x: f'log(1.0+exp(1.0*({x})))'
 # act_func = lambda x: f'tanh({x})'
 # act_func = lambda x: f'{x}'
 
-weight_change_batch_reduce = create_custom_custom_update_class(
-    "weight_change_batch_reduce",
+param_change_batch_reduce = create_custom_custom_update_class(
+    "param_change_batch_reduce",
     var_name_types=[("reducedChange", "scalar", VarAccess_REDUCE_BATCH_SUM)],
     var_refs=[("change", "scalar")],
     update_code="""
@@ -17,17 +17,17 @@ weight_change_batch_reduce = create_custom_custom_update_class(
     $(change) = 0;
     """)
 
-update_weight_change = create_custom_custom_update_class(
-    "update_weight_change",
+update_param_change = create_custom_custom_update_class(
+    "update_param_change",
     var_refs=[("change", "scalar"), ("variable", "scalar")],
     param_names=["batch_size", "low", "high"],
     update_code="""
     // Update
-    $(variable) += $(change);
+    $(variable) += $(change) / $(batch_size);
     $(variable) = min($(high), max($(low), $(variable)));
     """)
 
-update_weight_change_momentum = create_custom_custom_update_class(
+update_param_change_momentum = create_custom_custom_update_class(
     "update_weight_change_momentum",
     var_refs=[("change", "scalar"), ("variable", "scalar")],
     var_name_types=[("m", "scalar")],
@@ -42,8 +42,8 @@ update_weight_change_momentum = create_custom_custom_update_class(
 
 adam_optimizer_model = create_custom_custom_update_class(
     "adam_optimizer",
-    param_names=["beta1", "beta2", "epsilon", "batch_size", "low", "high"],
-    var_name_types=[("m", "scalar"), ("v", "scalar")],
+    param_names=["lr", "beta1", "beta2", "epsilon", "batch_size", "low", "high"],
+    var_name_types=[("m", "scalar"), ("v", "scalar"), ("time", "scalar")],
     var_refs=[("change", "scalar"), ("variable", "scalar")],
     update_code="""
     // Update biased first moment estimate
@@ -52,13 +52,17 @@ adam_optimizer_model = create_custom_custom_update_class(
     // Update biased second moment estimate
     $(v) = $(beta2) * $(v) + (1.0 - $(beta2)) * change_norm * change_norm;
     // Add gradient to variable, scaled by learning rate
-    $(variable) += $(m) / (sqrt($(v)) + $(epsilon));
+    const scalar m_hat = $(m) / (1.0 - pow($(beta1),$(time)));
+    const scalar v_hat = $(v) / (1.0 - pow($(beta2),$(time)));
+    $(variable) += $(lr) * m_hat / (sqrt(v_hat) + $(epsilon));
     $(variable) = min($(high), max($(low), $(variable)));
+    $(time) += 1.0;
     """)
 
 def merge_dicts(dict_1, dict_2):
 
     return dict_1 | dict_2
+
 
 
 def merge_dict_list_strings(dict_1, dict_2, key):

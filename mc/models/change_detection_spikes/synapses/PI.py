@@ -8,21 +8,21 @@ from pygenn.genn_model import init_var
 w_update_model_transmit = dict(WU_TRANSMIT)
 wu_param_space_transmit = dict(WU_TRANSMIT_PARAM)
 wu_var_space_transmit = dict(WU_TRANSMIT_VAR)
-WEIGHT_SCALE = 0.5
+WEIGHT_SCALE = 2.0
 wu_var_space_transmit["g"] = init_var("Uniform", {"min": -WEIGHT_SCALE, "max": WEIGHT_SCALE})
 wu_var_space_transmit["inp_prev"] = 0.0
 
 w_update_model_plast = {
     "class_name": "weight_update_model_int_to_pyr",
-    "param_names": ["muPI"],
+    "param_names": ["mu"],
     "var_name_types": [("g", "scalar"), ("dg", "scalar")],
     "sim_code": f"""
         // SIM CODE PI
-        $(dg) -= $(muPI) * ($(t) - max(max(0.0,$(prev_sT_pre)),$(sT_post))) * $(r_prev_prev_pre) *$(va_post);
+        $(dg) -= ($(t) - max(max(0.0,$(prev_sT_pre)),$(sT_post))) * $(r_prev_prev_pre) *$(va_post);
     """,
     "learn_post_code": f"""
         // LEARN POST CODE PINP
-        $(dg) -= $(muPI) * ($(t) - max(max(0.0,$(prev_sT_post)),$(sT_pre))) * $(r_prev_pre) * $(va_post);
+        $(dg) -= ($(t) - max(max(0.0,$(prev_sT_post)),$(sT_pre))) * $(r_prev_pre) * $(va_post);
     """,
     "is_pre_spike_time_required": True,
     "is_post_spike_time_required": True,
@@ -30,7 +30,7 @@ w_update_model_plast = {
     "is_prev_post_spike_time_required": True
 }
 
-wu_param_space_plast = {"muPI": 1e-5}
+wu_param_space_plast = {"mu": 0.0*1e-5}
 
 wu_var_space_plast = {"dg": 0.0}
 
