@@ -13,6 +13,7 @@ model_def = {
                        ("r_eff_prev_prev", "scalar"),
                        ("u", "scalar"),
                        ("va", "scalar"),
+                       ("va_prev", "scalar"),
                        ("va_exc", "scalar"), ("va_int", "scalar"),
                        ("vb", "scalar"),
                        ("b", "scalar", VarAccess_READ_ONLY), ("db", "scalar")],
@@ -20,23 +21,25 @@ model_def = {
                               ("Isyn_va_exc", "scalar", 0.0),
                               ("Isyn_vb", "scalar", 0.0)],
     "sim_code": f"""
+        $(d_ra_prev) = $(d_ra);
+        $(va_prev) = $(va);
+
         $(va_exc) = $(Isyn_va_exc);
         $(va_int) = $(Isyn_va_int);
 
-        $(va) += DT * ($(va_exc) + $(va_int) - $(va)) / $(tau_va);
+        $(va) = $(va_exc) + $(va_int);
         
         $(vb) = $(Isyn_vb) + $(b);
- 
-        //const scalar u_prev = $(u);
                 
-        //$(u) += DT*($(ga) * $(va) + $(vb) - $(u));
-        $(u) = $(ga) * $(va) + $(vb);
+        $(u) += DT*($(ga) * $(va) + $(vb) - $(u));
+        //$(u) = $(ga) * $(va) + $(vb);
         
         $(r) = {act_func('$(u)')};
         $(r_eff) = {act_func('$(vb)')};
+
         $(d_ra) = $(va) * {d_act_func('$(vb)')};
 
-        $(db) += $(muB) * $(d_ra);
+        $(db) += $(d_ra);
     """,
     "threshold_condition_code": TH_COND_CODE,
     "reset_code": RESET_CODE,
@@ -44,9 +47,9 @@ model_def = {
 }
 
 param_space = {
-    "th": 1e-4,
-    "ga": 0.0,
-    "muB": 0.0,#1.0*1e-3,
+    "th": 1e-5,
+    "ga": 0.1,
+    "muB": 1e-1/150.,
     "tau_va": 1.
 }
 
@@ -64,6 +67,7 @@ var_space = {
     "va_exc": 0.0,
     "va_int": 0.0,
     "va": 0.0,
+    "va_prev": 0.0,
     "vb": 0.0,
     "b": 0.0,
     "db": 0.0

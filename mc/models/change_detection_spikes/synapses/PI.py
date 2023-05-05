@@ -16,21 +16,25 @@ w_update_model_plast = {
     "class_name": "weight_update_model_int_to_pyr",
     "param_names": ["mu"],
     "var_name_types": [("g", "scalar"), ("dg", "scalar")],
+    #"synapse_dynamics_code": f"""
+    #    $(dg) -= DT * $(r_prev_pre) * $(va_post);
+    #""",
     "sim_code": f"""
         // SIM CODE PI
-        $(dg) -= ($(t) - max(max(0.0,$(prev_sT_pre)),$(sT_post))) * $(r_prev_prev_pre) *$(va_post);
+        $(dg) -= ($(t) - max(0.0,$(prev_sT_pre))) * $(r_prev_prev_pre) * $(va_prev_post);
+        //$(dg) -= ($(t) - max(max(0.0,$(prev_sT_pre)),$(sT_post))) * $(r_prev_prev_pre) *$(va_post);
     """,
-    "learn_post_code": f"""
-        // LEARN POST CODE PINP
-        $(dg) -= ($(t) - max(max(0.0,$(prev_sT_post)),$(sT_pre))) * $(r_prev_pre) * $(va_post);
-    """,
+    #"learn_post_code": f"""
+    #    // LEARN POST CODE PINP
+    #    $(dg) -= ($(t) - max(max(0.0,$(prev_sT_post)),$(sT_pre))) * $(r_prev_pre) * $(va_post);
+    #""",
     "is_pre_spike_time_required": True,
     "is_post_spike_time_required": True,
     "is_prev_pre_spike_time_required": True,
     "is_prev_post_spike_time_required": True
 }
 
-wu_param_space_plast = {"mu": 0.0*1e-5}
+wu_param_space_plast = {"mu": 2.0e-2/150.}
 
 wu_var_space_plast = {"dg": 0.0}
 

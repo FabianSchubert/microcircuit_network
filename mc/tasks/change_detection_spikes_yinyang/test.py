@@ -13,8 +13,8 @@ import os
 
 TASK_BASE_FOLD = os.path.dirname(__file__)
 
-OUT_MIN = 0.1
-OUT_MAX = 0.9
+OUT_MIN = 0.0
+OUT_MAX = 1.0
 
 yinyang_data = np.load("./data/yinyang/yinyang.npz")
 
@@ -37,8 +37,6 @@ N_OUT = train_output.shape[1]
 
 DT = 1.0
 ############################
-
-
 
 
 ############################
@@ -204,8 +202,6 @@ net = Network("network", network_model,
                       dt=DT
                       )
 
-#net.align_fb_weights()
-#net.init_self_pred_state()
 
 '''weights = np.load("./data/yinyang/yinyang_weights.npz")
 
@@ -227,13 +223,16 @@ net.set_weights(weights)
 net.set_biases(biases)
 #'''
 
+#net.align_fb_weights()
+net.init_self_pred_state()
+
 readout_neur_arrays, readout_syn_arrays, readout_spikes, results_validation = net.run_sim(
             T_RUN_TRAIN, None, TRAIN_READOUT, None,
             t_sign_validation=TIMES_TEST_RUN,
             data_validation=PARAMS_TEST_RUN,
             NT_skip_batch_plast=NT_SKIP_BATCH_PLAST,
-            force_self_pred_state=True,
-            force_fb_align=True)
+            force_self_pred_state=False,
+            force_fb_align=False)
 
 #out_r = readout_neur_arrays["neur_output_output_pop_r"]
 inp_r_prev = readout_neur_arrays["neur_input_input_pop_r_prev"]
@@ -302,11 +301,15 @@ ax_loss.plot(epoch_ax, loss)
 ax_loss.set_xlabel("Epoch")
 ax_loss.set_ylabel("MSE")
 
+fig_loss.savefig(os.path.join(TASK_BASE_FOLD, "plots/loss.png"))
+
 fig_err, ax_err = plt.subplots(1,1)
 ax_err.plot(epoch_ax, (1.-acc)*100.)
 ax_err.set_xlabel("Epoch")
 ax_err.set_ylabel("% Test Err.")
 ax_err.set_ylim(bottom=0., top=50.)
+
+fig_err.savefig(os.path.join(TASK_BASE_FOLD, "plots/err.png"))
 
 def save_data():
     np.savez(os.path.join(TASK_BASE_FOLD, "results.npz"),

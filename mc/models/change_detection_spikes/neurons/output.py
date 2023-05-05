@@ -19,21 +19,24 @@ model_def = {
                        ("b", "scalar", VarAccess_READ_ONLY), ("db", "scalar")],
     "additional_input_vars": [("Isyn_vb", "scalar", 0.0)],
     "sim_code": f"""
+        $(d_ra_prev) = $(d_ra);
+        
         $(r_target) += DT * ($(Isyn) - $(r_target)) / $(tau_targ);
 
         $(vb) = $(Isyn_vb) + $(b);
 
         $(r_eff) = {act_func('$(vb)')};
 
-        $(va) += DT * ($(r_target) - $(r_eff) - $(va)) / $(tau_va);
+        $(va) = $(r_target) - $(r_eff);
         
-        //$(u) += DT*($(ga) * $(va) + $(vb) - $(u));
-        $(u) = $(ga) * $(va) + $(vb);
+        $(u) += DT*($(ga) * $(va) + $(vb) - $(u));
+        //$(u) = $(ga) * $(va) + $(vb);
 
         $(r) = {act_func('$(u)')};
+
         $(d_ra) = $(va) * {d_act_func('$(vb)')};
 
-        $(db) += $(muB) * $(d_ra);
+        $(db) += $(d_ra);
     """,
     "threshold_condition_code": TH_COND_CODE,
     "reset_code": RESET_CODE,
@@ -41,8 +44,8 @@ model_def = {
 }
 
 param_space = {
-    "th": 1e-4,
-    "muB": 0.0,#1.0*1e-3,
+    "th": 1e-5,
+    "muB": 1e-2/150.,
     "tau_targ": 1.,
     "tau_va": 1.
 }
@@ -61,7 +64,7 @@ var_space = {
     "u": 0.0,
     "va": 0.0,
     "vb": 0.0,
-    "ga": 0.05,
+    "ga": 0.1,
     "b": 0.0,
     "db": 0.0
 }

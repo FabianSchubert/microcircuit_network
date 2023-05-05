@@ -4,7 +4,7 @@ from pygenn.genn_wrapper.Models import VarAccess_READ_ONLY
 
 model_def = {
     "class_name": "input",
-    "param_names": ["th", "tau_in"],
+    "param_names": ["th", "tau_in", "muB"],
     "var_name_types": [("r", "scalar"), ("r_prev", "scalar"),
                        ("r_prev_prev", "scalar"),
                        ("r_eff", "scalar"), ("r_eff_prev", "scalar"),
@@ -14,7 +14,7 @@ model_def = {
                        ("u", "scalar"),
                        ("b", "scalar", VarAccess_READ_ONLY), ("db", "scalar")],
     "sim_code": f"""
-        $(u) += DT * ($(Isyn) - $(u)) / $(tau_in);
+        $(u) = $(Isyn);
         $(r) = $(u);
     """,
     "threshold_condition_code": TH_COND_CODE,
@@ -23,8 +23,9 @@ model_def = {
 }
 
 param_space = {
-    "th": 1e-4,
-    "tau_in": 1.
+    "th": 1e-5,
+    "tau_in": 1.,
+    "muB": 0.0
 }
 
 var_space = {

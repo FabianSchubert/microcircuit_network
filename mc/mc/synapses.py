@@ -184,7 +184,7 @@ class SynapseBase:
                 {"batch_size": genn_model.batch_size,
                  "low": self.low, "high": self.high,
                  "lr": wu_param_space["mu"],
-                 "beta1": 0.9, "beta2": 0.999, "epsilon": 1e-3},
+                 "beta1": 0.9, "beta2": 0.999, "epsilon": 1e-5},
                 {"m": 0.0, "v": 1.0, "time": 1.0},
                 _update_plast_step_reduced_var_refs
             )#'''

@@ -6,8 +6,8 @@ from pygenn.genn_model import init_var
 w_update_model_transmit = dict(WU_TRANSMIT)
 wu_param_space_transmit = dict(WU_TRANSMIT_PARAM)
 wu_var_space_transmit = dict(WU_TRANSMIT_VAR)
-WEIGHT_SCALE = 2.0
-wu_var_space_transmit["g"] = init_var("Uniform", {"min": -WEIGHT_SCALE, "max": WEIGHT_SCALE})
+WEIGHT_SCALE = 1/100**.5
+wu_var_space_transmit["g"] = init_var("Uniform", {"min": -WEIGHT_SCALE*1.0, "max": WEIGHT_SCALE})
 wu_var_space_transmit["inp_prev"] = 0.0
 
 w_update_model_plast = {
@@ -36,5 +36,5 @@ mod_dat = {
     "ps_model_transmit": ps_model_transmit,
     "ps_param_space_transmit": ps_param_space_transmit,
     "ps_var_space_transmit": ps_var_space_transmit,
-    "norm_after_init": "sqrt"
+    "norm_after_init": False#"sqrt"
 }
