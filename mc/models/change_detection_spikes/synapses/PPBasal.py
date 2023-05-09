@@ -16,13 +16,13 @@ w_update_model_plast = {
     "class_name": "weight_update_model_pyr_to_pyr",
     "param_names": ["mu"],
     "var_name_types": [("g", "scalar"), ("dg", "scalar")],
-    "synapse_dynamics_code": f"""
-        $(dg) += DT * $(r_prev_pre) * $(d_ra_prev_post);
-    """,
-    #"sim_code": f"""
-    #    // SIM CODE PP_basal
-    #    $(dg) += ($(t) - max(0.0,$(prev_sT_pre))) * $(r_prev_prev_pre) * $(d_ra_prev_post);//($(r_prev_post) - $(r_eff_prev_post));
+    #"synapse_dynamics_code": f"""
+    #    $(dg) += DT * $(r_prev_pre) * $(d_ra_post);
     #""",
+    "sim_code": f"""
+        // SIM CODE PP_basal
+        $(dg) += ($(t) - max(0.0,$(prev_sT_pre))) * $(r_prev_prev_pre) * $(d_ra_post);
+    """,
     #"learn_post_code": f"""
     #    // LEARN POST CODE IP
     #    $(dg) += ($(t) - max(max(0.0,$(prev_sT_post)),$(sT_pre))) * $(r_prev_pre) * $(d_ra_prev_prev_post);//($(r_prev_prev_post) - $(r_eff_prev_prev_post));

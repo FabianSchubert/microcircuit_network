@@ -90,7 +90,7 @@ class LayerBase:
                 {"batch_size": self.genn_model.batch_size,
                  "low": -1000., "high": 1000.,
                  "lr": param_init["muB"],
-                 "beta1": 0.9, "beta2": 0.999, "epsilon": 1e-5},
+                 "beta1": 0.9, "beta2": 0.999, "epsilon": 1e-7},
                 {"m": 0.0, "v": 1.0, "time": 1.0},
                 _update_plast_step_reduced_var_refs
             )#'''

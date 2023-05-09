@@ -21,8 +21,7 @@ w_update_model_plast = {
     #""",
     "sim_code": f"""
         // SIM CODE PINP
-        $(dg) += ($(t) - max(0.0,$(prev_sT_pre))) * $(r_prev_prev_pre) * $(d_ra_prev_post);
-        //$(dg) += ($(t) - max(max(0.0,$(prev_sT_pre)),$(sT_post))) * $(r_prev_prev_pre) * $(d_ra_prev_post);//($(r_prev_post) - $(r_eff_prev_post));
+        $(dg) += ($(t) - max(0.0,$(prev_sT_pre))) * $(r_prev_prev_pre) * $(d_ra_post);
     """,
     #"learn_post_code": f"""
     #    // LEARN POST CODE IP

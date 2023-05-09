@@ -4,7 +4,7 @@ from pygenn.genn_wrapper.Models import VarAccess_READ_ONLY
 
 model_def = {
     "class_name": "output",
-    "param_names": ["th", "muB", "tau_targ", "tau_va"],
+    "param_names": ["th", "muB", "tau_targ", "tau_va", "tau_d_ra"],
     "var_name_types": [("r", "scalar"), ("r_prev", "scalar"),
                        ("r_prev_prev", "scalar"),
                        ("d_ra", "scalar"), ("d_ra_prev", "scalar"),
@@ -34,7 +34,7 @@ model_def = {
 
         $(r) = {act_func('$(u)')};
 
-        $(d_ra) = $(va) * {d_act_func('$(vb)')};
+        $(d_ra) += DT * ($(va) * {d_act_func('$(vb)')} - $(d_ra)) / $(tau_d_ra);
 
         $(db) += $(d_ra);
     """,
@@ -47,7 +47,8 @@ param_space = {
     "th": 1e-5,
     "muB": 1e-2/150.,
     "tau_targ": 1.,
-    "tau_va": 1.
+    "tau_va": 1.,
+    "tau_d_ra": 10.
 }
 
 var_space = {

@@ -32,7 +32,7 @@ rng = np.random.default_rng()
 
 ############################
 N_IN = train_input.shape[1]
-N_HIDDEN = [100]
+N_HIDDEN = [150]
 N_OUT = train_output.shape[1]
 
 DT = 1.0
@@ -187,9 +187,9 @@ cs_out_test = {
 net = Network("network", network_model,
                       N_IN, N_HIDDEN, N_OUT,  # network size
                       0,  # maximum number of input arrays for external input
-                      int(T_RUN_TRAIN / DT),  # spike buffer size
+                      int(T_SHOW_PATTERN * 100.0 / DT),  # spike buffer size
                       0,  # validation spike buffer size
-                      [],#"neur_output_output_pop",
+                      ["neur_hidden0_pyr_pop"],#"neur_output_output_pop",
                       # "neur_hidden0_pyr_pop"],  # spike buffer populations
                       [],  # validation spike buffer populations
                       n_batches=N_BATCH,
@@ -223,7 +223,7 @@ net.set_weights(weights)
 net.set_biases(biases)
 #'''
 
-#net.align_fb_weights()
+net.align_fb_weights()
 net.init_self_pred_state()
 
 readout_neur_arrays, readout_syn_arrays, readout_spikes, results_validation = net.run_sim(
@@ -231,8 +231,8 @@ readout_neur_arrays, readout_syn_arrays, readout_spikes, results_validation = ne
             t_sign_validation=TIMES_TEST_RUN,
             data_validation=PARAMS_TEST_RUN,
             NT_skip_batch_plast=NT_SKIP_BATCH_PLAST,
-            force_self_pred_state=False,
-            force_fb_align=False)
+            force_self_pred_state=True,
+            force_fb_align=True)
 
 #out_r = readout_neur_arrays["neur_output_output_pop_r"]
 inp_r_prev = readout_neur_arrays["neur_input_input_pop_r_prev"]
@@ -307,7 +307,7 @@ fig_err, ax_err = plt.subplots(1,1)
 ax_err.plot(epoch_ax, (1.-acc)*100.)
 ax_err.set_xlabel("Epoch")
 ax_err.set_ylabel("% Test Err.")
-ax_err.set_ylim(bottom=0., top=50.)
+#ax_err.set_ylim(bottom=0., top=50.)
 
 fig_err.savefig(os.path.join(TASK_BASE_FOLD, "plots/err.png"))
 
