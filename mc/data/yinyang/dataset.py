@@ -1,6 +1,8 @@
 import numpy as np
 from torch.utils.data.dataset import Dataset
         
+# Dataset Class
+
 class YinYangDataset(Dataset):
     def __init__(self, r_small=0.1, r_big=0.5, size=1000, seed=42, transform=None):
         super(YinYangDataset, self).__init__()
