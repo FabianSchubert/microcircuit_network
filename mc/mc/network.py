@@ -99,6 +99,18 @@ class Network:
 
                     Same as spike_rec_pops, but for the static
                     twin network used vor validation.
+
+        optimizer_params (dict):
+
+                    A dictionary with names of neuron or synapse populations
+                    as keys, each holding a dictionary with parameters for the
+                    optimizer to be used for the biases (neuron populations) or
+                    the weights (synapse population). Each of these dicts should
+                    be of the form:
+                    {"optimizer": one of {"sgd", "sgd_momentum", "adam" (default)},
+                     "params": parameters for the chosen optimizer as a dict}.
+                    If you do not speficy these parameters for a population, the
+                    network will use th default (adam).
     """
 
     name: str
@@ -122,6 +134,7 @@ class Network:
     cs_out: typing.Any = field(init=False)
     cs_in_init_static_twin: InitVar[typing.Any] = None
     cs_out_init_static_twin: InitVar[typing.Any] = None
+    optimizer_params: dict = field(default_factory=lambda: {})
 
     def __post_init__(self, cs_in_init, cs_out_init,
                       cs_in_init_static_twin, cs_out_init_static_twin):
@@ -133,6 +146,8 @@ class Network:
         self.genn_model.dT = self.dt
 
         self.n_hidden_layers = len(self.size_hidden)
+        # there must be at least one hidden layer.
+        assert self.n_hidden_layers > 0
 
         self.layers = []
 
@@ -140,10 +155,8 @@ class Network:
             InputLayer("input",
                        self.genn_model,
                        self.model_def.neurons.input.mod_dat,
-                       self.size_input))
-
-        # there must be at least one hidden layer.
-        assert len(self.size_hidden) > 0
+                       self.size_input,
+                       optimizer_params=self.optimizer_params))
 
         for k in range(self.n_hidden_layers - 1):
             _l_size = self.size_hidden[k]
@@ -158,7 +171,8 @@ class Network:
                             self.model_def.synapses.PI.mod_dat,
                             _l_size, _l_next_size,
                             plastic=self.plastic,
-                            read_only_weights=self.plastic))
+                            read_only_weights=self.plastic,
+                            optimizer_params=self.optimizer_params))
 
 
         self.layers.append(
@@ -171,13 +185,15 @@ class Network:
                         self.size_hidden[self.n_hidden_layers - 1],
                         self.size_output,
                         plastic=self.plastic,
-                        read_only_weights=self.plastic))
+                        read_only_weights=self.plastic,
+                        optimizer_params=self.optimizer_params))
 
         self.layers.append(
             OutputLayer("output",
                         self.genn_model,
                         self.model_def.neurons.output.mod_dat,
-                        self.size_output))
+                        self.size_output,
+                        optimizer_params=self.optimizer_params))
 
 
 
@@ -199,7 +215,8 @@ class Network:
                 self.neur_pops["neur_hidden0_pyr_pop"],
                 self.neur_pops["neur_input_input_pop"],
                 plastic=self.plastic,
-                read_only=self.plastic
+                read_only=self.plastic,
+                optimizer_params=self.optimizer_params
             )
         )
 
@@ -218,7 +235,8 @@ class Network:
                     _l_next.neur_pops["pyr_pop"],
                     _l.neur_pops["pyr_pop"],
                     plastic=self.plastic,
-                    read_only=self.plastic
+                    read_only=self.plastic,
+                    optimizer_params=self.optimizer_params
                 )
             )
 
@@ -233,7 +251,8 @@ class Network:
                     _l.neur_pops["pyr_pop"],
                     _l_next.neur_pops["pyr_pop"],
                     plastic=self.plastic,
-                    read_only=self.plastic
+                    read_only=self.plastic,
+                    optimizer_params=self.optimizer_params
                 )
             )
 
@@ -244,7 +263,8 @@ class Network:
                     _l.neur_pops["int_pop"],
                     _l_next.neur_pops["pyr_pop"],
                     plastic=self.plastic,
-                    read_only=self.plastic
+                    read_only=self.plastic,
+                    optimizer_params=self.optimizer_params
                 )
             )
 
@@ -259,7 +279,8 @@ class Network:
                 self.layers[-1].neur_pops["output_pop"],
                 self.layers[-2].neur_pops["pyr_pop"],
                 plastic=self.plastic,
-                read_only=self.plastic
+                read_only=self.plastic,
+                optimizer_params=self.optimizer_params
             )
         )
 
@@ -274,7 +295,8 @@ class Network:
                 self.layers[-2].neur_pops["pyr_pop"],
                 self.layers[-1].neur_pops["output_pop"],
                 plastic=self.plastic,
-                read_only=self.plastic
+                read_only=self.plastic,
+                optimizer_params=self.optimizer_params
             )
         )
 
@@ -285,7 +307,8 @@ class Network:
                 self.layers[-2].neur_pops["int_pop"],
                 self.layers[-1].neur_pops["output_pop"],
                 plastic=self.plastic,
-                read_only=self.plastic
+                read_only=self.plastic,
+                optimizer_params=self.optimizer_params
             )
         )
 

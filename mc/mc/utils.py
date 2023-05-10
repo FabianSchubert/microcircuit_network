@@ -59,6 +59,21 @@ adam_optimizer_model = create_custom_custom_update_class(
     $(time) += 1.0;
     """)
 
+optimizers = {
+    "sgd": {
+        "model": update_param_change,
+        "var_init": {}
+    },
+    "sgd_momentum": {
+        "model": update_param_change_momentum,
+        "var_init": {"m": 0.0}
+    },
+    "adam": {
+        "model": adam_optimizer_model,
+        "var_init": {"m": 0.0, "v": 1.0, "time": 1.0}
+    }
+}
+
 def merge_dicts(dict_1, dict_2):
 
     return dict_1 | dict_2

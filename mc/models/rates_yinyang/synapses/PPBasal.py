@@ -14,26 +14,14 @@ wu_var_space_transmit["inp_prev"] = 0.0
 
 w_update_model_plast = {
     "class_name": "weight_update_model_pyr_to_pyr",
-    "param_names": ["mu"],
+    "param_names": [],
     "var_name_types": [("g", "scalar"), ("dg", "scalar")],
-    #"synapse_dynamics_code": f"""
-    #    $(dg) += DT * $(r_prev_pre) * $(d_ra_post);
-    #""",
-    "sim_code": f"""
-        // SIM CODE PP_basal
-        $(dg) += ($(t) - max(0.0,$(prev_sT_pre))) * $(r_prev_prev_pre) * $(d_ra_post);
-    """,
-    #"learn_post_code": f"""
-    #    // LEARN POST CODE IP
-    #    $(dg) += ($(t) - max(max(0.0,$(prev_sT_post)),$(sT_pre))) * $(r_prev_pre) * $(d_ra_prev_prev_post);//($(r_prev_prev_post) - $(r_eff_prev_prev_post));
-    #""",
-    "is_pre_spike_time_required": True,
-    "is_post_spike_time_required": True,
-    "is_prev_pre_spike_time_required": True,
-    "is_prev_post_spike_time_required": True
+    "synapse_dynamics_code": f"""
+        $(dg) += DT * $(r_pre) * $(d_ra_post);
+    """
 }
 
-wu_param_space_plast = {"mu": 1e-2/150.}
+wu_param_space_plast = {}
 
 wu_var_space_plast = {"dg": 0.0}
 

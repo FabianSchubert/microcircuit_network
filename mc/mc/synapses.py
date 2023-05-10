@@ -11,9 +11,19 @@ from pygenn.genn_wrapper.Models import VarAccess_READ_ONLY
 
 from .utils import (merge_wu_def, merge_dicts,
                     merge_ps_def,
-                    param_change_batch_reduce, update_param_change, adam_optimizer_model, update_param_change_momentum)
+                    param_change_batch_reduce,
+                     optimizers)
 
 SCALE_WEIGHT_INIT = 0.5
+
+DEFAULT_OPTIM = {
+    "optimizer": "adam",
+    "params": {
+    "low": -1000., "high": 1000.,
+    "lr": 1e-3,
+    "beta1": 0.9, "beta2": 0.999, "epsilon": 1e-7
+    }
+}
 
 
 @dataclass
@@ -83,13 +93,13 @@ class SynapseBase:
         return create_custom_postsynaptic_class(**self.ps_model_transmit)
 
     def connect_pops(self, name, genn_model,
-                     target, source, plastic=True, read_only=False):
+                     target, source, plastic=True, read_only=False,
+                     optimizer_params={}):
 
         wu_model = self.build_wu_model(plastic, read_only)
         ps_model = self.build_ps_model(plastic)
 
-
-
+        _optimizer_params = optimizer_params.get(name, DEFAULT_OPTIM)
 
         if plastic:
             wu_param_space = merge_dicts(self.wu_param_space_plast,
@@ -129,7 +139,6 @@ class SynapseBase:
         )
 
 
-
         _syn_pop.ps_target_var = self.ps_target_var
 
         _syn_pop.norm_after_init = self.norm_after_init
@@ -154,40 +163,16 @@ class SynapseBase:
                 "variable": create_wu_var_ref(_syn_pop, "g")
             }
 
-            '''
-            genn_model.add_custom_update(
-                f"plast_step_reduced_{name}",
-                "Plast",
-                update_param_change,
-                {"batch_size": genn_model.batch_size,
-                 "low": self.low, "high": self.high}, {},
-                _update_plast_step_reduced_var_refs
-            )#'''
+            optimizer = optimizers[_optimizer_params["optimizer"]]
 
-            '''
             genn_model.add_custom_update(
                 f"plast_step_reduced_{name}",
                 "Plast",
-                update_param_change_momentum,
-                {"batch_size": genn_model.batch_size,
-                 "low": self.low, "high": self.high,
-                 "beta": 0.5},
-                {"m": 0.0},
+                optimizer["model"],
+                {"batch_size": genn_model.batch_size} | _optimizer_params["params"],
+                optimizer["var_init"],
                 _update_plast_step_reduced_var_refs
-            )#'''
-
-            #'''
-            genn_model.add_custom_update(
-                f"plast_step_reduced_{name}",
-                "Plast",
-                adam_optimizer_model,
-                {"batch_size": genn_model.batch_size,
-                 "low": self.low, "high": self.high,
-                 "lr": wu_param_space["mu"],
-                 "beta1": 0.9, "beta2": 0.999, "epsilon": 1e-7},
-                {"m": 0.0, "v": 1.0, "time": 1.0},
-                _update_plast_step_reduced_var_refs
-            )#'''
+            )
 
 
 

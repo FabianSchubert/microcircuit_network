@@ -4,7 +4,7 @@ from pygenn.genn_wrapper.Models import VarAccess_READ_ONLY
 
 model_def = {
     "class_name": "pyr",
-    "param_names": ["th", "ga", "muB", "tau_va", "tau_d_ra"],
+    "param_names": ["th", "ga", "tau_va", "tau_d_ra"],
     "var_name_types": [("r", "scalar"), ("r_prev", "scalar"),
                        ("r_prev_prev", "scalar"),
                        ("d_ra", "scalar"), ("d_ra_prev", "scalar"),
@@ -51,7 +51,6 @@ model_def = {
 param_space = {
     "th": 1e-5,
     "ga": 0.1,
-    "muB": 1e-1/150.,
     "tau_va": 1.,
     "tau_d_ra": 10.
 }
