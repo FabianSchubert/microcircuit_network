@@ -6,10 +6,10 @@ import pickle
 
 from mc.network import Network
 
-from models import change_detection_spikes as network_model
+from models import change_detection_spikes_yinyang as network_model
 from models.cs_sources import step_source_model as stp_src
 
-from ..utils import plot_spike_times, calc_loss_interp
+from ...misc.utils import plot_spike_times, calc_loss_interp
 
 import os
 
@@ -256,7 +256,7 @@ int_va_test = [results_validation[k]["neur_var_rec"]["neur_hidden0_int_pop_va"] 
 
 plt.ion()
 
-from tasks.utils import calc_class_acc_interp
+from misc.utils import calc_class_acc_interp
 
 SAMPLE_IDS_BATCHES_TEST = np.reshape(SAMPLE_IDS_TEST[:N_UPDATE_PATTERN_TEST*N_BATCH],(N_UPDATE_PATTERN_TEST,N_BATCH))
 

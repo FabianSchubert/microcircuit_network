@@ -8,7 +8,6 @@ wu_param_space_transmit = dict(WU_TRANSMIT_PARAM)
 wu_var_space_transmit = dict(WU_TRANSMIT_VAR)
 WEIGHT_SCALE = 1/150**.5
 wu_var_space_transmit["g"] = init_var("Uniform", {"min": -WEIGHT_SCALE*1.0, "max": WEIGHT_SCALE})
-wu_var_space_transmit["inp_prev"] = 0.0
 
 w_update_model_plast = {
     "class_name": "weight_update_model_pyr_to_pyr_back",

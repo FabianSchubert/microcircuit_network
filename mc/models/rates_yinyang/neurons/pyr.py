@@ -5,10 +5,9 @@ from pygenn.genn_wrapper.Models import VarAccess_READ_ONLY
 model_def = {
     "class_name": "pyr",
     "param_names": ["ga", "tau_d_ra"],
-    "var_name_types": [("r", "scalar")
-                       ("d_ra", "scalar"), ("d_ra_prev", "scalar"),
-                       ("d_ra_prev_prev", "scalar"),
-                       ("r_eff", "scalar")
+    "var_name_types": [("r", "scalar"),
+                       ("d_ra", "scalar"),
+                       ("r_eff", "scalar"),
                        ("u", "scalar"),
                        ("va", "scalar"),
                        ("va_exc", "scalar"), ("va_int", "scalar"),
@@ -41,7 +40,7 @@ model_def = {
 
 param_space = {
     "ga": 0.1,
-    "tau_d_ra": 10.
+    "tau_d_ra": 25.
 }
 
 var_space = {

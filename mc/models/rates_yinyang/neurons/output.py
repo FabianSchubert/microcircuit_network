@@ -39,7 +39,7 @@ model_def = {
 
 param_space = {
     "tau_targ": 1.,
-    "tau_d_ra": 10.
+    "tau_d_ra": 25.
 }
 
 var_space = {

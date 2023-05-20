@@ -70,7 +70,7 @@ optimizers = {
     },
     "adam": {
         "model": adam_optimizer_model,
-        "var_init": {"m": 0.0, "v": 1.0, "time": 1.0}
+        "var_init": {"m": 0.0, "v": 0.0, "time": 1.0}
     }
 }
 

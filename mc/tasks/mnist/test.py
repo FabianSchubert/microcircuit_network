@@ -5,7 +5,7 @@ from mc.network import Network
 
 from models import rate_spikes as net_model
 
-from ..utils import plot_spike_times, calc_loss_interp
+from ...misc.utils import plot_spike_times, calc_loss_interp
 
 col_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
 

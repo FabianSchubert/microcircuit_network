@@ -35,7 +35,7 @@ model_def = {
 
 param_space = {
     "ga": 0.0,
-    "tau_d_ra": 10.
+    "tau_d_ra": 25.
 }
 
 var_space = {

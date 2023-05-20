@@ -377,24 +377,7 @@ class Network:
 
         self.genn_model.load(num_recording_timesteps=self.spike_buffer_size)
 
-        ############################
-        # normalize weights
-        for synpop in self.syn_pops.values():
-            norm = synpop.norm_after_init
-            assert norm in (False, "lin", "sqrt") , \
-                """Error: wrong synapse normalisation argument"""
-            if norm:
-                weightview = synpop.vars["g"].view
-                synpop.pull_var_from_device("g")
-                
-                if norm == "lin":
-                    normfact = synpop.src.size
-                else:
-                    normfact = np.sqrt(synpop.src.size)
-
-                weightview[:] = weightview[:] / normfact
-                synpop.push_var_to_device("g")
-        ############################
+        self.norm_weights()
 
         # only if this instance is plastic, we create a static
         # twin of the network as a member variable of itself
@@ -403,6 +386,39 @@ class Network:
         if self.plastic:
             self.create_static_twin(cs_in_init=cs_in_init_static_twin,
                                     cs_out_init=cs_out_init_static_twin)
+
+    def norm_weights(self):
+         ############################
+        # normalize weights
+        for synpop in self.syn_pops.values():
+            norm = synpop.norm_after_init
+            assert norm in (False, "lin", "lin_inv", "sqrt", "sqrt_inv") , \
+                """Error: wrong synapse normalisation argument"""
+            if norm:
+                weightview = synpop.vars["g"].view
+                synpop.pull_var_from_device("g")
+                
+                if norm == "lin":
+                    normfact = synpop.src.size
+                elif norm == "lin_inv":
+                    normfact = synpop.trg.size
+                elif norm == "sqrt":
+                    normfact = np.sqrt(synpop.src.size)
+                else:
+                    normfact = np.sqrt(synpop.trg.size)
+
+                weightview[:] = weightview[:] / normfact
+                synpop.push_var_to_device("g")
+        ############################
+
+    def reinitialize(self):
+
+        self.genn_model.reinitialise()
+        self.norm_weights()
+
+        if self.plastic:
+            self.static_twin_net.reinitialize()
+
 
     def update_neur_pops(self):
         """updates the dictionary self.neur_pops

@@ -11,7 +11,7 @@ from mc.network import Network
 from models import rates_yinyang as network_model
 from models.cs_sources import step_source_model as stp_src
 
-from ..utils import plot_spike_times, calc_loss_interp, calc_class_acc_interp
+from ...misc.utils import plot_spike_times, calc_loss_interp, calc_class_acc_interp
 
 import os
 
@@ -26,7 +26,7 @@ import time
 
 from tqdm import tqdm
 
-dataset_train = YinYangDataset(size=5000, seed=42)
+dataset_train = YinYangDataset(size=5000, seed=40)
 dataset_test = YinYangDataset(size=1000, seed=41)
 
 #yinyang_data = np.load("./data/yinyang/yinyang.npz")
@@ -275,21 +275,20 @@ for run_id in tqdm(range(N_SAMPLES_TIMING)):
                         test_output[SAMPLE_IDS_BATCHES_TEST], out_r_test[k]))
 
     _acc = np.array(_acc)
-    _loss = np.array(_acc)
+    _loss = np.array(_loss)
 
     acc[:,run_id] = _acc
     loss[:,run_id] = _loss
     run_time[run_id] = t1 - t0
 
+epoch_ax = np.linspace(0.,N_EPOCHS, N_TEST_RUN)
+
 def save_data():
     np.savez(os.path.join(TASK_BASE_FOLD, "results_data/results_run_time.npz"),
             acc=acc,
             loss=loss,
-            run_time=run_time)
+            run_time=run_time,
+            epoch_ax=epoch_ax)
 
 save_data()
-
-import pdb
-pdb.set_trace()
-
 

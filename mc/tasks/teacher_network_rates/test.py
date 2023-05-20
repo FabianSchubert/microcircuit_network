@@ -13,7 +13,7 @@ from mc.network import Network
 
 from models import rates as net_model
 
-from ..utils import plot_spike_times, calc_loss_interp
+from ...misc.utils import plot_spike_times, calc_loss_interp
 
 from .utils import gen_output_data
 

@@ -1,0 +1,9 @@
+Runtime,Sim ID,Model,Method
+215.1453676223755,0,Spike,Random Feedback
+215.15774083137512,1,Spike,Random Feedback
+215.89549088478088,0,Spike,Feedback Align
+215.88605427742004,1,Spike,Feedback Align
+3969.8450429439545,0,Rate,Random Feedback
+3970.1992943286896,1,Rate,Random Feedback
+3972.0545723438263,0,Rate,Feedback Align
+3972.281414270401,1,Rate,Feedback Align

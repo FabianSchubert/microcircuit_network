@@ -11,7 +11,7 @@ from mc.network import Network
 from models import rates_yinyang as network_model
 from models.cs_sources import step_source_model as stp_src
 
-from ..utils import plot_spike_times, calc_loss_interp, calc_class_acc_interp
+from ...misc.utils import plot_spike_times, calc_loss_interp, calc_class_acc_interp
 
 import os
 
@@ -138,13 +138,12 @@ PARAMS_TEST_RUN = [
                 "neur_output_output_pop", "ga")
         ],
         "readout_neur_pop_vars": [
-            ("neur_input_input_pop", "r_prev", TIMES_RECORD_TEST),
+            ("neur_input_input_pop", "r", TIMES_RECORD_TEST),
             #("neur_output_output_pop", "u", TIMES_RECORD_TEST),
             ("neur_output_output_pop", "vb", TIMES_RECORD_TEST),
             ("neur_output_output_pop", "va", TIMES_RECORD_TEST),
             ("neur_output_output_pop", "d_ra", TIMES_RECORD_TEST),
-            ("neur_output_output_pop", "d_ra_prev", TIMES_RECORD_TEST),
-            ("neur_output_output_pop", "r", TIMES_RECORD_TEST)#,
+            ("neur_output_output_pop", "r", TIMES_RECORD_TEST)
             #("neur_output_output_pop", "r_target", TIMES_RECORD_TEST)#,
             #("neur_hidden0_pyr_pop", "vb", TIMES_RECORD_TEST),
             #("neur_hidden0_pyr_pop", "va", TIMES_RECORD_TEST),
@@ -157,7 +156,7 @@ PARAMS_TEST_RUN = [
 ] * N_TEST_RUN
 
 TRAIN_READOUT = [
-    ("neur_input_input_pop", "r_prev", TIMES_RECORD_TRAIN),
+    ("neur_input_input_pop", "r", TIMES_RECORD_TRAIN),
     #("neur_output_output_pop", "u", TIMES_RECORD_TRAIN),
     ("neur_output_output_pop", "vb", TIMES_RECORD_TRAIN),
     ("neur_output_output_pop", "va", TIMES_RECORD_TRAIN),
@@ -298,7 +297,7 @@ readout_neur_arrays, readout_syn_arrays, readout_spikes, results_validation = ne
             force_fb_align=False)
 
 #out_r = readout_neur_arrays["neur_output_output_pop_r"]
-inp_r_prev = readout_neur_arrays["neur_input_input_pop_r_prev"]
+inp_r = readout_neur_arrays["neur_input_input_pop_r"]
 out_vb = readout_neur_arrays["neur_output_output_pop_vb"]
 out_va = readout_neur_arrays["neur_output_output_pop_va"]
 out_d_ra = readout_neur_arrays["neur_output_output_pop_d_ra"]
@@ -317,12 +316,11 @@ int_vb = readout_neur_arrays["neur_hidden0_int_pop_vb"]
 int_va = readout_neur_arrays["neur_hidden0_int_pop_va"]
 '''
 
-inp_r_prev_test = [results_validation[k]["neur_var_rec"]["neur_input_input_pop_r_prev"] for k in range(N_TEST_RUN)]
+inp_r_test = [results_validation[k]["neur_var_rec"]["neur_input_input_pop_r"] for k in range(N_TEST_RUN)]
 out_r_test = [results_validation[k]["neur_var_rec"]["neur_output_output_pop_r"] for k in range(N_TEST_RUN)]
 out_vb_test = [results_validation[k]["neur_var_rec"]["neur_output_output_pop_vb"] for k in range(N_TEST_RUN)]
 out_va_test = [results_validation[k]["neur_var_rec"]["neur_output_output_pop_va"] for k in range(N_TEST_RUN)]
 out_d_ra_test = [results_validation[k]["neur_var_rec"]["neur_output_output_pop_d_ra"] for k in range(N_TEST_RUN)]
-out_d_ra_prev_test = [results_validation[k]["neur_var_rec"]["neur_output_output_pop_d_ra_prev"] for k in range(N_TEST_RUN)]
 
 '''
 out_u_test = [results_validation[k]["neur_var_rec"]["neur_output_output_pop_u"] for k in range(N_TEST_RUN)]

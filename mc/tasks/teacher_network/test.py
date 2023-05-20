@@ -23,7 +23,7 @@ from models import rate_spikes as net_model
 
 from .utils import gen_input_output_data
 
-from tasks.utils import calc_loss_interp
+from misc.utils import calc_loss_interp
 
 col_cycle = plt.rcParams['axes.prop_cycle'].by_key()['color']
 

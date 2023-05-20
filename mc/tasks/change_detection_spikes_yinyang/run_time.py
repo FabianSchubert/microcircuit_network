@@ -11,7 +11,7 @@ from mc.network import Network
 from models import change_detection_spikes_yinyang as network_model
 from models.cs_sources import step_source_model as stp_src
 
-from ..utils import plot_spike_times, calc_loss_interp, calc_class_acc_interp
+from ...misc.utils import plot_spike_times, calc_loss_interp, calc_class_acc_interp
 
 import os
 
@@ -20,31 +20,36 @@ TASK_BASE_FOLD = os.path.dirname(__file__)
 OUT_MIN = 0.0
 OUT_MAX = 1.0
 
-from data.yinyang.dataset import YinYangDataset
+from data.yinyang.dataset import yinyang_dataset_array
 
 import time
 
 from tqdm import tqdm
 
-dataset_train = YinYangDataset(size=5000, seed=42)
-dataset_test = YinYangDataset(size=1000, seed=41)
+#dataset_train = YinYangDataset(size=5000, seed=40)
+#dataset_test = YinYangDataset(size=1000, seed=41)
 
 #yinyang_data = np.load("./data/yinyang/yinyang.npz")
 
 #train_input = yinyang_data["train_input"]
-train_input = np.array(dataset_train._YinYangDataset__vals)
+train_input, train_output = yinyang_dataset_array(size=10000, seed=40)
+train_output = train_output * (OUT_MAX - OUT_MIN) + OUT_MIN
+
+#train_input = np.array(dataset_train._YinYangDataset__vals)
 train_input_flat = train_input.flatten()
 
-train_output = one_hot(torch.tensor(np.array(dataset_train._YinYangDataset__cs)), num_classes=3).detach().numpy() * (OUT_MAX - OUT_MIN) + OUT_MIN
+#train_output = one_hot(torch.tensor(np.array(dataset_train._YinYangDataset__cs)), num_classes=3).detach().numpy() * (OUT_MAX - OUT_MIN) + OUT_MIN
 #train_output = yinyang_data["train_output"] * (OUT_MAX - OUT_MIN) + OUT_MIN
 train_output_flat = train_output.flatten()
 
 #test_input = yinyang_data["test_input"]
-test_input = np.array(dataset_test._YinYangDataset__vals)
+test_input, test_output = yinyang_dataset_array(size=1000, seed=40)
+test_output = test_output * (OUT_MAX - OUT_MIN) + OUT_MIN
+#test_input = np.array(dataset_test._YinYangDataset__vals)
 test_input_flat = test_input.flatten()
 
 #test_output = yinyang_data["test_output"] * (OUT_MAX - OUT_MIN) + OUT_MIN
-test_output = one_hot(torch.tensor(np.array(dataset_test._YinYangDataset__cs)), num_classes=3).detach().numpy() * (OUT_MAX - OUT_MIN) + OUT_MIN
+#test_output = one_hot(torch.tensor(np.array(dataset_test._YinYangDataset__cs)), num_classes=3).detach().numpy() * (OUT_MAX - OUT_MIN) + OUT_MIN
 test_output_flat = test_output.flatten()
 
 rng = np.random.default_rng()
@@ -57,7 +62,7 @@ N_OUT = train_output.shape[1]
 DT = 1.0
 ############################
 
-N_SAMPLES_TIMING = 10
+N_SAMPLES_TIMING = 1
 
 ############################
 N_EPOCHS = 1500
@@ -275,21 +280,21 @@ for run_id in tqdm(range(N_SAMPLES_TIMING)):
                         test_output[SAMPLE_IDS_BATCHES_TEST], out_r_test[k]))
 
     _acc = np.array(_acc)
-    _loss = np.array(_acc)
+    _loss = np.array(_loss)
 
     acc[:,run_id] = _acc
     loss[:,run_id] = _loss
     run_time[run_id] = t1 - t0
 
+epoch_ax = np.linspace(0.,N_EPOCHS, N_TEST_RUN)
+
 def save_data():
     np.savez(os.path.join(TASK_BASE_FOLD, "results_data/results_run_time.npz"),
             acc=acc,
             loss=loss,
-            run_time=run_time)
+            run_time=run_time,
+            epoch_ax=epoch_ax)
 
 save_data()
-
-import pdb
-pdb.set_trace()
 
 

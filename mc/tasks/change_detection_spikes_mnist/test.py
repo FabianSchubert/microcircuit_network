@@ -8,10 +8,10 @@ from torchvision.datasets import MNIST
 
 from mc.network import Network
 
-from models import change_detection_spikes as network_model
+from models import change_detection_spikes_yinyang as network_model
 from models.cs_sources import step_source_model as stp_src
 
-from ..utils import plot_spike_times, calc_loss_interp, calc_class_acc_interp
+from ...misc.utils import plot_spike_times, calc_loss_interp, calc_class_acc_interp
 
 import os
 

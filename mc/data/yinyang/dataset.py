@@ -1,5 +1,8 @@
 import numpy as np
+
+import torch
 from torch.utils.data.dataset import Dataset
+from torch.nn.functional import one_hot
         
 # Dataset Class
 
@@ -70,3 +73,12 @@ class YinYangDataset(Dataset):
 
     def __len__(self):
         return len(self.__cs)
+
+def yinyang_dataset_array(r_small=0.1, r_big=0.5, size=1000, seed=42):
+
+    dataset = YinYangDataset(r_small=r_small, r_big=r_big, size=size, seed=seed)
+
+    input_data = np.array(dataset._YinYangDataset__vals)
+    output_data = one_hot(torch.tensor(np.array(dataset._YinYangDataset__cs)), num_classes=3).detach().numpy()
+
+    return input_data, output_data
