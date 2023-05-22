@@ -7,14 +7,16 @@ from models import change_detection_spikes_mnist, rates_mnist
 
 from data.mnist.dataset import input_train, output_train, input_test, output_test
 
+from ..utils import train_and_test_network
+
+from itertools import product
+
 data = dict(zip(["input_train", "output_train", "input_test", "output_test"],
                 [input_train, output_train, input_test, output_test]))
 
-from ..utils import train_and_test_network
 
 BASE_FOLD = os.path.dirname(__file__)
 
-from itertools import product
 
 DEFAULT_ADAM_PARAMS = {
     "lr": 1e-3,
@@ -27,34 +29,34 @@ DEFAULT_ADAM_PARAMS = {
 
 params_base = {
     "n_in": 784,
-    "n_hidden": [800],
+    "n_hidden": [100],
     "n_out": 10,
     "dt": 1.0,
-    "n_runs": 2,
-    "n_epochs": 35,
+    "n_runs": 10,
+    "n_epochs": 50,
     "n_batch": 128,
     "t_show_pattern": 150.,
     "n_test_run": 10,
     "optimizer_params": {
         "neur_hidden0_pyr_pop": {
             "optimizer": "adam",
-            "params": DEFAULT_ADAM_PARAMS | {"lr": 0.5*1e-1/150.}
+            "params": DEFAULT_ADAM_PARAMS | {"lr": 0.5 * 5e-3}
         },
         "neur_hidden0_int_pop": {
             "optimizer": "adam",
-            "params": DEFAULT_ADAM_PARAMS | {"lr": 0.5*2e-2/150.}
+            "params": DEFAULT_ADAM_PARAMS | {"lr": 0.5 * 1e-3}
         },
         "neur_output_output_pop": {
             "optimizer": "adam",
-            "params": DEFAULT_ADAM_PARAMS | {"lr": 0.5*1e-2/150.}
+            "params": DEFAULT_ADAM_PARAMS | {"lr": 0.5 * 2e-4}
         },
         "syn_input_input_pop_to_hidden0_pyr_pop": {
             "optimizer": "adam",
-            "params": DEFAULT_ADAM_PARAMS | {"lr":0.5*1e-1/150.}
+            "params": DEFAULT_ADAM_PARAMS | {"lr": 0.3 * 5e-3}
         },
         "syn_hidden0_pyr_pop_to_int_pop": {
             "optimizer": "adam",
-            "params": DEFAULT_ADAM_PARAMS | {"lr": 0.5*2e-2/150}
+            "params": DEFAULT_ADAM_PARAMS | {"lr": 0.3 * 1e-3}
         },
         "syn_hidden0_int_pop_to_pyr_pop": {
             "optimizer": "adam",
@@ -62,7 +64,7 @@ params_base = {
         },
         "syn_hidden0_pyr_pop_to_output_output_pop": {
             "optimizer": "adam",
-            "params": DEFAULT_ADAM_PARAMS | {"lr": 0.5*1e-2/150.}
+            "params": DEFAULT_ADAM_PARAMS | {"lr": 0.3 * 2e-4}
         }
     }
 }#'''

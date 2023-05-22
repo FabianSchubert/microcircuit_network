@@ -32,7 +32,7 @@ model_def = {
         
         $(d_ra) += DT * ($(va) * {d_act_func('$(vb)')} - $(d_ra)) / $(tau_d_ra);
 
-        $(db) += $(d_ra);
+        $(db) += DT * $(d_ra);
     """,
     "threshold_condition_code": TH_COND_CODE,
     "reset_code": RESET_CODE,
@@ -43,7 +43,7 @@ param_space = {
     "th": 1e-3,
     "ga": 0.0,
     "tau_va": 1.,
-    "tau_d_ra": 10.
+    "tau_d_ra": 15.
 }
 
 var_space = {

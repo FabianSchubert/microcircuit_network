@@ -7,17 +7,17 @@ from models import change_detection_spikes_yinyang, rates_yinyang
 
 from data.yinyang.dataset import yinyang_dataset_array
 
+from ..utils import train_and_test_network
+
+from itertools import product
+
 input_train, output_train = yinyang_dataset_array(size=10000, seed=40)
 input_test, output_test = yinyang_dataset_array(size=1000, seed=40)
 
 data = dict(zip(["input_train", "output_train", "input_test", "output_test"],
                 [input_train, output_train, input_test, output_test]))
 
-from ..utils import train_and_test_network
-
 BASE_FOLD = os.path.dirname(__file__)
-
-from itertools import product
 
 DEFAULT_ADAM_PARAMS = {
     "lr": 5e-4,
@@ -70,8 +70,10 @@ params_base = {
     }
 }
 
-params_rnd_fb = dict(params_base) | {"force_self_pred_state": False, "force_fb_align": False}
-params_fb_align = dict(params_base) | {"force_self_pred_state": True, "force_fb_align": True}
+params_rnd_fb = dict(params_base) | {"force_self_pred_state": False,
+                                     "force_fb_align": False}
+params_fb_align = dict(params_base) | {"force_self_pred_state": True,
+                                       "force_fb_align": True}
 
 method_params = {
     "Random Feedback": params_rnd_fb,
@@ -83,23 +85,28 @@ models = {
     "Rate": rates_yinyang
 }
 
-df_learn = pd.DataFrame(columns=["Epoch", "Sim ID", "Accuracy", "Loss", "Model", "Method"])
+df_learn = pd.DataFrame(columns=["Epoch", "Sim ID", "Accuracy",
+                                 "Loss", "Model", "Method"])
 df_runtime = pd.DataFrame(columns=["Runtime", "Sim ID", "Model", "Method"])
 
-for (model_name, model), (method_name, method_param) in product(models.items(), method_params.items()):
-    
-    epoch_ax, acc, loss, run_time = train_and_test_network(method_param, model, data)
+for (model_name, model), (method_name, method_param) in product(models.items(),
+                                                                method_params.items()):
 
-    df_learn = pd.concat([df_learn, 
-                      pd.DataFrame({
-                          "Epoch": np.repeat(epoch_ax, params_base["n_runs"]),
-                          "Sim ID": np.tile(np.arange(params_base["n_runs"]), params_base["n_test_run"]),
-                          "Accuracy": acc.flatten(),
-                          "Loss": loss.flatten(),
-                          "Model": model_name,
-                          "Method": method_name 
-                      })], ignore_index=True)
-    
+    epoch_ax, acc, loss, run_time = train_and_test_network(method_param,
+                                                           model, data)
+
+    df_learn = pd.concat([df_learn,
+                          pd.DataFrame({
+                            "Epoch": np.repeat(epoch_ax,
+                                               params_base["n_runs"]),
+                            "Sim ID": np.tile(np.arange(params_base["n_runs"]),
+                                              params_base["n_test_run"]),
+                            "Accuracy": acc.flatten(),
+                            "Loss": loss.flatten(),
+                            "Model": model_name,
+                            "Method": method_name 
+                          })], ignore_index=True)
+
     df_runtime = pd.concat(
        [df_runtime,
         pd.DataFrame(

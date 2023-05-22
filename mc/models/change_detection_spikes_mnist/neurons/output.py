@@ -36,7 +36,7 @@ model_def = {
 
         $(d_ra) += DT * ($(va) * {d_act_func('$(vb)')} - $(d_ra)) / $(tau_d_ra);
 
-        $(db) += $(d_ra);
+        $(db) += DT * $(d_ra);
     """,
     "threshold_condition_code": TH_COND_CODE,
     "reset_code": RESET_CODE,
