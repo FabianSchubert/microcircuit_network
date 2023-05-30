@@ -3,8 +3,9 @@ import numpy as np
 import torch
 from torch.utils.data.dataset import Dataset
 from torch.nn.functional import one_hot
-        
+
 # Dataset Class
+
 
 class YinYangDataset(Dataset):
     def __init__(self, r_small=0.1, r_big=0.5, size=1000, seed=42, transform=None):
@@ -73,6 +74,7 @@ class YinYangDataset(Dataset):
 
     def __len__(self):
         return len(self.__cs)
+
 
 def yinyang_dataset_array(r_small=0.1, r_big=0.5, size=1000, seed=42):
 

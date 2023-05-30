@@ -3,7 +3,7 @@ import pandas as pd
 
 import os
 
-from models import change_detection_spikes_yinyang, rates_yinyang
+from models.yinyang import change_detection_spikes, rates
 
 from data.yinyang.dataset import yinyang_dataset_array
 
@@ -81,8 +81,8 @@ method_params = {
 }
 
 models = {
-    "Spike": change_detection_spikes_yinyang,
-    "Rate": rates_yinyang
+    "Spike": change_detection_spikes,
+    "Rate": rates
 }
 
 df_learn = pd.DataFrame(columns=["Epoch", "Sim ID", "Accuracy",

@@ -10,6 +10,7 @@ import time
 
 from misc.utils import calc_loss_interp, calc_class_acc_interp
 
+
 def train_and_test_network(params, network_model, data):
 
     input_train = data["input_train"]

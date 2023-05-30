@@ -28,12 +28,12 @@ def calc_loss_interp(t_ax_targ, t_ax_readout,
     amount of time steps for the network to settle into its prediction
     state. Therefore, the loss between the target and the prediction
     should be calculated not directly after the new target is presented,
-    but just before the next one. This is controlled by the perc_readout_targ_change
-    parameter: It sets
+    but just before the next one. This is controlled by the
+    perc_readout_targ_change parameter: It sets
     (t_readout - t_targ_present_prev)/(t_targ_present_next - targ_present_prev).
-    The standard value is 0.9, i.e. 90% of the time between two consecutive changes
-    in the target has passed when the loss between target and prediction
-    is calculated.
+    The standard value is 0.9, i.e. 90% of the time between two
+    consecutive changes in the target has passed when the loss
+    between target and prediction is calculated.
 
     The readout data must be temporally ordered, i.e. t_ax_readout must
     be increasing.
