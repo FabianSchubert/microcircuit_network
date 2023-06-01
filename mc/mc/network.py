@@ -392,7 +392,7 @@ class Network:
         # normalize weights
         for synpop in self.syn_pops.values():
             norm = synpop.norm_after_init
-            assert norm in (False, "lin", "lin_inv", "sqrt", "sqrt_inv") , \
+            assert norm in (False, "lin", "lin_inv", "sqrt", "sqrt_inv"), \
                 """Error: wrong synapse normalisation argument"""
             if norm:
                 weightview = synpop.vars["g"].view
