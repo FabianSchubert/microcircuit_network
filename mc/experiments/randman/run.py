@@ -19,10 +19,15 @@ ALPHA = 1.0
 
 SEED_MF = 42
 
-D_HIDDEN = 100
+D_HIDDEN = 500
 
 N_SAMPLES_TRAIN = 1500
 N_SAMPLES_TEST = 1000
+
+N_EPOCHS = 800
+T_SHOW_PATTERN = 150.
+
+AX_REC_MOD_PARAMS = np.arange(N_EPOCHS) * T_SHOW_PATTERN
 
 input_train, output_train = randman_dataset_array(D_EMBEDDING, N_CLASSES,
                                                   N_SAMPLES_TRAIN, D_MF, N_CUTOFF, ALPHA,
@@ -51,10 +56,20 @@ params_base = {
     "n_out": N_CLASSES,
     "dt": 1.0,
     "n_runs": 1,
-    "n_epochs": 800,
-    "n_batch": 50,
-    "t_show_pattern": 150.,
+    "n_epochs": N_EPOCHS,
+    "n_batch": 64,
+    "t_show_pattern": T_SHOW_PATTERN,
     "n_test_run": 20,
+    "train_readout_syn": [
+        ("syn_hidden0_pyr_pop_to_output_output_pop", "g", AX_REC_MOD_PARAMS),
+        ("syn_output_output_pop_to_hidden0_pyr_pop", "g", AX_REC_MOD_PARAMS),
+        ("syn_hidden0_pyr_pop_to_int_pop", "g", AX_REC_MOD_PARAMS),
+        ("syn_hidden0_int_pop_to_pyr_pop", "g", AX_REC_MOD_PARAMS)
+        ],
+    "train_readout": [
+        ("neur_output_output_pop", "b", AX_REC_MOD_PARAMS),
+        ("neur_hidden0_int_pop", "b", AX_REC_MOD_PARAMS)
+        ],
     "optimizer_params": {
         "neur_hidden0_pyr_pop": {
             "optimizer": "adam",
@@ -62,7 +77,7 @@ params_base = {
         },
         "neur_hidden0_int_pop": {
             "optimizer": "adam",
-            "params": DEFAULT_ADAM_PARAMS | {"lr": 1e-3}
+            "params": DEFAULT_ADAM_PARAMS | {"lr": 2e-4}
         },
         "neur_output_output_pop": {
             "optimizer": "adam",
@@ -74,11 +89,11 @@ params_base = {
         },
         "syn_hidden0_pyr_pop_to_int_pop": {
             "optimizer": "adam",
-            "params": DEFAULT_ADAM_PARAMS | {"lr": 1e-3}
+            "params": DEFAULT_ADAM_PARAMS | {"lr": 2e-4}
         },
         "syn_hidden0_int_pop_to_pyr_pop": {
             "optimizer": "adam",
-            "params": DEFAULT_ADAM_PARAMS | {"lr": 0.0}
+            "params": DEFAULT_ADAM_PARAMS | {"lr": 2e-4}
         },
         "syn_hidden0_pyr_pop_to_output_output_pop": {
             "optimizer": "adam",
@@ -87,19 +102,19 @@ params_base = {
     }
 }
 
-params_rnd_fb = dict(params_base) | {"force_self_pred_state": False,
+params_fb_align = dict(params_base) | {"force_self_pred_state": False,
                                      "force_fb_align": False}
-params_fb_align = dict(params_base) | {"force_self_pred_state": True,
+params_backprop = dict(params_base) | {"force_self_pred_state": True,
                                        "force_fb_align": True}
 
 method_params = {
-    "Random Feedback": params_rnd_fb,
-    "Feedback Align": params_fb_align
+    "Feedback Align": params_fb_align#,
+    #"Backprop": params_backprop
 }
 
 models = {
-    "Spike": change_detection_spikes,
-    "Rate": rates
+    "Spike": change_detection_spikes #,
+    # "Rate": rates
 }
 
 df_learn = pd.DataFrame(columns=["Epoch", "Sim ID", "Accuracy",
@@ -109,8 +124,25 @@ df_runtime = pd.DataFrame(columns=["Runtime", "Sim ID", "Model", "Method"])
 for (model_name, model), (method_name, method_param) in product(models.items(),
                                                                 method_params.items()):
 
-    epoch_ax, acc, loss, run_time = train_and_test_network(method_param,
+    epoch_ax, acc, loss, rec_neur, rec_syn, run_time = train_and_test_network(method_param,
                                                            model, data)
+
+    w_op = rec_syn["syn_hidden0_pyr_pop_to_output_output_pop_g"]
+    w_po = rec_syn["syn_output_output_pop_to_hidden0_pyr_pop_g"]
+    w_po_t = w_po.swapaxes(1,2)
+    w_ip = rec_syn["syn_hidden0_pyr_pop_to_int_pop_g"]
+    w_pi = rec_syn["syn_hidden0_int_pop_to_pyr_pop_g"]
+
+    w_fb_aln = (w_op * w_po_t).sum(axis=(1,2)) / np.sqrt((w_op**2.).sum(axis=(1,2)) * (w_po_t**2.).sum(axis=(1,2)))
+
+    w_self_pred_fwd_aln = (w_op * w_ip).sum(axis=(1,2)) / np.sqrt((w_op**2.).sum(axis=(1,2)) * (w_ip**2.).sum(axis=(1,2)))
+
+    w_self_pred_bw_aln = (w_po * w_pi).sum(axis=(1,2)) / np.sqrt((w_po**2.).sum(axis=(1,2)) * (w_pi**2.).sum(axis=(1,2)))
+
+    b_i = rec_neur["neur_hidden0_int_pop_b"][:,0] # only use the first batch (they are all the same value across batches anyway)
+    b_o = rec_neur["neur_output_output_pop_b"][:,0] # ""
+
+    b_self_pred_aln = (b_i * b_o).sum(axis=1) / np.sqrt((b_i**2.).sum(axis=1) * (b_o**2.).sum(axis=1))
 
     df_learn = pd.concat([df_learn,
                           pd.DataFrame({
@@ -121,7 +153,21 @@ for (model_name, model), (method_name, method_param) in product(models.items(),
                             "Accuracy": acc.flatten(),
                             "Loss": loss.flatten(),
                             "Model": model_name,
-                            "Method": method_name 
+                            "Method": method_name
+                          })], ignore_index=True)
+
+    df_learn = pd.concat([df_learn,
+                          pd.DataFrame({
+                              "Epoch": np.repeat(AX_REC_MOD_PARAMS / T_SHOW_PATTERN,
+                                                 params_base["n_runs"]),
+                              "Sim ID": np.tile(np.arange(params_base["n_runs"]),
+                                                AX_REC_MOD_PARAMS.shape[0]),
+                              "Feedback Weight Alignment": w_fb_aln.flatten(),
+                              "Self-Prediction Forward Weight Alignment": w_self_pred_fwd_aln.flatten(),
+                              "Self-Prediction Backward Weight Alignment": w_self_pred_bw_aln.flatten(),
+                              "Self-Prediction Bias Alignment": b_self_pred_aln.flatten(),
+                              "Model": model_name,
+                              "Method": method_name
                           })], ignore_index=True)
 
     df_runtime = pd.concat(

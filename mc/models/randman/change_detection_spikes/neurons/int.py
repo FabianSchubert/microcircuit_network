@@ -30,7 +30,7 @@ model_def = {
         //$(u) = $(ga) * $(va) + $(vb);
 
         $(r) = {act_func('$(u)')};
-        
+
         $(d_ra) += DT * ($(va) * {d_act_func('$(vb)')} - $(d_ra)) / $(tau_d_ra);
 
         $(db) += DT * $(d_ra);
@@ -44,7 +44,7 @@ param_space = {
     "th": 1e-3,
     "ga": 0.0,
     "tau_va": 1.,
-    "tau_d_ra": 25.
+    "tau_d_ra": 20.
 }
 
 var_space = {

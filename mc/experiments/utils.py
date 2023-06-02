@@ -36,7 +36,7 @@ def train_and_test_network(params, network_model, data):
     N_TEST = input_test.shape[0]
 
     N_BATCH = params["n_batch"]
-    
+
     N_UPDATE_PATTERN_TRAIN = int(N_EPOCHS * N_TRAIN / N_BATCH)
     N_UPDATE_PATTERN_TEST = int(N_TEST / N_BATCH)
 
@@ -45,7 +45,7 @@ def train_and_test_network(params, network_model, data):
     T_RUN_TEST = N_UPDATE_PATTERN_TEST * T_SHOW_PATTERN
 
     RNG_SEED = params.get("seed_ext_data", np.random.randint(1e6))
-    
+
     rng = np.random.default_rng(RNG_SEED)
 
     SAMPLE_IDS_TRAIN = np.concatenate([rng.permutation(N_TRAIN) for _ in range(N_EPOCHS)])
@@ -85,9 +85,9 @@ def train_and_test_network(params, network_model, data):
         }
     ] * N_TEST_RUN
 
-    TRAIN_READOUT = []
+    TRAIN_READOUT = params.get("train_readout", [])
 
-    TRAIN_READOUT_SYN = []
+    TRAIN_READOUT_SYN = params.get("train_readout_syn", [])
 
     cs_in_train = {
         "model": stp_src,
@@ -178,16 +178,18 @@ def train_and_test_network(params, network_model, data):
                     dt=DT,
                     optimizer_params=OPTIMIZER_PARAMS
                     )
-    
+
+    readout_arrays = {}
+
     for run_id in tqdm(range(N_RUNS)):
-        
+
         net.reinitialize()
 
         net.init_self_pred_state()
 
         t0 = time.time()
 
-        readout_neur_arrays, readout_syn_arrays, readout_spikes, results_validation = net.run_sim(
+        _readout_neur_arrays, _readout_syn_arrays, readout_spikes, results_validation = net.run_sim(
                     T_RUN_TRAIN, None, TRAIN_READOUT, TRAIN_READOUT_SYN,
                     t_sign_validation=TIMES_TEST_RUN,
                     data_validation=PARAMS_TEST_RUN,
@@ -218,7 +220,14 @@ def train_and_test_network(params, network_model, data):
         acc[:,run_id] = _acc
         loss[:,run_id] = _loss
         run_time[run_id] = t1 - t0
-    
+
+        for key, data in (_readout_neur_arrays | _readout_syn_arrays).items():
+            _d = readout_arrays.get(key, np.ndarray(data.shape + (0,)))
+            readout_arrays[key] = np.concatenate([_d, np.expand_dims(data, axis=-1)], axis=-1)
+
     epoch_ax = np.linspace(0.,N_EPOCHS, N_TEST_RUN)
 
-    return epoch_ax, acc, loss, run_time
+    readout_neur_arrays = {k:v for k,v in readout_arrays.items() if k in _readout_neur_arrays.keys()}
+    readout_syn_arrays = {k:v for k,v in readout_arrays.items() if k in _readout_syn_arrays.keys()}
+
+    return epoch_ax, acc, loss, readout_neur_arrays, readout_syn_arrays, run_time

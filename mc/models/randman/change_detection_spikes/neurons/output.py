@@ -47,7 +47,7 @@ param_space = {
     "th": 1e-5,
     "tau_targ": 1.,
     "tau_va": 1.,
-    "tau_d_ra": 25.
+    "tau_d_ra": 20.
 }
 
 var_space = {
