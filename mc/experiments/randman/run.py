@@ -11,6 +11,8 @@ from ..utils import train_and_test_network
 
 from itertools import product
 
+from tqdm import tqdm
+
 D_EMBEDDING = 20
 D_MF = 1
 N_CLASSES = 10
@@ -19,12 +21,16 @@ ALPHA = 1.0
 
 SEED_MF = 42
 
-D_HIDDEN = 500
+N_HIDDEN = np.linspace(100, 500, 2).astype("int").tolist()
+
+SPIKE_THRESHOLDS = np.exp(np.linspace(np.log(1e-5), np.log(1e-1), 3))
+                   #np.append(10.**np.arange(-10, -2),
+                   #          np.exp(np.linspace(np.log(1e-2), np.log(5e-1), 15)))
 
 N_SAMPLES_TRAIN = 1500
 N_SAMPLES_TEST = 1000
 
-N_EPOCHS = 800
+N_EPOCHS = 15
 T_SHOW_PATTERN = 150.
 
 AX_REC_MOD_PARAMS = np.arange(N_EPOCHS) * T_SHOW_PATTERN
@@ -52,7 +58,7 @@ DEFAULT_ADAM_PARAMS = {
 
 params_base = {
     "n_in": D_EMBEDDING,
-    "n_hidden": [D_HIDDEN],
+    "n_hidden": None,
     "n_out": N_CLASSES,
     "dt": 1.0,
     "n_runs": 1,
@@ -77,7 +83,7 @@ params_base = {
         },
         "neur_hidden0_int_pop": {
             "optimizer": "adam",
-            "params": DEFAULT_ADAM_PARAMS | {"lr": 2e-4}
+            "params": DEFAULT_ADAM_PARAMS | {"lr": 1e-5}
         },
         "neur_output_output_pop": {
             "optimizer": "adam",
@@ -89,11 +95,11 @@ params_base = {
         },
         "syn_hidden0_pyr_pop_to_int_pop": {
             "optimizer": "adam",
-            "params": DEFAULT_ADAM_PARAMS | {"lr": 2e-4}
+            "params": DEFAULT_ADAM_PARAMS | {"lr": 3e-4}
         },
         "syn_hidden0_int_pop_to_pyr_pop": {
             "optimizer": "adam",
-            "params": DEFAULT_ADAM_PARAMS | {"lr": 2e-4}
+            "params": DEFAULT_ADAM_PARAMS | {"lr": 3e-4}
         },
         "syn_hidden0_pyr_pop_to_output_output_pop": {
             "optimizer": "adam",
@@ -102,10 +108,10 @@ params_base = {
     }
 }
 
-params_fb_align = dict(params_base) | {"force_self_pred_state": False,
-                                     "force_fb_align": False}
-params_backprop = dict(params_base) | {"force_self_pred_state": True,
-                                       "force_fb_align": True}
+params_fb_align = {"force_self_pred_state": False,
+                   "force_fb_align": False}
+params_backprop = {"force_self_pred_state": True,
+                   "force_fb_align": True}
 
 method_params = {
     "Feedback Align": params_fb_align#,
@@ -118,13 +124,23 @@ models = {
 }
 
 df_learn = pd.DataFrame(columns=["Epoch", "Sim ID", "Accuracy",
-                                 "Loss", "Model", "Method"])
-df_runtime = pd.DataFrame(columns=["Runtime", "Sim ID", "Model", "Method"])
+                                 "Loss", "Model", "Method",
+                                 "Spike Threshold", "N Hidden"])
+df_runtime = pd.DataFrame(columns=["Runtime", "Sim ID", "Model", "Method",
+                                   "Spike Threshold", "N Hidden"])
 
-for (model_name, model), (method_name, method_param) in product(models.items(),
-                                                                method_params.items()):
+sweep_params = product(models.items(), method_params.items(), N_HIDDEN, SPIKE_THRESHOLDS)
 
-    epoch_ax, acc, loss, rec_neur, rec_syn, run_time = train_and_test_network(method_param,
+for (model_name, model), (method_name, method_param), n_hidden, spike_th in tqdm(sweep_params):
+
+    _tmp_params = params_base | method_param | {"n_hidden": [n_hidden]}
+
+    model.neurons.pyr.mod_dat["param_space"]["th"] = spike_th
+    model.neurons.output.mod_dat["param_space"]["th"] = spike_th
+    model.neurons.int.mod_dat["param_space"]["th"] = spike_th
+    model.neurons.input.mod_dat["param_space"]["th"] = spike_th
+
+    epoch_ax, acc, loss, rec_neur, rec_syn, run_time = train_and_test_network(_tmp_params,
                                                            model, data)
 
     w_op = rec_syn["syn_hidden0_pyr_pop_to_output_output_pop_g"]
@@ -153,7 +169,9 @@ for (model_name, model), (method_name, method_param) in product(models.items(),
                             "Accuracy": acc.flatten(),
                             "Loss": loss.flatten(),
                             "Model": model_name,
-                            "Method": method_name
+                            "Method": method_name,
+                            "Spike Threshold": spike_th,
+                            "N Hidden": n_hidden
                           })], ignore_index=True)
 
     df_learn = pd.concat([df_learn,
@@ -167,7 +185,9 @@ for (model_name, model), (method_name, method_param) in product(models.items(),
                               "Self-Prediction Backward Weight Alignment": w_self_pred_bw_aln.flatten(),
                               "Self-Prediction Bias Alignment": b_self_pred_aln.flatten(),
                               "Model": model_name,
-                              "Method": method_name
+                              "Method": method_name,
+                              "Spike Threshold": spike_th,
+                              "N Hidden": n_hidden
                           })], ignore_index=True)
 
     df_runtime = pd.concat(
@@ -176,7 +196,9 @@ for (model_name, model), (method_name, method_param) in product(models.items(),
             {"Runtime": run_time,
              "Sim ID": np.arange(params_base["n_runs"]),
              "Model": model_name,
-             "Method": method_name}
+             "Method": method_name,
+             "Spike Threshold": spike_th,
+             "N Hidden": n_hidden}
         )], ignore_index=True)
 
 df_learn.to_csv(os.path.join(BASE_FOLD, "df_learn.csv"), index=False)
