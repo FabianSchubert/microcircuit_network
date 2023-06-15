@@ -7,6 +7,9 @@
 # ignore npy
 *.npy
 
+# ignore csv
+*.csv
+
 # ignore idx file format (datasets etc)
 *idx*-ubyte*
 
