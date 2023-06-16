@@ -1,3 +1,6 @@
+
+import sys
+
 import numpy as np
 import pandas as pd
 
@@ -7,7 +10,7 @@ from models.randman import change_detection_spikes, rates
 
 from data.randman.dataset import randman_dataset_array
 
-from ..utils import train_and_test_network
+from ..utils import train_and_test_network, split_lst
 
 from itertools import product
 
@@ -15,20 +18,26 @@ from tqdm import tqdm
 
 import time
 
+JOB_ID = int(sys.argv[1])
+N_JOBS = int(sys.argv[2])
+
+# print(f"job id: {JOB_ID}")
+# print(f"n jobs: {N_JOBS}")
+
 D_MF = 1
 N_CUTOFF = 1000
 ALPHA = 1.0
 
 SEED_MF = 42
 
-N_SWEEP_NET_SIZE = 2
+N_SWEEP_NET_SIZE = 10
 N_HIDDEN = np.linspace(10, 100, N_SWEEP_NET_SIZE).astype("int").tolist()
 N_INPUT = [n + 20 - N_HIDDEN[0] for n in N_HIDDEN]
 N_OUTPUT = [n + 10 - N_HIDDEN[0] for n in N_HIDDEN]
 
 NET_SIZE_ZIP = list(zip(N_INPUT, N_HIDDEN, N_OUTPUT))
 
-N_SWEEP_THRESHOLDS = 2
+N_SWEEP_THRESHOLDS = 10
 SPIKE_THRESHOLDS = np.exp(np.linspace(np.log(1e-5), np.log(1e-1), N_SWEEP_THRESHOLDS))
                    #np.append(10.**np.arange(-10, -2),
                    #          np.exp(np.linspace(np.log(1e-2), np.log(5e-1), 15)))
@@ -54,11 +63,12 @@ DEFAULT_ADAM_PARAMS = {
 
 
 params_base = {
+    "name": f"network_job_{JOB_ID}",
     "n_in": None,
     "n_hidden": None,
     "n_out": None,
     "dt": 1.0,
-    "n_runs": 1,
+    "n_runs": 5,
     "n_epochs": N_EPOCHS,
     "n_batch": 64,
     "t_show_pattern": T_SHOW_PATTERN,
@@ -128,15 +138,21 @@ df_runtime = pd.DataFrame(columns=["Runtime", "Sim ID", "Model", "Method",
                                    "Spike Threshold",
                                    "N Input", "N Hidden", "N Output"])
 
-sweep_params = product(models.items(), method_params.items(), NET_SIZE_ZIP, SPIKE_THRESHOLDS)
+sweep_params = list(product(models.items(), method_params.items(), NET_SIZE_ZIP, SPIKE_THRESHOLDS))
 
-n_sweep = len(models) * len(method_params) * len(N_HIDDEN) * len(SPIKE_THRESHOLDS)
+n_sweep = len(sweep_params) # len(models) * len(method_params) * len(N_HIDDEN) * len(SPIKE_THRESHOLDS)
+
+sweep_params_split = split_lst(sweep_params, N_JOBS)
+
+sweep_params_instance = sweep_params_split[JOB_ID]
+
+n_sweep_instance = len(sweep_params_instance)
 
 with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
 
     t0 = time.time()
 
-    for k_sweep, ((model_name, model), (method_name, method_param), net_size_zip, spike_th) in enumerate(sweep_params):
+    for k_sweep, ((model_name, model), (method_name, method_param), net_size_zip, spike_th) in enumerate(sweep_params_instance):
 
         input_train, output_train = randman_dataset_array(net_size_zip[0], net_size_zip[2],
                                                           N_SAMPLES_TRAIN, D_MF, N_CUTOFF, ALPHA,
@@ -227,9 +243,13 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
 
         t1 = time.time()
 
-        t_est_left = ((t1 - t0) / (k_sweep + 1)) * (n_sweep - (k_sweep + 1))
-        file_log.write(time.strftime("%H:%M:%S", time.gmtime(t_est_left)) + "\n")
+        t_est_left = ((t1 - t0) / (k_sweep + 1)) * (n_sweep_instance - (k_sweep + 1))
+        file_log.write(f"Job #{JOB_ID}: " + time.strftime("%H:%M:%S", time.gmtime(t_est_left)) + "\n")
         file_log.flush()
 
-df_learn.to_csv(os.path.join(BASE_FOLD, "df_learn.csv"), index=False)
-df_runtime.to_csv(os.path.join(BASE_FOLD, "df_runtime.csv"), index=False)
+file_learn = os.path.join(BASE_FOLD, "df_learn.csv")
+file_runtime = os.path.join(BASE_FOLD, "df_runtime.csv")
+
+df_learn.to_csv(file_learn, mode="a", index=False, header=not os.path.exists(file_learn))
+df_runtime.to_csv(file_runtime, mode="a", index=False, header=not os.path.exists(file_runtime))
+

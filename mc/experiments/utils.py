@@ -10,6 +10,13 @@ import time
 
 from misc.utils import calc_loss_interp, calc_class_acc_interp
 
+def split_lst(a, n):
+    n_split = max(1,int(len(a)/n))
+    res = []
+    for k in range(n-1):
+        res.append(a[k * n_split:(k+1) * n_split])
+    res.append(a[(n-1) * n_split:])
+    return res
 
 def train_and_test_network(params, network_model, data):
 
@@ -22,6 +29,8 @@ def train_and_test_network(params, network_model, data):
     input_test_flat = input_test.flatten()
     output_test = data["output_test"]
     output_test_flat = output_test.flatten()
+    
+    NETWORK_NAME = params.get("name", "network")
 
     N_IN = params["n_in"]
     N_HIDDEN = params["n_hidden"]
@@ -161,7 +170,7 @@ def train_and_test_network(params, network_model, data):
     loss = np.ndarray((N_TEST_RUN, N_RUNS))
     run_time = np.ndarray((N_RUNS))
 
-    net = Network("network", network_model,
+    net = Network(NETWORK_NAME, network_model,
                     N_IN, N_HIDDEN, N_OUT,  # network size
                     0,  # maximum number of input arrays for external input
                     0,  # spike buffer size
