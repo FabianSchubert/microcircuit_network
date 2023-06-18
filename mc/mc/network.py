@@ -397,7 +397,7 @@ class Network:
             if norm:
                 weightview = synpop.vars["g"].view
                 synpop.pull_var_from_device("g")
-                
+
                 if norm == "lin":
                     normfact = synpop.src.size
                 elif norm == "lin_inv":
@@ -453,7 +453,7 @@ class Network:
         instance of the network itself."""
 
         self.static_twin_net = Network(
-            "static_twin", self.model_def,
+            f"static_twin_{self.name}", self.model_def,
             self.size_input, self.size_hidden, self.size_output,
             self.t_inp_static_max,
             self.spike_buffer_size_val, 0,
