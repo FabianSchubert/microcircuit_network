@@ -37,11 +37,6 @@ N_OUTPUT = [n + 10 - N_HIDDEN[0] for n in N_HIDDEN]
 
 NET_SIZE_ZIP = list(zip(N_INPUT, N_HIDDEN, N_OUTPUT))
 
-N_SWEEP_THRESHOLDS = 10
-SPIKE_THRESHOLDS = np.exp(np.linspace(np.log(1e-5), np.log(1e-1), N_SWEEP_THRESHOLDS))
-                   #np.append(10.**np.arange(-10, -2),
-                   #          np.exp(np.linspace(np.log(1e-2), np.log(5e-1), 15)))
-
 N_SAMPLES_TRAIN = 1500
 N_SAMPLES_TEST = 1000
 
@@ -126,19 +121,17 @@ method_params = {
 }
 
 models = {
-    "Spike": change_detection_spikes #,
-    # "Rate": rates
+    #"Spike": change_detection_spikes #,
+     "Rate": rates
 }
 
 df_learn = pd.DataFrame(columns=["Epoch", "Sim ID", "Accuracy",
                                  "Loss", "Model", "Method",
-                                 "Spike Threshold",
                                  "N Input", "N Hidden", "N Output"])
 df_runtime = pd.DataFrame(columns=["Runtime", "Sim ID", "Model", "Method",
-                                   "Spike Threshold",
                                    "N Input", "N Hidden", "N Output"])
 
-sweep_params = list(product(models.items(), method_params.items(), NET_SIZE_ZIP, SPIKE_THRESHOLDS))
+sweep_params = list(product(models.items(), method_params.items(), NET_SIZE_ZIP))
 
 n_sweep = len(sweep_params) # len(models) * len(method_params) * len(N_HIDDEN) * len(SPIKE_THRESHOLDS)
 
@@ -152,7 +145,7 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
 
     t0 = time.time()
 
-    for k_sweep, ((model_name, model), (method_name, method_param), net_size_zip, spike_th) in enumerate(sweep_params_instance):
+    for k_sweep, ((model_name, model), (method_name, method_param), net_size_zip) in enumerate(sweep_params_instance):
 
         input_train, output_train = randman_dataset_array(net_size_zip[0], net_size_zip[2],
                                                           N_SAMPLES_TRAIN, D_MF, N_CUTOFF, ALPHA,
@@ -168,11 +161,6 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
         _tmp_params = params_base | method_param | {"n_in": net_size_zip[0],
                                                     "n_hidden": [net_size_zip[1]],
                                                     "n_out": net_size_zip[2]}
-
-        model.neurons.pyr.mod_dat["param_space"]["th"] = spike_th
-        model.neurons.output.mod_dat["param_space"]["th"] = spike_th
-        model.neurons.int.mod_dat["param_space"]["th"] = spike_th
-        model.neurons.input.mod_dat["param_space"]["th"] = spike_th
 
         epoch_ax, acc, loss, rec_neur, rec_syn, run_time = train_and_test_network(_tmp_params,
                                                             model, data)
@@ -204,7 +192,7 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
                                 "Loss": loss.flatten(),
                                 "Model": model_name,
                                 "Method": method_name,
-                                "Spike Threshold": spike_th,
+                                "Spike Threshold": 0,
                                 "N Input": net_size_zip[0],
                                 "N Hidden": net_size_zip[1],
                                 "N Output": net_size_zip[2]
@@ -222,7 +210,7 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
                                 "Self-Prediction Bias Alignment": b_self_pred_aln.flatten(),
                                 "Model": model_name,
                                 "Method": method_name,
-                                "Spike Threshold": spike_th,
+                                "Spike Threshold": 0,
                                 "N Input": net_size_zip[0],
                                 "N Hidden": net_size_zip[1],
                                 "N Output": net_size_zip[2]
@@ -235,7 +223,7 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
                  "Sim ID": np.arange(params_base["n_runs"]),
                  "Model": model_name,
                  "Method": method_name,
-                 "Spike Threshold": spike_th,
+                 "Spike Threshold": 0,
                  "N Input": net_size_zip[0],
                  "N Hidden": net_size_zip[1],
                  "N Output": net_size_zip[2]}
@@ -247,8 +235,8 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
         file_log.write(f"Job #{JOB_ID}: " + time.strftime("%H:%M:%S", time.gmtime(t_est_left)) + "\n")
         file_log.flush()
 
-file_learn = os.path.join(BASE_FOLD, "df_learn.csv")
-file_runtime = os.path.join(BASE_FOLD, "df_runtime.csv")
+file_learn = os.path.join(BASE_FOLD, "df_learn_rate.csv")
+file_runtime = os.path.join(BASE_FOLD, "df_runtime_rate.csv")
 
 df_learn.to_csv(file_learn, mode="a", index=False, header=not os.path.exists(file_learn))
 df_runtime.to_csv(file_runtime, mode="a", index=False, header=not os.path.exists(file_runtime))

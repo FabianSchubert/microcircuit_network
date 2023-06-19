@@ -1,0 +1,190 @@
+	Python3 anaconda is now loaded in your environment. 
+	For all commands you should now do the following: 
+	source $condaDotFile
+
+	GCC 9.1.0 environment now loaded
+
+	CUDA-11.0 loaded
+
+	Swig-4.0.2 loaded
+
+	OpenMPI 4.0.5, built with GCC, UCX and CUDA, is now loaded in your
+environment. 
+	Documentation can be found online at http://www.open-mpi.org/doc/
+
+	Nano-5.3 loaded
+
+-------------------------------------------------------------------------------
+There are messages associated with the following module(s):
+-------------------------------------------------------------------------------
+
+use.dev:
+   Meta-module to load development software, e.g. various compiler versions.
+-------------------------------------------------------------------------------
+
+/jmain02/home/J2AD005/jck01/fxs62-jck01/repos/microcircuit_network/mc/data/randman/dataset.py:6: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+  def f(x, th_a, th_b, th_c, alpha, m, d, n_c):
+./network_job_9_CODE/neuronUpdateCUDAOptim.cc(284): warning: variable "Isyn" was declared but never referenced
+
+./network_job_9_CODE/neuronUpdateCUDAOptim.cc(359): warning: variable "lb" was declared but never referenced
+
+./network_job_9_CODE/synapseUpdateCUDAOptim.cc(93): warning: variable "synBatchOffset" was declared but never referenced
+
+./network_job_9_CODE/synapseUpdateCUDAOptim.cc(110): warning: variable "synBatchOffset" was declared but never referenced
+
+./network_job_9_CODE/synapseUpdateCUDAOptim.cc(93): warning: variable "synBatchOffset" was declared but never referenced
+
+./network_job_9_CODE/synapseUpdateCUDAOptim.cc(110): warning: variable "synBatchOffset" was declared but never referenced
+
+./network_job_9_CODE/neuronUpdateCUDAOptim.cc(284): warning: variable "Isyn" was declared but never referenced
+
+./network_job_9_CODE/neuronUpdateCUDAOptim.cc(359): warning: variable "lb" was declared but never referenced
+
+make: Entering directory `/jmain02/home/J2AD005/jck01/fxs62-jck01/repos/microcircuit_network/mc/network_job_9_CODE'
+make: Leaving directory `/jmain02/home/J2AD005/jck01/fxs62-jck01/repos/microcircuit_network/mc/network_job_9_CODE'
+make: Entering directory `/jmain02/home/J2AD005/jck01/fxs62-jck01/repos/microcircuit_network/mc/network_job_9_CODE'
+neuronUpdate.cc(284): warning: variable "Isyn" was declared but never referenced
+
+neuronUpdate.cc(359): warning: variable "lb" was declared but never referenced
+
+synapseUpdate.cc(93): warning: variable "synBatchOffset" was declared but never referenced
+
+synapseUpdate.cc(110): warning: variable "synBatchOffset" was declared but never referenced
+
+make: Leaving directory `/jmain02/home/J2AD005/jck01/fxs62-jck01/repos/microcircuit_network/mc/network_job_9_CODE'
+./static_twin_network_job_9_CODE/neuronUpdateCUDAOptim.cc(178): warning: variable "lb" was declared but never referenced
+
+./static_twin_network_job_9_CODE/neuronUpdateCUDAOptim.cc(350): warning: variable "Isyn" was declared but never referenced
+
+./static_twin_network_job_9_CODE/neuronUpdateCUDAOptim.cc(178): warning: variable "lb" was declared but never referenced
+
+./static_twin_network_job_9_CODE/neuronUpdateCUDAOptim.cc(350): warning: variable "Isyn" was declared but never referenced
+
+make: Entering directory `/jmain02/home/J2AD005/jck01/fxs62-jck01/repos/microcircuit_network/mc/static_twin_network_job_9_CODE'
+make: Leaving directory `/jmain02/home/J2AD005/jck01/fxs62-jck01/repos/microcircuit_network/mc/static_twin_network_job_9_CODE'
+make: Entering directory `/jmain02/home/J2AD005/jck01/fxs62-jck01/repos/microcircuit_network/mc/static_twin_network_job_9_CODE'
+neuronUpdate.cc(178): warning: variable "lb" was declared but never referenced
+
+neuronUpdate.cc(350): warning: variable "Isyn" was declared but never referenced
+
+make: Leaving directory `/jmain02/home/J2AD005/jck01/fxs62-jck01/repos/microcircuit_network/mc/static_twin_network_job_9_CODE'
+  0%|          | 0/1 [00:00<?, ?it/s]
+  0%|          | 0/1800 [00:00<?, ?it/s][A
+  5%|▌         | 92/1800 [00:00<00:01, 916.84it/s][A
+ 11%|█         | 192/1800 [00:00<00:01, 947.08it/s][A
+ 16%|█▋        | 297/1800 [00:00<00:01, 984.43it/s][A
+ 23%|██▎       | 408/1800 [00:00<00:01, 1016.48it/s][A
+ 29%|██▉       | 528/1800 [00:00<00:01, 1073.41it/s][A
+ 36%|███▋      | 653/1800 [00:00<00:01, 1123.69it/s][A
+ 44%|████▎     | 784/1800 [00:00<00:00, 1180.76it/s][A
+ 51%|█████▏    | 924/1800 [00:00<00:00, 1242.61it/s][A
+ 59%|█████▉    | 1069/1800 [00:00<00:00, 1295.37it/s][A
+ 68%|██████▊   | 1220/1800 [00:01<00:00, 1354.95it/s][A
+ 76%|███████▋  | 1375/1800 [00:01<00:00, 1400.54it/s][A
+ 85%|████████▌ | 1531/1800 [00:01<00:00, 1437.02it/s][A
+ 94%|█████████▎| 1686/1800 [00:01<00:00, 1461.54it/s][A
+                                                     [A
+  0%|          | 0/1800 [00:00<?, ?it/s][A
+  8%|▊         | 152/1800 [00:00<00:01, 1506.09it/s][A
+ 17%|█▋        | 306/1800 [00:00<00:00, 1525.89it/s][A
+ 26%|██▌       | 459/1800 [00:00<00:00, 1506.00it/s][A
+ 34%|███▍      | 613/1800 [00:00<00:00, 1503.64it/s][A
+ 42%|████▏     | 764/1800 [00:00<00:00, 1505.08it/s][A
+ 51%|█████     | 919/1800 [00:00<00:00, 1506.26it/s][A
+ 60%|█████▉    | 1074/1800 [00:00<00:00, 1506.85it/s][A
+ 68%|██████▊   | 1225/1800 [00:00<00:00, 1506.29it/s][A
+ 77%|███████▋  | 1380/1800 [00:00<00:00, 1506.32it/s][A
+ 85%|████████▌ | 1531/1800 [00:01<00:00, 1506.88it/s][A
+ 94%|█████████▎| 1686/1800 [00:01<00:00, 1506.56it/s][A
+                                                     [A
+  0%|          | 0/1800 [00:00<?, ?it/s][A
+  8%|▊         | 152/1800 [00:00<00:01, 1508.69it/s][A
+ 17%|█▋        | 307/1800 [00:00<00:00, 1508.06it/s][A
+ 25%|██▌       | 458/1800 [00:00<00:00, 1507.25it/s][A
+ 34%|███▍      | 613/1800 [00:00<00:00, 1507.22it/s][A
+ 42%|████▏     | 764/1800 [00:00<00:00, 1507.38it/s][A
+ 51%|█████     | 919/1800 [00:00<00:00, 1508.02it/s][A
+ 60%|█████▉    | 1074/1800 [00:00<00:00, 1508.10it/s][A
+ 68%|██████▊   | 1225/1800 [00:00<00:00, 1507.51it/s][A
+ 77%|███████▋  | 1380/1800 [00:00<00:00, 1506.99it/s][A
+ 85%|████████▌ | 1531/1800 [00:01<00:00, 1506.43it/s][A
+ 94%|█████████▎| 1686/1800 [00:01<00:00, 1507.17it/s][A
+                                                     [A
+  0%|          | 0/1800 [00:00<?, ?it/s][A
+  8%|▊         | 152/1800 [00:00<00:01, 1497.27it/s][A
+ 17%|█▋        | 307/1800 [00:00<00:00, 1500.84it/s][A
+ 25%|██▌       | 458/1800 [00:00<00:00, 1500.88it/s][A
+ 34%|███▍      | 613/1800 [00:00<00:00, 1501.31it/s][A
+ 42%|████▏     | 764/1800 [00:00<00:00, 1502.02it/s][A
+ 51%|█████     | 918/1800 [00:00<00:00, 1514.77it/s][A
+ 59%|█████▉    | 1070/1800 [00:00<00:00, 1502.75it/s][A
+ 68%|██████▊   | 1221/1800 [00:00<00:00, 1504.89it/s][A
+ 76%|███████▋  | 1375/1800 [00:00<00:00, 1503.08it/s][A
+ 85%|████████▍ | 1526/1800 [00:01<00:00, 1502.28it/s][A
+ 93%|█████████▎| 1681/1800 [00:01<00:00, 1502.23it/s][A
+                                                     [A
+  0%|          | 0/1800 [00:00<?, ?it/s][A
+  8%|▊         | 152/1800 [00:00<00:01, 1499.36it/s][A
+ 17%|█▋        | 302/1800 [00:00<00:00, 1499.01it/s][A
+ 25%|██▌       | 453/1800 [00:00<00:00, 1500.68it/s][A
+ 34%|███▍      | 608/1800 [00:00<00:00, 1502.20it/s][A
+ 42%|████▏     | 759/1800 [00:00<00:00, 1500.95it/s][A
+ 51%|█████     | 914/1800 [00:00<00:00, 1501.42it/s][A
+ 59%|█████▉    | 1069/1800 [00:00<00:00, 1501.63it/s][A
+ 68%|██████▊   | 1220/1800 [00:00<00:00, 1501.70it/s][A
+ 76%|███████▋  | 1373/1800 [00:00<00:00, 1510.30it/s][A
+ 85%|████████▍ | 1525/1800 [00:01<00:00, 1512.77it/s][A
+ 93%|█████████▎| 1677/1800 [00:01<00:00, 1502.39it/s][A
+                                                     [A
+  0%|          | 0/1800 [00:00<?, ?it/s][A
+  8%|▊         | 152/1800 [00:00<00:01, 1505.79it/s][A
+ 17%|█▋        | 303/1800 [00:00<00:00, 1507.44it/s][A
+ 25%|██▌       | 454/1800 [00:00<00:00, 1507.20it/s][A
+ 34%|███▍      | 608/1800 [00:00<00:00, 1503.28it/s][A
+ 42%|████▏     | 759/1800 [00:00<00:00, 1504.10it/s][A
+ 51%|█████     | 910/1800 [00:00<00:00, 1505.30it/s][A
+ 59%|█████▉    | 1064/1800 [00:00<00:00, 1502.25it/s][A
+ 68%|██████▊   | 1215/1800 [00:00<00:00, 1502.40it/s][A
+ 76%|███████▌  | 1370/1800 [00:00<00:00, 1501.91it/s][A
+ 84%|████████▍ | 1521/1800 [00:01<00:00, 1501.10it/s][A
+ 93%|█████████▎| 1672/1800 [00:01<00:00, 1503.72it/s][A
+                                                     [A
+  0%|          | 0/1800 [00:00<?, ?it/s][A
+  8%|▊         | 152/1800 [00:00<00:01, 1502.81it/s][A
+ 17%|█▋        | 307/1800 [00:00<00:00, 1503.37it/s][A
+ 25%|██▌       | 458/1800 [00:00<00:00, 1503.40it/s][A
+ 34%|███▍      | 609/1800 [00:00<00:00, 1504.42it/s][A
+ 42%|████▏     | 760/1800 [00:00<00:00, 1505.24it/s][A
+ 51%|█████     | 914/1800 [00:00<00:00, 1502.58it/s][A
+ 59%|█████▉    | 1069/1800 [00:00<00:00, 1503.42it/s][A
+ 68%|██████▊   | 1220/1800 [00:00<00:00, 1502.72it/s][A
+ 76%|███████▋  | 1375/1800 [00:00<00:00, 1503.28it/s][A
+ 85%|████████▍ | 1526/1800 [00:01<00:00, 1503.54it/s][A
+ 93%|█████████▎| 1681/1800 [00:01<00:00, 1503.88it/s][A
+                                                     [A
+  0%|          | 0/1800 [00:00<?, ?it/s][A
+  8%|▊         | 152/1800 [00:00<00:01, 1505.57it/s][A
+ 17%|█▋        | 307/1800 [00:00<00:00, 1506.46it/s][A
+ 25%|██▌       | 458/1800 [00:00<00:00, 1504.81it/s][A
+ 34%|███▍      | 613/1800 [00:00<00:00, 1503.90it/s][A
+ 42%|████▏     | 764/1800 [00:00<00:00, 1503.04it/s][A
+ 51%|█████     | 919/1800 [00:00<00:00, 1504.10it/s][A
+ 60%|█████▉    | 1074/1800 [00:00<00:00, 1504.57it/s][A
+ 68%|██████▊   | 1225/1800 [00:00<00:00, 1505.69it/s][A
+ 77%|███████▋  | 1380/1800 [00:00<00:00, 1508.10it/s][A
+ 85%|████████▌ | 1536/1800 [00:01<00:00, 1509.49it/s][A
+ 94%|█████████▍| 1691/1800 [00:01<00:00, 1509.80it/s][A
+                                                     [A
+  0%|          | 0/1800 [00:00<?, ?it/s][A
+  8%|▊         | 152/1800 [00:00<00:01, 1508.21it/s][A
+ 17%|█▋        | 307/1800 [00:00<00:00, 1507.16it/s][A
+ 26%|██▌       | 461/1800 [00:00<00:00, 1521.94it/s][A
+ 34%|███▍      | 614/1800 [00:00<00:00, 1510.62it/s][A
+ 43%|████▎     | 769/1800 [00:00<00:00, 1508.38it/s][A
+ 51%|█████▏    | 924/1800 [00:00<00:00, 1508.69it/s][A
+ 60%|█████▉    | 1079/1800 [00:00<00:00, 1508.76it/s][A
+ 68%|██████▊   | 1230/1800 [00:00<00:00, 1508.68it/s][A
+ 77%|███████▋  | 1385/1800 [00:00<00:00, 1508.65it/s][A
+ 85%|████████▌ | 1536/1800 [00:01<00:00, 1507.62it/s][A
+ 94%|█████████▍| 1691/1800 [00:01<00:00, 1508.25it/s][A
+                                                     [Aslurmstepd: error: *** JOB 498964 ON dgk819 CANCELLED AT 2023-06-19T15:11:11 ***
