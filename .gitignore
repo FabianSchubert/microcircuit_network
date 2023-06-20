@@ -1,3 +1,6 @@
+# ignore output log files
+*.out
+
 # ignore plots
 *.png
 

@@ -68,6 +68,7 @@ params_base = {
     "n_batch": 64,
     "t_show_pattern": T_SHOW_PATTERN,
     "n_test_run": 20,
+    "cuda_visible_devices": True,
     "train_readout_syn": [
         ("syn_hidden0_pyr_pop_to_output_output_pop", "g", AX_REC_MOD_PARAMS),
         ("syn_output_output_pop_to_hidden0_pyr_pop", "g", AX_REC_MOD_PARAMS),
@@ -140,6 +141,10 @@ sweep_params_split = split_lst(sweep_params, N_JOBS)
 sweep_params_instance = sweep_params_split[JOB_ID]
 
 n_sweep_instance = len(sweep_params_instance)
+
+for k in range(n_sweep_instance):
+	size = sweep_params_instance[k][-1]
+	print(f"Job ID: {JOB_ID}, {size[0]}, {size[1]}, {size[2]}")
 
 with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
 

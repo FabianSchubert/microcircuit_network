@@ -31,6 +31,8 @@ def train_and_test_network(params, network_model, data):
     output_test_flat = output_test.flatten()
     
     NETWORK_NAME = params.get("name", "network")
+    
+    CUDA_VISIBLE_DEVICES = params.get("cuda_visible_devices", False)    
 
     N_IN = params["n_in"]
     N_HIDDEN = params["n_hidden"]
@@ -185,7 +187,8 @@ def train_and_test_network(params, network_model, data):
                     cs_out_init_static_twin=cs_out_test,
                     plastic=True,
                     dt=DT,
-                    optimizer_params=OPTIMIZER_PARAMS
+                    optimizer_params=OPTIMIZER_PARAMS,
+		    cuda_visible_devices=CUDA_VISIBLE_DEVICES
                     )
 
     readout_arrays = {}
