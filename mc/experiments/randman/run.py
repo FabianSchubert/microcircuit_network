@@ -18,8 +18,11 @@ from tqdm import tqdm
 
 import time
 
-JOB_ID = int(sys.argv[1])
-N_JOBS = int(sys.argv[2])
+JOB_ID = int(sys.argv[2])
+N_JOBS = int(sys.argv[3])
+MODEL = sys.argv[1]
+
+assert MODEL in ("spike", "rate"), "Model parameter must be either 'spike' or 'rate'"
 
 # print(f"job id: {JOB_ID}")
 # print(f"n jobs: {N_JOBS}")
@@ -30,17 +33,18 @@ ALPHA = 1.0
 
 SEED_MF = 42
 
+N_SWEEP_THRESHOLD = 10
+if MODEL=="spike":
+    SPIKE_THRESHOLDS = np.exp(np.linspace(np.log(1e-5), np.log(1e-1), N_SWEEP_THRESHOLD))
+else:
+    SPIKE_THRESHOLDS = np.array([0.0])
+
 N_SWEEP_NET_SIZE = 10
 N_HIDDEN = np.linspace(10, 300, N_SWEEP_NET_SIZE).astype("int").tolist()
 N_INPUT = [n + 20 - N_HIDDEN[0] for n in N_HIDDEN]
 N_OUTPUT = [n + 10 - N_HIDDEN[0] for n in N_HIDDEN]
 
 NET_SIZE_ZIP = list(zip(N_INPUT, N_HIDDEN, N_OUTPUT))
-
-N_SWEEP_THRESHOLDS = 10
-SPIKE_THRESHOLDS = np.exp(np.linspace(np.log(1e-5), np.log(1e-1), N_SWEEP_THRESHOLDS))
-                   #np.append(10.**np.arange(-10, -2),
-                   #          np.exp(np.linspace(np.log(1e-2), np.log(5e-1), 15)))
 
 N_SAMPLES_TRAIN = 1500
 N_SAMPLES_TEST = 1000
@@ -73,6 +77,7 @@ params_base = {
     "n_batch": 64,
     "t_show_pattern": T_SHOW_PATTERN,
     "n_test_run": 20,
+    "cuda_visible_devices": True,
     "train_readout_syn": [
         ("syn_hidden0_pyr_pop_to_output_output_pop", "g", AX_REC_MOD_PARAMS),
         ("syn_output_output_pop_to_hidden0_pyr_pop", "g", AX_REC_MOD_PARAMS),
@@ -125,17 +130,12 @@ method_params = {
     "Backprop": params_backprop
 }
 
-models = {
-    "Spike": change_detection_spikes #,
-    # "Rate": rates
-}
+models = {"Spike": change_detection_spikes} if MODEL=="spike" else {"Rate": rates}
 
 df_learn = pd.DataFrame(columns=["Epoch", "Sim ID", "Accuracy",
                                  "Loss", "Model", "Method",
-                                 "Spike Threshold",
                                  "N Input", "N Hidden", "N Output"])
 df_runtime = pd.DataFrame(columns=["Runtime", "Sim ID", "Model", "Method",
-                                   "Spike Threshold",
                                    "N Input", "N Hidden", "N Output"])
 
 sweep_params = list(product(models.items(), method_params.items(), NET_SIZE_ZIP, SPIKE_THRESHOLDS))
@@ -147,6 +147,10 @@ sweep_params_split = split_lst(sweep_params, N_JOBS)
 sweep_params_instance = sweep_params_split[JOB_ID]
 
 n_sweep_instance = len(sweep_params_instance)
+
+for k in range(n_sweep_instance):
+	size = sweep_params_instance[k][-2]
+	print(f"Job ID: {JOB_ID}, {size[0]}, {size[1]}, {size[2]}")
 
 with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
 
@@ -168,11 +172,11 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
         _tmp_params = params_base | method_param | {"n_in": net_size_zip[0],
                                                     "n_hidden": [net_size_zip[1]],
                                                     "n_out": net_size_zip[2]}
-
-        model.neurons.pyr.mod_dat["param_space"]["th"] = spike_th
-        model.neurons.output.mod_dat["param_space"]["th"] = spike_th
-        model.neurons.int.mod_dat["param_space"]["th"] = spike_th
-        model.neurons.input.mod_dat["param_space"]["th"] = spike_th
+        if MODEL=="spike":
+            model.neurons.pyr.mod_dat["param_space"]["th"] = spike_th
+            model.neurons.output.mod_dat["param_space"]["th"] = spike_th
+            model.neurons.int.mod_dat["param_space"]["th"] = spike_th
+            model.neurons.input.mod_dat["param_space"]["th"] = spike_th
 
         epoch_ax, acc, loss, rec_neur, rec_syn, run_time = train_and_test_network(_tmp_params,
                                                             model, data)
@@ -247,9 +251,9 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
         file_log.write(f"Job #{JOB_ID}: " + time.strftime("%H:%M:%S", time.gmtime(t_est_left)) + "\n")
         file_log.flush()
 
-file_learn = os.path.join(BASE_FOLD, "df_learn.csv")
-file_runtime = os.path.join(BASE_FOLD, "df_runtime.csv")
+file_learn = os.path.join(BASE_FOLD, f"results_data/df_learn_{MODEL}_{JOB_ID}.csv")
+file_runtime = os.path.join(BASE_FOLD, f"results_data/df_runtime_rate_{MODEL}_{JOB_ID}.csv")
 
-df_learn.to_csv(file_learn, mode="a", index=False, header=not os.path.exists(file_learn))
-df_runtime.to_csv(file_runtime, mode="a", index=False, header=not os.path.exists(file_runtime))
+df_learn.to_csv(file_learn)
+df_runtime.to_csv(file_runtime)
 
