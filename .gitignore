@@ -1,3 +1,6 @@
+# ignore zipped files
+*.zip
+
 # ignore output log files
 *.out
 
