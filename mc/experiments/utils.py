@@ -18,7 +18,7 @@ def split_lst(a, n):
     res.append(a[(n-1) * n_split:])
     return res
 
-def train_and_test_network(params, network_model, data):
+def train_and_test_network(params, network_model, data, show_progress=False):
 
     input_train = data["input_train"]
     input_train_flat = input_train.flatten()
@@ -207,7 +207,7 @@ def train_and_test_network(params, network_model, data):
                     data_validation=PARAMS_TEST_RUN,
                     NT_skip_batch_plast=NT_SKIP_BATCH_PLAST,
                     force_self_pred_state=FORCE_SELF_PRED_STATE,
-                    force_fb_align=FORCE_FB_ALIGN,show_progress=False)
+                    force_fb_align=FORCE_FB_ALIGN,show_progress=show_progress)
 
         t1 = time.time()
 

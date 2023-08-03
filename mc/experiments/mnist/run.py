@@ -32,8 +32,8 @@ params_base = {
     "n_in": 784,
     "n_hidden": [100],
     "n_out": 10,
-    "dt": 1.0,
-    "n_runs": 10,
+    "dt": 0.5,
+    "n_runs": 1,
     "n_epochs": 50,
     "n_batch": 128,
     "t_show_pattern": 150.,
@@ -76,13 +76,13 @@ params_fb_align = dict(params_base) | {"force_self_pred_state": True,
                                        "force_fb_align": True}
 
 method_params = {
-    "Random Feedback": params_rnd_fb,
-    "Feedback Align": params_fb_align
+    "Random Feedback": params_rnd_fb#,
+    #"Feedback Align": params_fb_align
 }
 
 models = {
     "Spike": change_detection_spikes,
-    "Rate": rates
+    #"Rate": rates
 }
 
 df_learn = pd.DataFrame(columns=["Epoch", "Sim ID", "Accuracy",
@@ -92,7 +92,7 @@ df_runtime = pd.DataFrame(columns=["Runtime", "Sim ID",
 
 for (model_name, model), (method_name, method_param) in product(models.items(), method_params.items()):
 
-    epoch_ax, acc, loss, run_time = train_and_test_network(method_param, model, data)
+    epoch_ax, acc, loss, _, _, run_time = train_and_test_network(method_param, model, data, show_progress=True)
 
     df_learn = pd.concat([df_learn,
                           pd.DataFrame({
