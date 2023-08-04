@@ -3,14 +3,23 @@ import pandas as pd
 
 import os
 
+import sys
+
+import time
+
 from models.latent_equ import change_detection_spikes, rates
 
 from data.mnist.dataset import (input_train, output_train,
                                 input_test, output_test)
 
-from ..utils import train_and_test_network
+from ..utils import train_and_test_network, split_lst
 
 from itertools import product
+
+JOB_ID = int(sys.argv[1])
+N_JOBS = int(sys.argv[2])
+
+N_RUNS = 10
 
 data = dict(zip(["input_train", "output_train", "input_test", "output_test"],
                 [input_train, output_train, input_test, output_test]))
@@ -70,19 +79,19 @@ params_base = {
     }
 }  #'''
 
-params_rnd_fb = dict(params_base) | {"force_self_pred_state": False,
+params_fb_align = dict(params_base) | {"force_self_pred_state": False,
                                      "force_fb_align": False}
-params_fb_align = dict(params_base) | {"force_self_pred_state": True,
+params_backprop = dict(params_base) | {"force_self_pred_state": True,
                                        "force_fb_align": True}
 
 method_params = {
-    "Random Feedback": params_rnd_fb#,
-    #"Feedback Align": params_fb_align
+    "Feefback Align": params_fb_align,
+    "Backprop": params_backprop
 }
 
 models = {
     "Spike": change_detection_spikes,
-    #"Rate": rates
+    "Rate": rates
 }
 
 df_learn = pd.DataFrame(columns=["Epoch", "Sim ID", "Accuracy",
@@ -90,29 +99,51 @@ df_learn = pd.DataFrame(columns=["Epoch", "Sim ID", "Accuracy",
 df_runtime = pd.DataFrame(columns=["Runtime", "Sim ID",
                                    "Model", "Method"])
 
-for (model_name, model), (method_name, method_param) in product(models.items(), method_params.items()):
+params_list = list(product(models.items(), method_params.items(), range(N_RUNS)))
 
-    epoch_ax, acc, loss, _, _, run_time = train_and_test_network(method_param, model, data, show_progress=True)
+n_params = len(params_list)
 
-    df_learn = pd.concat([df_learn,
-                          pd.DataFrame({
-                            "Epoch": np.repeat(epoch_ax, params_base["n_runs"]),
-                            "Sim ID": np.tile(np.arange(params_base["n_runs"]),
-                                              params_base["n_test_run"]),
-                            "Accuracy": acc.flatten(),
-                            "Loss": loss.flatten(),
-                            "Model": model_name,
-                            "Method": method_name
-                          })], ignore_index=True)
+params_split = split_lst(params_list, N_JOBS)
 
-    df_runtime = pd.concat(
-       [df_runtime,
-        pd.DataFrame(
-            {"Runtime": run_time,
-             "Sim ID": np.arange(params_base["n_runs"]),
-             "Model": model_name,
-             "Method": method_name}
-        )], ignore_index=True)
+params_instance = params_split[JOB_ID]
 
-df_learn.to_csv(os.path.join(BASE_FOLD, "df_learn.csv"), index=False)
-df_runtime.to_csv(os.path.join(BASE_FOLD, "df_runtime.csv"), index=False)
+n_params_instance = len(params_instance)
+
+with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
+
+    t0 = time.time()
+
+    for k_sweep, ((model_name, model), (method_name, method_param), sim_id) in enumerate(params_instance):
+
+        epoch_ax, acc, loss, _, _, run_time = train_and_test_network(method_param, model, data, show_progress=True)
+
+        df_learn = pd.concat([df_learn,
+                              pd.DataFrame({
+                                "Epoch": epoch_ax,
+                                "Sim ID": sim_id,
+                                "Accuracy": acc.flatten(),
+                                "Loss": loss.flatten(),
+                                "Model": model_name,
+                                "Method": method_name
+                              })], ignore_index=True)
+
+        df_runtime = pd.concat(
+           [df_runtime,
+            pd.DataFrame(
+                {"Runtime": run_time,
+                 "Sim ID": sim_id,
+                 "Model": model_name,
+                 "Method": method_name}
+            )], ignore_index=True)
+
+        t1 = time.time()
+
+        t_est_left = ((t1 - t0) / (k_sweep + 1)) * (n_params_instance - (k_sweep + 1))
+        file_log.write(f"Job #{JOB_ID}: " + time.strftime("%H:%M:%S", time.gmtime(t_est_left)) + "\n")
+        file_log.flush()
+
+file_learn = os.path.join(BASE_FOLD, f"results_data/df_learn_{MODEL}_{JOB_ID}.csv")
+file_runtime = os.path.join(BASE_FOLD, f"results_data/df_runtime_rate_{MODEL}_{JOB_ID}.csv")
+
+df_learn.to_csv(file_learn, index=False)
+df_runtime.to_csv(file_runtime, index=False)
