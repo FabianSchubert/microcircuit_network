@@ -3,7 +3,7 @@ import pandas as pd
 
 import os
 
-from models.mnist import change_detection_spikes as network_model
+from models.latent_equ import change_detection_spikes as network_model
 
 from data.mnist.dataset import (input_train, output_train,
                                 input_test, output_test)
