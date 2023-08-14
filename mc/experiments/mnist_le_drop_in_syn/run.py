@@ -7,7 +7,7 @@ import sys
 
 import time
 
-from models.latent_equ import change_detection_spikes, rates
+from models.drop_in_synapses import change_detection_spikes, rates
 
 from data.mnist.dataset import (input_train, output_train,
                                 input_test, output_test)
@@ -43,7 +43,7 @@ params_base = {
     "n_out": 10,
     "dt": 0.25,
     "n_runs": 1,
-    "n_epochs": 30,
+    "n_epochs": 50,
     "n_batch": 128,
     "t_show_pattern": 150.,
     "n_test_run": 10,
@@ -143,7 +143,7 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
         file_log.flush()
 
 file_learn = os.path.join(BASE_FOLD, f"results_data/df_learn_{JOB_ID}.csv")
-file_runtime = os.path.join(BASE_FOLD, f"results_data/df_runtime_rate_{JOB_ID}.csv")
+file_runtime = os.path.join(BASE_FOLD, f"results_data/df_runtime_{JOB_ID}.csv")
 
 df_learn.to_csv(file_learn, index=False)
 df_runtime.to_csv(file_runtime, index=False)

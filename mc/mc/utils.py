@@ -122,7 +122,7 @@ def merge_wu_def(class_name, def_1, def_2):
         def_1 = {}
     if def_2 is None:
         def_2 = {}
-    
+
     wu_def = {
         "class_name": class_name
     }

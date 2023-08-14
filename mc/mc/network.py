@@ -135,17 +135,17 @@ class Network:
     cs_in_init_static_twin: InitVar[typing.Any] = None
     cs_out_init_static_twin: InitVar[typing.Any] = None
     optimizer_params: dict = field(default_factory=lambda: {})
-    cuda_visible_devices: bool = False	
+    cuda_visible_devices: bool = False
 
     def __post_init__(self, cs_in_init, cs_out_init,
                       cs_in_init_static_twin, cs_out_init_static_twin):
-	
+
         kwargs = {}
 
         if self.cuda_visible_devices:
             from pygenn.genn_wrapper.CUDABackend import DeviceSelect_MANUAL
             kwargs["selectGPUByDeviceID"] = True
-            kwargs["deviceSelectMethod"] = DeviceSelect_MANUAL	    
+            kwargs["deviceSelectMethod"] = DeviceSelect_MANUAL
 
         self.genn_model = GeNNModel("float", self.name, backend="CUDA", **kwargs)
 
