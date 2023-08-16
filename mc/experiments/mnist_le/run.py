@@ -143,7 +143,7 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
         file_log.flush()
 
 file_learn = os.path.join(BASE_FOLD, f"results_data/df_learn_{JOB_ID}.csv")
-file_runtime = os.path.join(BASE_FOLD, f"results_data/df_runtime_rate_{JOB_ID}.csv")
+file_runtime = os.path.join(BASE_FOLD, f"results_data/df_runtime_{JOB_ID}.csv")
 
 df_learn.to_csv(file_learn, index=False)
 df_runtime.to_csv(file_runtime, index=False)

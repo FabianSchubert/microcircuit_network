@@ -13,8 +13,8 @@ wu_var_space_transmit = dict(WU_VAR_SPACE_TRANSMIT)
 WEIGHT_SCALE = 1.0
 wu_var_space_transmit["g"] = init_var("Uniform", {"min": -WEIGHT_SCALE, "max": WEIGHT_SCALE})
 
-#f = "$(r_pre) * $(d_ra_post)"
-f = None
+f = "$(r_pre) * $(d_ra_post)"
+#f = None
 
 w_update_model_plast = generate_event_plast_wu_dict("weight_update_model_inp_to_pyr", f)
 wu_param_space_plast = dict(WU_PARAM_SPACE_PLAST)

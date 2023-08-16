@@ -43,7 +43,7 @@ params_base = {
     "n_out": 10,
     "dt": 0.25,
     "n_runs": 1,
-    "n_epochs": 50,
+    "n_epochs": 30,
     "n_batch": 128,
     "t_show_pattern": 150.,
     "n_test_run": 10,

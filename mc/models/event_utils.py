@@ -73,9 +73,12 @@ def generate_event_plast_wu_dict(name, f, params=[], extra_vars=[]):
 
             const scalar dg_temp = {f_prev};
 
-            $(dg) += ($(t) - max(0.0,$(prev_sT_pre))) * ($(dg_prev) + dg_temp) * 0.5;
+            //$(dg) += ($(t) - max(0.0,$(prev_sT_pre))) * (dg_temp + $(dg_prev)) * 0.5;
 
-            $(dg_prev) = {f};
+            // previous version:
+            $(dg) += ($(t) - max(0.0,$(prev_sT_pre))) * (dg_temp);
+
+            //$(dg_prev) = {f};
         """
         spk_requ = True
 
