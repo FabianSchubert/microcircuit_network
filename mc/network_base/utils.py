@@ -1,12 +1,8 @@
 #! /usr/bin/env python3
 
-from pygenn.genn_wrapper.Models import VarAccess_REDUCE_BATCH_SUM, VarAccessMode_READ_ONLY
+from pygenn.genn_wrapper.Models import VarAccess_REDUCE_BATCH_SUM
 
 from pygenn.genn_model import create_custom_custom_update_class
-
-act_func = lambda x: f'log(1.0+exp(1.0*({x})))'
-# act_func = lambda x: f'tanh({x})'
-# act_func = lambda x: f'{x}'
 
 param_change_batch_reduce = create_custom_custom_update_class(
     "param_change_batch_reduce",
@@ -74,15 +70,21 @@ optimizers = {
     }
 }
 
+
 def merge_dicts(dict_1, dict_2):
 
     return dict_1 | dict_2
 
 
-
 def merge_dict_list_strings(dict_1, dict_2, key):
     '''
-    
+    given two dicts and a key, return the union of
+    of the lists from both dicts associated with
+    the given key if:
+        - the elements belonging to the key are
+          actually lists, or do not exist. In the latter
+          case, it is interpreted as an empty list.
+        - these lists contain only strings (or nothing)
     '''
     # check if both lists provide lists associated
     # with the given key if the key is present
@@ -90,8 +92,8 @@ def merge_dict_list_strings(dict_1, dict_2, key):
         f"value of {key} in list 1 is not a list."
     assert isinstance(dict_2.get(key, []), list), \
         f"value of {key} in list 2 is not a list."
-    
-    # check if every element in the lists are
+
+    # check if every element in the lists
     # are strings.        
     assert all(isinstance(s, str) for s in dict_1.get(key, [])
                ), f"{key} list 1 contains non-string elements"
@@ -102,9 +104,22 @@ def merge_dict_list_strings(dict_1, dict_2, key):
 
 
 def merge_dict_tuple_args(dict_1, dict_2, key):
+    """
+    merge lists of length-2 tuples from dicts
+    """
+    list_1 = dict_1.get(key, [])
+    list_2 = dict_2.get(key, [])
 
-    dict_list_1 = dict(dict_1.get(key, []))
-    dict_list_2 = dict(dict_2.get(key, []))
+    assert isinstance(list_1, list), "dict entry 1 is not a list"
+    assert isinstance(list_2, list), "dict entry 2 is not a list"
+
+    assert all(isinstance(t, tuple) and len(t) == 2 for t in list_1), \
+        "list 1 is not a list of tuples of length 2"
+    assert all(isinstance(t, tuple) and len(t) == 2 for t in list_2), \
+        "list 2 is not a list of tuples of length 2"
+
+    dict_list_1 = dict(list_1)
+    dict_list_2 = dict(list_2)
 
     assert all(isinstance(s, str)
                for s in dict_list_1.keys()), "List 1 contains non-string names"
@@ -182,6 +197,7 @@ def merge_wu_def(class_name, def_1, def_2):
             def_2.get(flag, None) is True)
 
     return wu_def
+
 
 def merge_ps_def(class_name, def_1, def_2):
 

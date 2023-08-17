@@ -1,6 +1,6 @@
 import numpy as np
 
-from mc.network import Network
+from mc.network import MCNetwork as Network
 
 from models.cs_sources import step_source_model as stp_src
 
@@ -10,16 +10,20 @@ import time
 
 from misc.utils import calc_loss_interp, calc_class_acc_interp
 
+
 def split_lst(a, n):
-    n_split = max(1,int(len(a)/n))
+    n_split = max(1, int(len(a)/n))
     res = []
-    for k in range(n-1):
-        res.append(a[k * n_split:(k+1) * n_split])
-    res.append(a[(n-1) * n_split:])
+    for k in range(n - 1):
+        res.append(a[k * n_split:(k + 1) * n_split])
+    res.append(a[(n - 1) * n_split:])
     return res
 
-def train_and_test_network(params, network_model, data, show_progress=False):
 
+def train_and_test_network(params, network_model, data, show_progress=False):
+    """
+    
+    """
     input_train = data["input_train"]
     input_train_flat = input_train.flatten()
     output_train = data["output_train"]
@@ -29,10 +33,10 @@ def train_and_test_network(params, network_model, data, show_progress=False):
     input_test_flat = input_test.flatten()
     output_test = data["output_test"]
     output_test_flat = output_test.flatten()
-    
+
     NETWORK_NAME = params.get("name", "network")
-    
-    CUDA_VISIBLE_DEVICES = params.get("cuda_visible_devices", False)    
+
+    CUDA_VISIBLE_DEVICES = params.get("cuda_visible_devices", False)
 
     N_IN = params["n_in"]
     N_HIDDEN = params["n_hidden"]
@@ -109,7 +113,7 @@ def train_and_test_network(params, network_model, data, show_progress=False):
             "input_id_list_size": N_SAMPLE_IDS_TRAIN,
             "input_times_list_size": N_UPDATE_TIMES_TRAIN
         },
-        "vars": { "idx": 0, "t_next": 0.0},
+        "vars": {"idx": 0, "t_next": 0.0},
         "extra_global_params": {
             "data": input_train_flat,
             "input_id_list": SAMPLE_IDS_TRAIN,
@@ -126,7 +130,7 @@ def train_and_test_network(params, network_model, data, show_progress=False):
             "input_id_list_size": N_SAMPLE_IDS_TRAIN,
             "input_times_list_size": N_UPDATE_TIMES_TRAIN
         },
-        "vars": { "idx": 0, "t_next": 0.0},
+        "vars": {"idx": 0, "t_next": 0.0},
         "extra_global_params": {
             "data": output_train_flat,
             "input_id_list": SAMPLE_IDS_TRAIN,
@@ -143,7 +147,7 @@ def train_and_test_network(params, network_model, data, show_progress=False):
             "input_id_list_size": N_SAMPLE_IDS_TEST,
             "input_times_list_size": N_UPDATE_TIMES_TEST
         },
-        "vars": { "idx": 0, "t_next": 0.0},
+        "vars": {"idx": 0, "t_next": 0.0},
         "extra_global_params": {
             "data": input_test_flat,
             "input_id_list": SAMPLE_IDS_TEST,
@@ -160,7 +164,7 @@ def train_and_test_network(params, network_model, data, show_progress=False):
             "input_id_list_size": N_SAMPLE_IDS_TEST,
             "input_times_list_size": N_UPDATE_TIMES_TEST
         },
-        "vars": { "idx": 0, "t_next": 0.0},
+        "vars": {"idx": 0, "t_next": 0.0},
         "extra_global_params": {
             "data": output_test_flat,
             "input_id_list": SAMPLE_IDS_TEST,
@@ -173,23 +177,15 @@ def train_and_test_network(params, network_model, data, show_progress=False):
     run_time = np.ndarray((N_RUNS))
 
     net = Network(NETWORK_NAME, network_model,
-                    N_IN, N_HIDDEN, N_OUT,  # network size
-                    0,  # maximum number of input arrays for external input
-                    0,  # spike buffer size
-                    0,  # validation spike buffer size
-                    [],  # spike buffer populations
-                    [],  # validation spike buffer populations
-                    n_batches=N_BATCH,
-                    n_batches_val=N_BATCH,
-                    cs_in_init=cs_in_train,
-                    cs_out_init=cs_out_train,
-                    cs_in_init_static_twin=cs_in_test,
-                    cs_out_init_static_twin=cs_out_test,
-                    plastic=True,
-                    dt=DT,
-                    optimizer_params=OPTIMIZER_PARAMS,
-		    cuda_visible_devices=CUDA_VISIBLE_DEVICES
-                    )
+                  DT,
+                  N_BATCH, N_BATCH,
+                  0, 0,
+                  [], [],
+                  N_IN, N_HIDDEN, N_OUT,  # network size
+                  cs_in_train, cs_out_train,
+                  cs_in_test, cs_out_test,
+                  OPTIMIZER_PARAMS,
+                  CUDA_VISIBLE_DEVICES)
 
     readout_arrays = {}
 
@@ -207,7 +203,7 @@ def train_and_test_network(params, network_model, data, show_progress=False):
                     data_validation=PARAMS_TEST_RUN,
                     NT_skip_batch_plast=NT_SKIP_BATCH_PLAST,
                     force_self_pred_state=FORCE_SELF_PRED_STATE,
-                    force_fb_align=FORCE_FB_ALIGN,show_progress=show_progress)
+                    force_fb_align=FORCE_FB_ALIGN, show_progress=show_progress)
 
         t1 = time.time()
 
@@ -218,19 +214,25 @@ def train_and_test_network(params, network_model, data, show_progress=False):
         _acc = []
 
         for k in range(N_TEST_RUN):
-            _acc.append(calc_class_acc_interp(UPDATE_TIMES_TEST, TIMES_RECORD_TEST,
-                            output_test[SAMPLE_IDS_BATCHES_TEST], out_r_test[k]))
+            _acc.append(
+                calc_class_acc_interp(UPDATE_TIMES_TEST, TIMES_RECORD_TEST,
+                                      output_test[SAMPLE_IDS_BATCHES_TEST],
+                                      out_r_test[k])
+                        )
         _loss = []
 
         for k in range(N_TEST_RUN):
-            _loss.append(calc_loss_interp(UPDATE_TIMES_TEST, TIMES_RECORD_TEST,
-                            output_test[SAMPLE_IDS_BATCHES_TEST], out_r_test[k]))
+            _loss.append(
+                calc_loss_interp(UPDATE_TIMES_TEST, TIMES_RECORD_TEST,
+                                 output_test[SAMPLE_IDS_BATCHES_TEST],
+                                 out_r_test[k])
+                        )
 
         _acc = np.array(_acc)
         _loss = np.array(_loss)
 
-        acc[:,run_id] = _acc
-        loss[:,run_id] = _loss
+        acc[:, run_id] = _acc
+        loss[:, run_id] = _loss
         run_time[run_id] = t1 - t0
 
         for key, data in (_readout_neur_arrays | _readout_syn_arrays).items():
@@ -239,7 +241,8 @@ def train_and_test_network(params, network_model, data, show_progress=False):
 
     epoch_ax = np.linspace(0.,N_EPOCHS, N_TEST_RUN)
 
-    readout_neur_arrays = {k:v for k,v in readout_arrays.items() if k in _readout_neur_arrays.keys()}
-    readout_syn_arrays = {k:v for k,v in readout_arrays.items() if k in _readout_syn_arrays.keys()}
+    readout_neur_arrays = {k: v for k, v in readout_arrays.items() if k in _readout_neur_arrays.keys()}
+    readout_syn_arrays = {k: v for k, v in readout_arrays.items() if k in _readout_syn_arrays.keys()}
 
-    return epoch_ax, acc, loss, readout_neur_arrays, readout_syn_arrays, run_time
+    return (epoch_ax, acc, loss, readout_neur_arrays,
+            readout_syn_arrays, run_time)

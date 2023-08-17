@@ -1,143 +1,75 @@
 #! /usr/bin/env python3
 """
-Definitions of the Layer base class and
-special layer classes.
+Definitions of the special layer classes.
 """
 
 from .synapses import SynapseIP, SynapsePI
 
-from pygenn.genn_model import (create_custom_neuron_class,
-                               create_var_ref)
+from pygenn.genn_model import create_custom_neuron_class
 
-from .utils import optimizers, param_change_batch_reduce
-
-
-DEFAULT_OPTIM = {
-    "optimizer": "adam",
-    "params": {
-    "low": -1000., "high": 1000.,
-    "lr": 1e-3,
-    "beta1": 0.9, "beta2": 0.999, "epsilon": 1e-7
-    }
-}
-
-
-class LayerBase:
-
-    def __init__(self, name, genn_model, plastic=True, read_only_weights=False, optimizer_params={}):
-        self.name = name
-        self.genn_model = genn_model
-        self.neur_pops = {}
-        self.syn_pops = {}
-        self.plastic = plastic
-        self.read_only_weights = read_only_weights
-
-    def add_neur_pop(self, pop_name, size, neur_model, param_init, var_init, 
-                                                         optimizer_params={}):
-        _full_name = f'neur_{self.name}_{pop_name}'
-        _new_pop = self.genn_model.add_neuron_population(_full_name, size,
-                                                         neur_model,
-                                                         param_init,
-                                                         var_init)
-        
-        _optimizer_params = optimizer_params.get(_full_name, DEFAULT_OPTIM)
-                                                         
-        if self.plastic:
-
-            _update_reduce_batch_bias_change_var_refs = {
-                "change": create_var_ref(_new_pop, "db")
-            }
-
-            _update_reduce_batch_bias_change = self.genn_model.add_custom_update(
-                                         f"reduce_batch_bias_change_{_full_name}",
-                                         "BiasChangeBatchReduce",
-                                         param_change_batch_reduce,
-                                         {}, {"reducedChange": 0.0},
-                                         _update_reduce_batch_bias_change_var_refs)
-
-
-
-            _update_plast_step_reduced_var_refs = {
-                "change": create_var_ref(_update_reduce_batch_bias_change, "reducedChange"),
-                "variable": create_var_ref(_new_pop, "b")
-            }
-
-            optimizer = optimizers[_optimizer_params["optimizer"]]
-           
-            self.genn_model.add_custom_update(
-                f"plast_step_reduced_{_full_name}",
-                "Plast",
-                optimizer["model"],
-                {"batch_size": self.genn_model.batch_size} | _optimizer_params["params"],
-                optimizer["var_init"],
-                _update_plast_step_reduced_var_refs
-            )
-
-
-        self.neur_pops[pop_name] = _new_pop
-
-    def add_syn_pop(self, target, source, syn_model, optimizer_params={}):
-
-        self.syn_pops[f'{source}_to_{target}'] = syn_model.connect_pops(
-            f'syn_{self.name}_{source}_to_{target}',
-            self.genn_model, self.neur_pops[target], self.neur_pops[source],
-            plastic=self.plastic, read_only=self.read_only_weights, optimizer_params=optimizer_params)
+from mc.network_base.layer import LayerBase
 
 
 class HiddenLayer(LayerBase):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, name, genn_model,
+                 pyr_mod_dat, int_mod_dat,
+                 synapseIP_def, synapsePI_def,
+                 Npyr, Nint, plastic=True, read_only_weights=False,
+                 optimizer_params={}):
 
+        super().__init__(
+            name, genn_model,
+            plastic, read_only_weights)
 
-        super().__init__(*args[:-6], **kwargs)
-
-        pyr_model_def = args[-6]["model_def"]
-        pyr_param_space = args[-6]["param_space"]
-        pyr_var_space = args[-6]["var_space"]
+        pyr_model_def = pyr_mod_dat["model_def"]
+        pyr_param_space = pyr_mod_dat["param_space"]
+        pyr_var_space = pyr_mod_dat["var_space"]
         _pyr_model = create_custom_neuron_class(**pyr_model_def)
 
-        int_model_def = args[-5]["model_def"]
-        int_param_space = args[-5]["param_space"]
-        int_var_space = args[-5]["var_space"]
+        int_model_def = int_mod_dat["model_def"]
+        int_param_space = int_mod_dat["param_space"]
+        int_var_space = int_mod_dat["var_space"]
         _int_model = create_custom_neuron_class(**int_model_def)
 
-        synapseIP_def = args[-4]
-        synapsePI_def = args[-3]
-
-        Npyr = args[-2]
-        Nint = args[-1]
-
         self.add_neur_pop("pyr_pop", Npyr, _pyr_model,
-                          pyr_param_space, pyr_var_space, optimizer_params=kwargs.get("optimizer_params", {}))
+                          pyr_param_space, pyr_var_space,
+                          optimizer_params=optimizer_params)
         self.add_neur_pop("int_pop", Nint, _int_model,
-                          int_param_space, int_var_space, optimizer_params=kwargs.get("optimizer_params", {}))
+                          int_param_space, int_var_space,
+                          optimizer_params=optimizer_params)
 
         _synapseIP = SynapseIP(Npyr, **synapseIP_def)
         _synapsePI = SynapsePI(Nint, **synapsePI_def)
 
-        self.add_syn_pop("int_pop", "pyr_pop", _synapseIP, optimizer_params=kwargs.get("optimizer_params", {}))
-        self.add_syn_pop("pyr_pop", "int_pop", _synapsePI, optimizer_params=kwargs.get("optimizer_params", {}))
+        self.add_syn_pop("int_pop", "pyr_pop", _synapseIP,
+                         optimizer_params=optimizer_params)
+        self.add_syn_pop("pyr_pop", "int_pop", _synapsePI,
+                         optimizer_params=optimizer_params)
 
 
 class OutputLayer(LayerBase):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, name, genn_model,
+                 output_mod_dat, N,
+                 plastic=True, read_only_weights=False,
+                 optimizer_params={}):
 
-        super().__init__(*args[:-2], **kwargs)
+        super().__init__(
+            name, genn_model,
+            plastic, read_only_weights)
 
-        output_model_def = args[-2]["model_def"]
-        output_param_space = args[-2]["param_space"]
-        output_var_space = args[-2]["var_space"]
-
-        N = args[-1]
+        output_model_def = output_mod_dat["model_def"]
+        output_param_space = output_mod_dat["param_space"]
+        output_var_space = output_mod_dat["var_space"]
 
         _output_param_space = dict(output_param_space)
-        #_output_param_space["pop_size"] = N
 
         _output_model = create_custom_neuron_class(**output_model_def)
 
         self.add_neur_pop("output_pop", N, _output_model,
-                          _output_param_space, output_var_space, optimizer_params=kwargs.get("optimizer_params", {}))
+                          _output_param_space, output_var_space,
+                          optimizer_params=optimizer_params)
 
 
 class InputLayer(LayerBase):
