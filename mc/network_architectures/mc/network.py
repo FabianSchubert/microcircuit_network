@@ -78,7 +78,7 @@ class MCNetwork(NetworkBase):
             the number neurons in the pre- or postsynaptic population.
             The same holds for "sqrt" and "sqrt_inv", except that
             the factors are 1/sqrt(N_pre) and 1/sqrt(N_post).
-        
+
         optimizer_params (dict):
 
             A dictionary with names of neuron or synapse populations
