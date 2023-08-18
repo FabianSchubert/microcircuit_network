@@ -9,7 +9,7 @@ import numpy.random
 
 from mc.network import Network
 
-from models import test_model, cs_sources
+from genn_models import test_model, cs_sources
 
 import torch
 

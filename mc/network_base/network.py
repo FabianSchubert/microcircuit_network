@@ -140,8 +140,21 @@ class NetworkBase(ABC):
         The copy self.static_twin will be an
         instance of the network itself."""
 
+        '''
+        self.name = name
+        self.dt = dt
+        self.n_batches = n_batches
+        self.n_batches_val = n_batches_val
+        self.spike_buffer_size = spike_buffer_size,
+        self.spike_buffer_size_val = spike_buffer_size_val
+        self.spike_rec_pops = spike_rec_pops
+        self.spike_rec_pops_val = spike_rec_pops_val
+        self.cuda_visible_devices = cuda_visible_devices
+        self.plastic = plastic
+        '''
+
         return cls(f"static_twin_{instance.name}",
-                   instance.model_def, instance.dt,
+                   instance.dt,
                    instance.n_batches_val, None,
                    instance.spike_buffer_size_val, None,
                    instance.spike_rec_pops_val, None,
@@ -267,7 +280,7 @@ class NetworkBase(ABC):
                                                   cs_params, cs_vars)
 
         for pkey, pval in cs_extra_global_params.items():
-            self.cs_in.set_extra_global_param(pkey, pval)
+            _ref.set_extra_global_param(pkey, pval)
 
         return _ref
 
