@@ -23,5 +23,5 @@
 module load python/anaconda3 gcc/9.1.0 use.dev cuda/11.0 swig openmpi/4.0.5-gcc-9.1.0 nano
 source activate test
 
-cd ../../
+cd ../../../
 python3 -m experiments.randman.run $1 ${SLURM_ARRAY_TASK_ID} $2

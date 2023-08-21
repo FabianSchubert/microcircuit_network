@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 import os
@@ -6,19 +7,20 @@ import sys
 
 import time
 
-from genn_models.latent_equ import change_detection_spikes, rates
+from genn_models.drop_in_synapses import change_detection_spikes, rates
 
 from data.mnist.dataset import (input_train, output_train,
                                 input_test, output_test)
 
-from ..utils import train_and_test_network, split_lst
+from ...utils import split_lst
+from ..utils import train_and_test_network
 
 from itertools import product
 
 JOB_ID = int(sys.argv[1])
 N_JOBS = int(sys.argv[2])
 
-N_RUNS = 1
+N_RUNS = 10
 
 data = dict(zip(["input_train", "output_train", "input_test", "output_test"],
                 [input_train, output_train, input_test, output_test]))
@@ -41,8 +43,8 @@ params_base = {
     "n_hidden": [100],
     "n_out": 10,
     "dt": 0.25,
-    "n_runs": 1,
-    "n_epochs": 30,
+    "n_runs": 1,  # this should be set to 1 if multiple jobs are used. Instead, set N_RUNS above.
+    "n_epochs": 50,
     "n_batch": 128,
     "t_show_pattern": 150.,
     "n_test_run": 10,
@@ -76,21 +78,21 @@ params_base = {
             "params": DEFAULT_ADAM_PARAMS | {"lr": 0.3 * 2e-4}
         }
     }
-}  # '''
+}  #'''
 
 params_fb_align = dict(params_base) | {"force_self_pred_state": False,
-                                       "force_fb_align": False}
+                                     "force_fb_align": False}
 params_backprop = dict(params_base) | {"force_self_pred_state": True,
                                        "force_fb_align": True}
 
 method_params = {
     "Feedback Align": params_fb_align,
-    # "Backprop": params_backprop
+    "Backprop": params_backprop
 }
 
 models = {
     "Spike": change_detection_spikes,
-    # "Rate": rates
+    "Rate": rates
 }
 
 df_learn = pd.DataFrame(columns=["Epoch", "Sim ID", "Accuracy",
@@ -98,9 +100,7 @@ df_learn = pd.DataFrame(columns=["Epoch", "Sim ID", "Accuracy",
 df_runtime = pd.DataFrame(columns=["Runtime", "Sim ID",
                                    "Model", "Method"])
 
-params_list = list(product(models.items(),
-                           method_params.items(),
-                           range(N_RUNS)))
+params_list = list(product(models.items(), method_params.items(), range(N_RUNS)))
 
 n_params = len(params_list)
 
@@ -114,12 +114,9 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
 
     t0 = time.time()
 
-    for (k_sweep, ((model_name, model), (method_name, method_param),
-                   sim_id)) in enumerate(params_instance):
+    for k_sweep, ((model_name, model), (method_name, method_param), sim_id) in enumerate(params_instance):
 
-        (epoch_ax, acc, loss,
-         _, _, run_time) = train_and_test_network(method_param, model,
-                                                  data, show_progress=True)
+        epoch_ax, acc, loss, _, _, run_time = train_and_test_network(method_param, model, data, show_progress=True)
 
         df_learn = pd.concat([df_learn,
                               pd.DataFrame({
@@ -142,11 +139,8 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
 
         t1 = time.time()
 
-        t_est_left = (((t1 - t0) / (k_sweep + 1))
-                      * (n_params_instance - (k_sweep + 1)))
-        file_log.write((f"Job #{JOB_ID}: "
-                        + time.strftime("%H:%M:%S", time.gmtime(t_est_left))
-                        + "\n"))
+        t_est_left = ((t1 - t0) / (k_sweep + 1)) * (n_params_instance - (k_sweep + 1))
+        file_log.write(f"Job #{JOB_ID}: " + time.strftime("%H:%M:%S", time.gmtime(t_est_left)) + "\n")
         file_log.flush()
 
 file_learn = os.path.join(BASE_FOLD, f"results_data/df_learn_{JOB_ID}.csv")
