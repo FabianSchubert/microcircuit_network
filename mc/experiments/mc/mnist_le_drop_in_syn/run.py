@@ -20,7 +20,7 @@ from itertools import product
 JOB_ID = int(sys.argv[1])
 N_JOBS = int(sys.argv[2])
 
-N_RUNS = 1
+N_RUNS = 10
 
 data = dict(zip(["input_train", "output_train", "input_test", "output_test"],
                 [input_train, output_train, input_test, output_test]))
@@ -43,7 +43,7 @@ params_base = {
     "n_hidden": [100],
     "n_out": 10,
     "dt": 0.25,
-    "n_runs": 1,
+    "n_runs": 1, # this should be set to one if multiple jobs are used. Instead, set N_RUNS above.
     "n_epochs": 30,
     "n_batch": 128,
     "t_show_pattern": 150.,
@@ -86,13 +86,13 @@ params_backprop = dict(params_base) | {"force_self_pred_state": True,
                                        "force_fb_align": True}
 
 method_params = {
-    "Feedback Align": params_fb_align,
-    #"Backprop": params_backprop
+    #"Feedback Align": params_fb_align,
+    "Backprop": params_backprop
 }
 
 models = {
-    "Spike": change_detection_spikes,
-    #"Rate": rates
+    #"Spike": change_detection_spikes,
+    "Rate": rates
 }
 
 df_learn = pd.DataFrame(columns=["Epoch", "Sim ID", "Accuracy",

@@ -1,26 +1,30 @@
-from ..utils import (WU_TRANSMIT, WU_TRANSMIT_VAR, WU_TRANSMIT_PARAM,
-                     PS_TRANSMIT, PS_TRANSMIT_VAR, PS_TRANSMIT_PARAM)
+from genn_models.utils import (WU_TRANSMIT, WU_VAR_SPACE_TRANSMIT, WU_PARAM_SPACE_TRANSMIT,
+                                  PS_TRANSMIT, PS_VAR_SPACE_TRANSMIT, PS_PARAM_SPACE_TRANSMIT,
+                                  generate_plast_wu_dict,
+                                  WU_PARAM_SPACE_PLAST, WU_VAR_SPACE_PLAST)
 
-w_update_model_transmit = dict(WU_TRANSMIT)
-wu_param_space_transmit = dict(WU_TRANSMIT_PARAM)
-wu_var_space_transmit = dict(WU_TRANSMIT_VAR)
+from pygenn.genn_model import init_var
+
+from ..settings import mod_type
+
+# reinit a dict instance, otherwise there is
+# a risk of overwriting other stuff
+w_update_model_transmit = dict(WU_TRANSMIT[mod_type])
+wu_param_space_transmit = dict(WU_PARAM_SPACE_TRANSMIT[mod_type])
+wu_var_space_transmit = dict(WU_VAR_SPACE_TRANSMIT[mod_type])
+
+
 wu_var_space_transmit["g"] = 1.0
 
-w_update_model_plast = {
-    "class_name": "weight_update_model_pyr_to_int_back",
-    "param_names": [],
-    "var_name_types": [("g", "scalar"), ("dg", "scalar")],
-    "is_pre_spike_time_required": False,
-    "is_post_spike_time_required": False
-}
+f = None
 
-wu_param_space_plast = {}
+w_update_model_plast = generate_plast_wu_dict(mod_type, "weight_update_model_pyr_to_int_back", f)
+wu_param_space_plast = dict(WU_PARAM_SPACE_PLAST[mod_type])
+wu_var_space_plast = dict(WU_VAR_SPACE_PLAST[mod_type])
 
-wu_var_space_plast = {"dg": 0.0}
-
-ps_model_transmit = dict(PS_TRANSMIT)
-ps_param_space_transmit = dict(PS_TRANSMIT_PARAM)
-ps_var_space_transmit = dict(PS_TRANSMIT_VAR)
+ps_model_transmit = dict(PS_TRANSMIT[mod_type])
+ps_param_space_transmit = dict(PS_PARAM_SPACE_TRANSMIT[mod_type])
+ps_var_space_transmit = dict(PS_VAR_SPACE_TRANSMIT[mod_type])
 
 mod_dat = {
     "w_update_model_transmit": w_update_model_transmit,

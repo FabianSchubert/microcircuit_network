@@ -1,6 +1,12 @@
-from ..utils import act_func, d_act_func, TH_COND_CODE, RESET_CODE
+from .utils import act_func, d_act_func
+
+from genn_models.utils import convert_neuron_mod_data_cont_to_event
 
 from pygenn.genn_wrapper.Models import VarAccess_READ_ONLY
+
+from ..settings import mod_type
+
+post_plast_vars = ["d_ra"]
 
 model_def = {
     "class_name": "int",
@@ -19,7 +25,7 @@ model_def = {
 
         $(r) = {act_func('$(u_prosp)')};
 
-        $(va) = $(u_td) - $(r_eff);
+        $(va) = $(u_td) - $(r);
         $(vb) = $(Isyn) + $(b);
 
         $(u_prev) = $(u);
@@ -28,12 +34,10 @@ model_def = {
         $(r) = {act_func('$(u)')};
 
         $(d_ra) += DT * ($(va) * {d_act_func('$(vb)')} - $(d_ra)) / $(tau_d_ra);
+        //$(d_ra) = $(va) * {d_act_func('$(vb)')};
 
         $(db) += DT * $(d_ra);
-    """,
-    "threshold_condition_code": TH_COND_CODE,
-    "reset_code": RESET_CODE,
-    "is_auto_refractory_required": False
+    """
 }
 
 param_space = {
@@ -59,3 +63,6 @@ mod_dat = {
     "param_space": param_space,
     "var_space": var_space
 }
+
+if mod_type == "event":
+    mod_dat = convert_neuron_mod_data_cont_to_event(mod_dat, post_plast_vars)

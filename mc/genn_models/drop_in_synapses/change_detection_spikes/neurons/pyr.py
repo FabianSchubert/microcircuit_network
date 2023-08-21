@@ -1,8 +1,10 @@
 from .utils import act_func, d_act_func
 
-from genn_models.event_utils import convert_event_neur_dict, convert_event_neur_var_space_dict, convert_event_neur_param_space_dict
+from genn_models.utils import convert_neuron_mod_data_cont_to_event
 
 from pygenn.genn_wrapper.Models import VarAccess_READ_ONLY
+
+from ..settings import mod_type
 
 post_plast_vars = ["d_ra", "va"]
 
@@ -42,15 +44,11 @@ model_def = {
     """
 }
 
-model_def = convert_event_neur_dict(model_def, post_plast_vars)
-
 param_space = {
     "ga": 0.1,
     "tau_d_ra": 10.,
     "tau_prosp": 1.
 }
-
-param_space = convert_event_neur_param_space_dict(param_space)
 
 var_space = {
     "r": 0.0,
@@ -66,10 +64,11 @@ var_space = {
     "db": 0.0
 }
 
-var_space = convert_event_neur_var_space_dict(var_space, post_plast_vars)
-
 mod_dat = {
     "model_def": model_def,
     "param_space": param_space,
     "var_space": var_space
 }
+
+if mod_type == "event":
+    mod_dat = convert_neuron_mod_data_cont_to_event(mod_dat, post_plast_vars)
