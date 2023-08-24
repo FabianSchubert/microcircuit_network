@@ -158,9 +158,13 @@ def train_and_test_network(params, network_model, data, show_progress=False):
         },
         "vars": {"idx": 0, "t_next": 0.0},
         "extra_global_params": {
-            "data": output_test_flat,
-            "input_id_list": SAMPLE_IDS_TEST,
-            "input_times_list": UPDATE_TIMES_TEST
+            '''In principle, it should not matter what you put here,
+            because the conductance ga is set to zero for the testing,
+            but just "to be sure", it is an empty array, rather than the
+            actual output targets.'''
+            "data": np.array([]),
+            "input_id_list": np.array([]),
+            "input_times_list": np.array([])
         }
     }
 
