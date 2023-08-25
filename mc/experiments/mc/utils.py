@@ -158,13 +158,13 @@ def train_and_test_network(params, network_model, data, show_progress=False):
         },
         "vars": {"idx": 0, "t_next": 0.0},
         "extra_global_params": {
-            '''In principle, it should not matter what you put here,
-            because the conductance ga is set to zero for the testing,
-            but just "to be sure", it is an empty array, rather than the
-            actual output targets.'''
-            "data": np.array([]),
-            "input_id_list": np.array([]),
-            "input_times_list": np.array([])
+            # In principle, it should not matter what you put here,
+            # because the conductance ga is set to zero for the testing,
+            # but just "to be sure", it is a single array of zeros,
+            # rather than the actual output targets.
+            "data": np.zeros(N_OUT),
+            "input_id_list": np.array([0]).astype("int"),
+            "input_times_list": np.array([0.])
         }
     }
 

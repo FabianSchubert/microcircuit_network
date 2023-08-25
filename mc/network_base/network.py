@@ -520,6 +520,7 @@ class NetworkBase(ABC):
                 if force_self_pred_state:
                     self.init_self_pred_state()
 
+
             self.pull_neur_var_data(t, readout_neur_pop_vars,
                                     time_signatures_readout_neur_pop,
                                     readout_neur_arrays, readout_views,
@@ -602,6 +603,10 @@ class NetworkBase(ABC):
             if time_signatures_readout_neur_pop[k].shape[0] > 0:
 
                 if time_signatures_readout_neur_pop[k][0] <= t*self.dt:
+                    if(t==21):
+                        import ipdb
+                        ipdb.set_trace()
+
                     self.neur_pops[readout_pop].pull_var_from_device(
                         readout_var)
                     _dict_name = f'{readout_pop}_{readout_var}'
