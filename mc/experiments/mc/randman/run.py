@@ -76,6 +76,7 @@ params_base = {
     "n_batch": 128,
     "t_show_pattern": 150.,
     "n_test_run": 10,
+    "cuda_visible_devices": True,
     "optimizer_params": {
         "neur_hidden0_pyr_pop": {
             "optimizer": "adam",
@@ -109,18 +110,18 @@ params_base = {
 }
 
 ################ construct parameter sweep space
-params_fb_align = dict(params_base) | {"force_self_pred_state": False,
-                                       "force_fb_align": False}
-params_backprop = dict(params_base) | {"force_self_pred_state": True,
-                                       "force_fb_align": True}
+params_fb_align = {"force_self_pred_state": False,
+	           "force_fb_align": False}
+params_backprop = {"force_self_pred_state": True,
+	           "force_fb_align": True}
 
 method_params = {
-    "Feedback Align": params_fb_align#,
+    "Feedback Align": params_fb_align,
     "Backprop": params_backprop
 }
 
 models = {
-    "Event": change_detection_spikes#,
+    "Event": change_detection_spikes,
     "Continuous": rates
 }
 
@@ -180,7 +181,7 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
         #epoch_ax, acc, loss, rec_neur, rec_syn, run_time = train_and_test_network(_tmp_params,
         #                                                    model, data)
 
-        epoch_ax, acc, loss, _, _, run_time = train_and_test_network(_tmp_params, model, data, show_progress=True)
+        epoch_ax, acc, loss, _, _, run_time = train_and_test_network(_tmp_params, model, data)
 
         df_learn = pd.concat([df_learn,
                               pd.DataFrame({

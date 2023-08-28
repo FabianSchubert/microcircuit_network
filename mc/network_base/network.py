@@ -94,7 +94,7 @@ class NetworkBase(ABC):
             genn_kwargs["deviceSelectMethod"] = DeviceSelect_MANUAL
 
         self.genn_model = GeNNModel("float", self.name,
-                                    backend="CUDA", **kwargs)
+                                    backend="CUDA", **genn_kwargs)
 
         self.genn_model.batch_size = self.n_batches
 
