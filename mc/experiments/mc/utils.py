@@ -153,8 +153,8 @@ def train_and_test_network(params, network_model, data, show_progress=False):
             "n_samples_set": N_TEST,
             "pop_size": N_OUT,
             "batch_size": N_BATCH,
-            "input_id_list_size": N_SAMPLE_IDS_TEST,
-            "input_times_list_size": N_UPDATE_TIMES_TEST
+            "input_id_list_size": 1,
+            "input_times_list_size": 1
         },
         "vars": {"idx": 0, "t_next": 0.0},
         "extra_global_params": {

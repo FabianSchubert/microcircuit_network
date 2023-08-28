@@ -28,21 +28,21 @@ ALPHA = 1.0
 
 SEED_MF = 42
 
-N_SWEEP_THRESHOLD = 1
-N_SWEEP_NET_SIZE = 1
+N_SWEEP_THRESHOLD = 10
+N_SWEEP_NET_SIZE = 10
 
-SPIKE_THRESHOLDS = np.array([1e-4])
+#SPIKE_THRESHOLDS = np.array([1e-4])
 
-#SPIKE_THRESHOLDS = np.exp(np.linspace(np.log(1e-5), np.log(1e-1),
-#                                      N_SWEEP_THRESHOLD))
+SPIKE_THRESHOLDS = np.exp(np.linspace(np.log(1e-5), np.log(1e-1),
+                                      N_SWEEP_THRESHOLD))
 
-N_HIDDEN = [50]
-N_INPUT = [20]
-N_OUTPUT = [10]
+#N_HIDDEN = [20]
+#N_INPUT = [20]
+#N_OUTPUT = [10]
 
-#N_HIDDEN = np.linspace(10, 300, N_SWEEP_NET_SIZE).astype("int").tolist()
-#N_INPUT = [n + 20 - N_HIDDEN[0] for n in N_HIDDEN]
-#N_OUTPUT = [n + 10 - N_HIDDEN[0] for n in N_HIDDEN]
+N_HIDDEN = np.linspace(20, 300, N_SWEEP_NET_SIZE).astype("int").tolist()
+N_INPUT = [n + 20 - N_HIDDEN[0] for n in N_HIDDEN]
+N_OUTPUT = [n + 10 - N_HIDDEN[0] for n in N_HIDDEN]
 
 NET_SIZE_ZIP = list(zip(N_INPUT, N_HIDDEN, N_OUTPUT))
 ###############
@@ -63,7 +63,7 @@ DEFAULT_ADAM_PARAMS = {
     "low": -1e6
 }
 
-LR_SCALING = .5
+LR_SCALING = 0.3
 
 params_base = {
     "name": f"network_job_{JOB_ID}",
@@ -72,7 +72,7 @@ params_base = {
     "n_out": None,
     "dt": 0.25,
     "n_runs": 1,
-    "n_epochs": 2500,
+    "n_epochs": 3000,
     "n_batch": 128,
     "t_show_pattern": 150.,
     "n_test_run": 10,
@@ -91,7 +91,7 @@ params_base = {
         },
         "syn_input_input_pop_to_hidden0_pyr_pop": {
             "optimizer": "adam",
-            "params": DEFAULT_ADAM_PARAMS | {"lr": LR_SCALING * 0.7 * 5e-3}
+            "params": DEFAULT_ADAM_PARAMS | {"lr": LR_SCALING * 0.8 * 5e-3}
         },
         "syn_hidden0_pyr_pop_to_int_pop": {
             "optimizer": "adam",
@@ -103,7 +103,7 @@ params_base = {
         },
         "syn_hidden0_pyr_pop_to_output_output_pop": {
             "optimizer": "adam",
-            "params": DEFAULT_ADAM_PARAMS | {"lr": LR_SCALING * 0.3 * 2e-4}
+            "params": DEFAULT_ADAM_PARAMS | {"lr": LR_SCALING * 0.5 * 2e-4}
         }
     }
 }
@@ -115,13 +115,13 @@ params_backprop = dict(params_base) | {"force_self_pred_state": True,
                                        "force_fb_align": True}
 
 method_params = {
-    #"Feedback Align": params_fb_align#,
+    "Feedback Align": params_fb_align#,
     "Backprop": params_backprop
 }
 
 models = {
     "Event": change_detection_spikes#,
-    #"Continuous": rates
+    "Continuous": rates
 }
 
 df_learn = pd.DataFrame(columns=["Epoch", "Sim ID", "Accuracy",
