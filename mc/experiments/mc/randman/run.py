@@ -19,9 +19,17 @@ from itertools import product
 JOB_ID = int(sys.argv[1])
 N_JOBS = int(sys.argv[2])
 
+BASE_FOLD = os.path.dirname(__file__)
+
 OUTPUT_SCALING_MODE = sys.argv[3]
 assert OUTPUT_SCALING_MODE in ["lin", "sqrt", "const"], \
 	"scaling mode must be lin, sqrt or const"
+
+save_path = os.path.join(BASE_FOLD, f"results_data/{OUTPUT_SCALING_MODE}")
+os.makedirs(save_path, exist_ok=True)
+
+file_learn = os.path.join(save_path, f"df_learn_{JOB_ID}.csv")
+file_runtime = os.path.join(save_path, f"df_runtime_{JOB_ID}.csv")
 
 N_RUNS = 1
 
@@ -61,7 +69,6 @@ N_SAMPLES_TRAIN = 1500
 N_SAMPLES_TEST = 1000
 ###############
 
-BASE_FOLD = os.path.dirname(__file__)
 
 DEFAULT_ADAM_PARAMS = {
     "lr": 1e-3,
@@ -120,9 +127,9 @@ params_base = {
 
 ################ construct parameter sweep space
 params_fb_align = {"force_self_pred_state": False,
-	           "force_fb_align": False}
+                   "force_fb_align": False}
 params_backprop = {"force_self_pred_state": True,
-	           "force_fb_align": True}
+                   "force_fb_align": True}
 
 method_params = {
     "Feedback Align": params_fb_align,
@@ -225,8 +232,6 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
         file_log.write(f"Job #{JOB_ID}: " + time.strftime("%H:%M:%S", time.gmtime(t_est_left)) + "\n")
         file_log.flush()
 
-file_learn = os.path.join(BASE_FOLD, f"results_data/df_learn_event_{JOB_ID}.csv")
-file_runtime = os.path.join(BASE_FOLD, f"results_data/df_runtime_event_{JOB_ID}.csv")
 
 df_learn.to_csv(file_learn, index=False)
 df_runtime.to_csv(file_runtime, index=False)

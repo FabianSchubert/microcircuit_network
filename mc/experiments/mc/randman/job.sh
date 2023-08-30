@@ -23,5 +23,8 @@
 module load python/anaconda3 gcc/9.1.0 use.dev cuda/11.0 swig openmpi/4.0.5-gcc-9.1.0 nano
 source activate test
 
+NUM_JOBS=$1
+OUTPUT_SCALING=$2
+
 cd ../../../
-python3 -m experiments.mc.randman.run ${SLURM_ARRAY_TASK_ID} $1
+python3 -m experiments.mc.randman.run ${SLURM_ARRAY_TASK_ID} $NUM_JOBS $OUTPUT_SCALING
