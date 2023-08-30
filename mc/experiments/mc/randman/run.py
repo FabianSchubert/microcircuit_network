@@ -19,6 +19,10 @@ from itertools import product
 JOB_ID = int(sys.argv[1])
 N_JOBS = int(sys.argv[2])
 
+OUTPUT_SCALING_MODE = sys.argv[3]
+assert OUTPUT_SCALING_MODE in ["lin", "sqrt", "const"], \
+	"scaling mode must be lin, sqrt or const"
+
 N_RUNS = 1
 
 ###############
@@ -42,7 +46,12 @@ SPIKE_THRESHOLDS = np.exp(np.linspace(np.log(1e-5), np.log(1e-1),
 
 N_HIDDEN = np.linspace(20, 300, N_SWEEP_NET_SIZE).astype("int").tolist()
 N_INPUT = [n + 20 - N_HIDDEN[0] for n in N_HIDDEN]
-N_OUTPUT = [n + 10 - N_HIDDEN[0] for n in N_HIDDEN]
+if OUTPUT_SCALING_MODE == "lin":
+    N_OUTPUT = [n + 10 - N_HIDDEN[0] for n in N_HIDDEN]
+elif OUTPUT_SCALING_MODE == "sqrt":
+    N_OUTPUT = [int(np.sqrt(n)) + 10 - int(np.sqrt(N_HIDDEN[0])) for n in N_HIDDEN]
+else:
+    N_OUTPUT = [10 for _ in N_HIDDEN]
 
 NET_SIZE_ZIP = list(zip(N_INPUT, N_HIDDEN, N_OUTPUT))
 ###############
@@ -141,8 +150,8 @@ params_list = []
 params_list.extend(list(product([list(models.items())[0]], list(method_params.items()),
                                 NET_SIZE_ZIP, SPIKE_THRESHOLDS, range(N_RUNS))))
 
-#params_list.extend(list(product([list(models.items())[1]], list(method_params.items()),
-#                                NET_SIZE_ZIP, [0.0], range(N_RUNS))))
+params_list.extend(list(product([list(models.items())[1]], list(method_params.items()),
+                                NET_SIZE_ZIP, [0.0], range(N_RUNS))))
 
 n_params = len(params_list)
 
@@ -216,8 +225,8 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
         file_log.write(f"Job #{JOB_ID}: " + time.strftime("%H:%M:%S", time.gmtime(t_est_left)) + "\n")
         file_log.flush()
 
-file_learn = os.path.join(BASE_FOLD, f"results_data/df_learn_{JOB_ID}.csv")
-file_runtime = os.path.join(BASE_FOLD, f"results_data/df_runtime_{JOB_ID}.csv")
+file_learn = os.path.join(BASE_FOLD, f"results_data/df_learn_event_{JOB_ID}.csv")
+file_runtime = os.path.join(BASE_FOLD, f"results_data/df_runtime_event_{JOB_ID}.csv")
 
 df_learn.to_csv(file_learn, index=False)
 df_runtime.to_csv(file_runtime, index=False)
