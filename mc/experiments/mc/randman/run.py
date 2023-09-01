@@ -17,11 +17,12 @@ from ..utils import train_and_test_network
 from itertools import product
 
 JOB_ID = int(sys.argv[1])
-N_JOBS = int(sys.argv[2])
+JOB_ARRAY_ID = int(sys.argv[2])
+N_JOBS = int(sys.argv[3])
 
 BASE_FOLD = os.path.dirname(__file__)
 
-OUTPUT_SCALING_MODE = sys.argv[3]
+OUTPUT_SCALING_MODE = sys.argv[4]
 assert OUTPUT_SCALING_MODE in ["lin", "sqrt", "const"], \
 	"scaling mode must be lin, sqrt or const"
 
@@ -82,7 +83,7 @@ DEFAULT_ADAM_PARAMS = {
 LR_SCALING = 0.3
 
 params_base = {
-    "name": f"network_job_{JOB_ID}",
+    "name": f"network_job_{JOB_ARRAY_ID}",
     "n_in": None,
     "n_hidden": None,
     "n_out": None,
@@ -164,7 +165,7 @@ n_params = len(params_list)
 
 params_split = split_lst(params_list, N_JOBS)
 
-params_instance = params_split[JOB_ID]
+params_instance = params_split[JOB_ARRAY_ID]
 
 n_params_instance = len(params_instance)
 
@@ -229,7 +230,7 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
         t1 = time.time()
 
         t_est_left = ((t1 - t0) / (k_sweep + 1)) * (n_params_instance - (k_sweep + 1))
-        file_log.write(f"Job #{JOB_ID}: " + time.strftime("%H:%M:%S", time.gmtime(t_est_left)) + "\n")
+        file_log.write(f"Job #{JOB_ARRAY_ID}: " + time.strftime("%H:%M:%S", time.gmtime(t_est_left)) + "\n")
         file_log.flush()
 
 

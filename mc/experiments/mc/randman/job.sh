@@ -27,4 +27,4 @@ NUM_JOBS=$1
 OUTPUT_SCALING=$2
 
 cd ../../../
-python3 -m experiments.mc.randman.run ${SLURM_ARRAY_TASK_ID} $NUM_JOBS $OUTPUT_SCALING
+python3 -m experiments.mc.randman.run ${SLURM_JOBID} ${SLURM_ARRAY_TASK_ID} $NUM_JOBS $OUTPUT_SCALING
