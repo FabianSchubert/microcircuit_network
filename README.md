@@ -1,4 +1,4 @@
-## Run rate network as event-based models in GeNN.
+## Run rate networks as event-based models in GeNN.
 
 ### Experiments
 Experiments using the microcircuit architecture can be found in
