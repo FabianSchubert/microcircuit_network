@@ -1,4 +1,4 @@
-## Run rate network as event-based models in GeNN.
+## Run rate networks as event-based models in GeNN.
 
 ### Experiments
 Experiments using the microcircuit architecture can be found in
@@ -20,7 +20,9 @@ To create a network model for running an experiment/simulation,
 GeNN model definitions and network architectures can be merged
 into the final model. Unfortunately, this can not be done automatically
 yet, and should be implemented in the `setup` function
-of the network class. However, synapse and layer classes take neuron and
-synapse defintions as module objects upon instantiation, which should
-be imported from `mc.genn_models`.
+of your derived network class, together with all other code that is required
+for setting up the model (excluding the final building/compilation and loading of
+the model). However, synapse and layer classes take genn neuron and synapse
+model defintions as module objects upon instantiation, which should facilitate the
+setup code of your network.
 
