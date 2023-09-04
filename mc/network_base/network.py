@@ -54,7 +54,7 @@ class NetworkBase(ABC):
         cuda_visible_devices (bool):
 
             Needs some further explanation
-        
+
         plastic (bool):
 
             Specifies whether the network should be instantiated

@@ -1,5 +1,10 @@
 import re
 
+#######################
+"""define the transmission part of
+both the event-based model as well as
+the continuous/rate model.
+"""
 
 WU_TRANSMIT = {
     "event": {
@@ -33,6 +38,11 @@ WU_PARAM_SPACE_TRANSMIT = {
     "cont": {}
 }
 
+###########################
+""" postsynaptic models matching
+the weight update definitions.
+"""
+
 PS_TRANSMIT = {
     "event": {
         "class_name": "postsynaptic_change",
@@ -65,6 +75,14 @@ WU_PARAM_SPACE_PLAST = {
     "cont": {}
 }
 
+###################
+""" default values for
+**mandatory** plasticity
+variables dg (changes in weights g)
+and dg_prev (storing the previous
+value of dg).
+"""
+
 WU_VAR_SPACE_PLAST = {
     "event": {
         "dg": 0.0,
@@ -77,6 +95,11 @@ WU_VAR_SPACE_PLAST = {
 
 
 def find_post_vars(s):
+    """find all postsynaptic variables
+    used in a string, using a regexp:
+    matches substrings of the form
+    $(<variable name>_post).
+    """
     post_vars = []
     regstr = "\$\([^\)]*_post\)"
     while True:
@@ -91,6 +114,13 @@ def find_post_vars(s):
 
 
 def convert_f_prev_step(s):
+    """convert a string defining the continuous
+    weight update rule into the event-based approach.
+    This involves replacing $(r_pre) with $(r_prev_event_pre)
+    and all postsynaptic variables with their
+    $(<variable name>_prev_post) counterpart (which has to
+    be preseint in the postsynaptic neuron model, of course).
+    """
     # replace $(r_pre) if present
     s = "$(r_prev_event_pre)".join(s.split("$(r_pre)"))
 
@@ -105,6 +135,8 @@ def convert_f_prev_step(s):
 
 
 def generate_event_plast_wu_dict(name, f, params=[], extra_vars=[]):
+    """generate the event-based version of
+    the plasticity weight update definition"""
 
     var_name_types = [("dg", "scalar"), ("dg_prev", "scalar")] + extra_vars
 
@@ -140,6 +172,8 @@ def generate_event_plast_wu_dict(name, f, params=[], extra_vars=[]):
 
 
 def generate_cont_plast_wu_dict(name, f, params=[], extra_vars=[]):
+    """generate the continuous version of
+    the plasticity weight update definition"""
 
     var_name_types = [("dg", "scalar")] + extra_vars
 
@@ -166,11 +200,14 @@ def generate_cont_plast_wu_dict(name, f, params=[], extra_vars=[]):
     return w_update_model_plast
 
 
-def generate_plast_wu_dict(type, name, f, params=[], extra_vars=[]):
-    assert type in ["event", "cont"], \
+def generate_plast_wu_dict(mod_type, name, f, params=[], extra_vars=[]):
+    """wrapper function returning the respective plasticity
+    weight update definition depending on the model type"""
+
+    assert mod_type in ["event", "cont"], \
         "given type must be 'event' or 'cont'"
 
-    if type == "event":
+    if mod_type == "event":
         return generate_event_plast_wu_dict(name, f, params, extra_vars)
     else:
         return generate_cont_plast_wu_dict(name, f, params, extra_vars)
@@ -179,6 +216,16 @@ def generate_plast_wu_dict(type, name, f, params=[], extra_vars=[]):
 
 
 def convert_event_neur_dict(neur_model_dict, post_plast_vars):
+    """convert a "continous" neuron model definition into
+    a variant suitable for event-based synapses. This involves
+    adding a $(<variable name>_prev) for every variable listed
+    in post_plast_vars, i.e. postsynaptic variables accessed
+    in the weight update. Moreover, the variables r_event and
+    r_prev_event are added as they are required for event-based
+    synaptic transmission. Finally, the threshold condition and
+    reset code is added.
+    """
+
     neur_model_dict = dict(neur_model_dict)
 
     neur_model_dict["var_name_types"] = (neur_model_dict["var_name_types"]
@@ -207,6 +254,9 @@ def convert_event_neur_dict(neur_model_dict, post_plast_vars):
 
 
 def convert_event_neur_var_space_dict(var_space, post_plast_vars):
+    """convert the variable initialization of a continuous
+    model into the event-based variant."""
+
     var_space = dict(var_space) | dict([(f"{var}_prev", var_space[var]) for var in post_plast_vars]
                                     + [("r_event", 0.0), ("r_prev_event", 0.0)])
     return var_space
@@ -219,6 +269,9 @@ def convert_event_neur_param_space_dict(param_space, th=1e-3):
 
 
 def convert_neuron_mod_data_cont_to_event(mod_dat, post_plast_vars, th=1e-3):
+    """wrapper function that returns the converted model definition,
+    variable, and parameter space."""
+
     mod_dat = dict(mod_dat)
 
     mod_dat["model_def"] = convert_event_neur_dict(mod_dat["model_def"],

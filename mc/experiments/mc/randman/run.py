@@ -1,3 +1,16 @@
+"""
+Train the microcircuit model on the random manifold dataset
+over a set of parameters and models.
+
+To run the model on a single machine/node without slurm,
+run python3 -m experiments.mc.randman.run 0 0 1 <scaling mode>,
+where <scaling mode> should be "lin", "sqrt", or "const". This
+defines how the size of the output layer is varied as a function
+of the hidden layer size.
+
+For usage with slurm, just call ./submit_jobs <job array size>.
+"""
+
 import numpy as np
 import pandas as pd
 

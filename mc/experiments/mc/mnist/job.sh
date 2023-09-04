@@ -4,7 +4,7 @@
 #SBATCH --nodes=1
 
 # set max wallclock time
-#SBATCH --time=10:00:00
+#SBATCH --time=48:00:00
 
 # set name of job
 
@@ -23,5 +23,7 @@
 module load python/anaconda3 gcc/9.1.0 use.dev cuda/11.0 swig openmpi/4.0.5-gcc-9.1.0 nano
 source activate test
 
+NUM_JOBS=$1
+
 cd ../../../
-python3 -m experiments.mnist_le.run ${SLURM_ARRAY_TASK_ID} $1
+python3 -m experiments.mc.yinyang.run ${SLURM_JOBID} ${SLURM_ARRAY_TASK_ID} $NUM_JOBS

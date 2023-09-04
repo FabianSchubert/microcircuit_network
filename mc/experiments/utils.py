@@ -17,7 +17,12 @@ def split_lst(a, n):
 
 
 def plot_spike_times(sp, ax=None, color='k'):
-
+    """
+    Make a raster plot of spike times in a given
+    ax (or the current axis if none is given).
+    sp is list of two lists, where sp[0] holds
+    the spike times, and sp[1] the indices.
+    """
     _ax = ax if ax else plt.gca()
 
     _ax.plot(sp[0], sp[1], '.', c=color, markersize=1)

@@ -1,3 +1,13 @@
+"""
+Train the microcircuit model on the yinyang dataset
+over a set of parameters and models.
+
+To run the model on a single machine/node without slurm,
+run python3 -m experiments.mc.yinyang.run 0 0 1.
+
+For usage with slurm, just call ./submit_jobs <job array size>.
+"""
+
 import numpy as np
 import pandas as pd
 

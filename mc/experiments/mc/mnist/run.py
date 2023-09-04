@@ -1,3 +1,13 @@
+"""
+Train the microcircuit model on the MNIST dataset
+over a set of parameters and models.
+
+To run the model on a single machine/node without slurm,
+run python3 -m experiments.mc.mnist.run 0 0 1.
+
+For usage with slurm, just call ./submit_jobs <job array size>.
+"""
+
 import numpy as np
 import pandas as pd
 
@@ -17,8 +27,17 @@ from ..utils import train_and_test_network
 
 from itertools import product
 
-JOB_ID = int(sys.argv[1])
-N_JOBS = int(sys.argv[2])
+JOB_ID = sys.argv[1]
+JOB_ARRAY_ID = int(sys.argv[2])
+N_JOBS = int(sys.argv[3])
+
+BASE_FOLD = os.path.dirname(__file__)
+
+save_path = os.path.join(BASE_FOLD, f"results_data")
+os.makedirs(save_path, exist_ok=True)
+
+file_learn = os.path.join(save_path, f"df_learn_{JOB_ID}.csv")
+file_runtime = os.path.join(save_path, f"df_runtime_{JOB_ID}.csv")
 
 N_RUNS = 10
 
@@ -106,7 +125,7 @@ n_params = len(params_list)
 
 params_split = split_lst(params_list, N_JOBS)
 
-params_instance = params_split[JOB_ID]
+params_instance = params_split[JOB_ARRAY_ID]
 
 n_params_instance = len(params_instance)
 
@@ -140,11 +159,8 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
         t1 = time.time()
 
         t_est_left = ((t1 - t0) / (k_sweep + 1)) * (n_params_instance - (k_sweep + 1))
-        file_log.write(f"Job #{JOB_ID}: " + time.strftime("%H:%M:%S", time.gmtime(t_est_left)) + "\n")
+        file_log.write(f"Job #{JOB_ARRAY_ID}: " + time.strftime("%H:%M:%S", time.gmtime(t_est_left)) + "\n")
         file_log.flush()
-
-file_learn = os.path.join(BASE_FOLD, f"results_data/df_learn_{JOB_ID}.csv")
-file_runtime = os.path.join(BASE_FOLD, f"results_data/df_runtime_{JOB_ID}.csv")
 
 df_learn.to_csv(file_learn, index=False)
 df_runtime.to_csv(file_runtime, index=False)
