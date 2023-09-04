@@ -16,7 +16,7 @@ from ..utils import train_and_test_network
 
 from itertools import product
 
-JOB_ID = int(sys.argv[1])
+JOB_ID = sys.argv[1]
 JOB_ARRAY_ID = int(sys.argv[2])
 N_JOBS = int(sys.argv[3])
 
