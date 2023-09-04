@@ -126,6 +126,16 @@ params_base = {
     }
 }
 
+df_learn = pd.DataFrame(columns=["Epoch", "Sim ID", "Accuracy",
+                                 "Loss", "Model", "Method",
+                                 "Event Threshold",
+                                 "N Input", "N Hidden", "N Output"
+                                 ])
+df_runtime = pd.DataFrame(columns=["Runtime", "Sim ID",
+                                   "Model", "Method",
+                                   "Event Threshold",
+                                   "N Input", "N Hidden", "N Output"])
+
 ################ construct parameter sweep space
 params_fb_align = {"force_self_pred_state": False,
                    "force_fb_align": False}
@@ -141,17 +151,6 @@ models = {
     "Event": change_detection_spikes,
     "Continuous": rates
 }
-
-df_learn = pd.DataFrame(columns=["Epoch", "Sim ID", "Accuracy",
-                                 "Loss", "Model", "Method",
-                                 "Event Threshold",
-                                 "N Input", "N Hidden", "N Output"
-                                 ])
-df_runtime = pd.DataFrame(columns=["Runtime", "Sim ID",
-                                   "Model", "Method",
-                                   "Event Threshold",
-                                   "N Input", "N Hidden", "N Output"])
-
 
 params_list = []
 
@@ -232,7 +231,6 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
         t_est_left = ((t1 - t0) / (k_sweep + 1)) * (n_params_instance - (k_sweep + 1))
         file_log.write(f"Job #{JOB_ARRAY_ID}: " + time.strftime("%H:%M:%S", time.gmtime(t_est_left)) + "\n")
         file_log.flush()
-
 
 df_learn.to_csv(file_learn, index=False)
 df_runtime.to_csv(file_runtime, index=False)
