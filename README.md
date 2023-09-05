@@ -7,7 +7,7 @@ Experiments using the microcircuit architecture can be found in
 
 ### GeNN Model Definitions
 `mc.genn_models` contains subfolders with genn model definitions
-of neurons and synapses. `drop_in_synapses` should be used as a
+of neurons and synapses. See `drop_in_synapses`as a
 starting point when defining new neuron or synapse models.
 
 ### Network Architectures
@@ -15,14 +15,18 @@ starting point when defining new neuron or synapse models.
 and networks that are all derived from base classes found in
 `mc.network_base`.
 
-### Building a Network Model
-To create a network model for running an experiment/simulation,
-GeNN model definitions and network architectures can be merged
-into the final model. Unfortunately, this can not be done automatically
-yet, and should be implemented in the `setup` function
-of your derived network class, together with all other code that is required
-for setting up the model (excluding the final building/compilation and loading of
-the model). However, synapse and layer classes take genn neuron and synapse
-model defintions as module objects upon instantiation, which should facilitate the
-setup code of your network.
+#### Building a Network Model
 
+The `NetworkBase` class in `mc.network_base.network` is an abstract base
+class, i.e. you need you need to define a child network class that inherits
+from `NetworkBase` when defining a network model. In particular,
+`NetworkBase` has an abstract method `setup` that has to be defined in your
+child class, and this is where GeNN model definitions and network the architecture come together
+into the final model.
+
+To build your network in `setup`, you should
+use the `LayerBase` and `SynapseBase` classes (or custom classes derived from
+them) found in `mc.network_base.layer` and `mc.network_base.synapse`,
+respectively. This is not strictly necessary, but it automates the extra steps involved
+in setting up neuron populations and synapse populations for training and
+testing, in particular adding custom updates to the model for weight updates.
