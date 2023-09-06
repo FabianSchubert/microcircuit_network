@@ -301,6 +301,16 @@ class MCNetwork(NetworkBase):
             self.cs_out = None
         ############################
 
+    def custom_sim_step(self, l,
+                        force_fb_align=False,
+                        force_self_pred_state=False):
+
+        if self.plastic and (l["t"] % l["NT_skip_batch_plast"] == 0):
+            if force_fb_align:
+                self.align_fb_weights()
+            if force_self_pred_state:
+                self.init_self_pred_state()
+
     def init_self_pred_state(self):
         """
         Modify the PI and IP weights such that the

@@ -21,7 +21,7 @@ class LayerBase:
         self.plastic = plastic
         self.read_only_weights = read_only_weights
 
-    def add_neur_pop(self, pop_name, size, neur_model, param_init, var_init, 
+    def add_neur_pop(self, pop_name, size, neur_model, param_init, var_init,
                      optimizer_params={}):
         _full_name = f'neur_{self.name}_{pop_name}'
         _new_pop = self.genn_model.add_neuron_population(_full_name, size,

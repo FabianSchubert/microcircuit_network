@@ -263,7 +263,7 @@ def convert_event_neur_var_space_dict(var_space, post_plast_vars):
 
 
 def convert_event_neur_param_space_dict(param_space, th=1e-3):
-    param_space = dict(param_space) | {"th": 1e-3}
+    param_space = dict(param_space) | {"th": th}
 
     return param_space
 

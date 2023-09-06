@@ -140,19 +140,6 @@ class NetworkBase(ABC):
         The copy self.static_twin will be an
         instance of the network itself."""
 
-        '''
-        self.name = name
-        self.dt = dt
-        self.n_batches = n_batches
-        self.n_batches_val = n_batches_val
-        self.spike_buffer_size = spike_buffer_size,
-        self.spike_buffer_size_val = spike_buffer_size_val
-        self.spike_rec_pops = spike_rec_pops
-        self.spike_rec_pops_val = spike_rec_pops_val
-        self.cuda_visible_devices = cuda_visible_devices
-        self.plastic = plastic
-        '''
-
         return cls(f"static_twin_{instance.name}",
                    instance.dt,
                    instance.n_batches_val, None,
@@ -191,6 +178,18 @@ class NetworkBase(ABC):
 
         if self.plastic:
             self.static_twin_net.reinitialize()
+
+    def custom_sim_step(self, *args, **kwargs):
+        """this method can be overwritten in a derived
+        network class to add extra functionality to the
+        simulation update step. The first argument that
+        is always passed is the local variable space
+        of the run_sim function as a dictionary, which allows
+        you to access variables already defined/used in
+        the run_sim function. Further arguments / keyword
+        arguments can be passed on through the run_sim function.
+        """
+        pass
 
     @property
     def neur_pops(self):
@@ -287,13 +286,15 @@ class NetworkBase(ABC):
     def run_sim(self, T,
                 ext_data_pop_vars, readout_neur_pop_vars,
                 readout_syn_pop_vars,
+                *args,
                 t_sign_validation=None,
                 data_validation=None,
                 show_progress=True,
                 show_progress_val=True,
                 NT_skip_batch_plast=1,
-                force_self_pred_state=False,
-                force_fb_align=False):
+                # force_self_pred_state=False,
+                # force_fb_align=False,
+                **kwargs):
         """
         run_sim simulates the network and allows the user
         to provide input data as well as specify targets
@@ -515,11 +516,10 @@ class NetworkBase(ABC):
                 self.genn_model.custom_update("BiasChangeBatchReduce")
                 self.genn_model.custom_update("Plast")
 
-                if force_fb_align:
-                    self.align_fb_weights()
-                if force_self_pred_state:
-                    self.init_self_pred_state()
-
+            l = locals()
+            del l["args"]
+            del l["kwargs"]
+            self.custom_sim_step(l, *args, **kwargs)
 
             self.pull_neur_var_data(t, readout_neur_pop_vars,
                                     time_signatures_readout_neur_pop,

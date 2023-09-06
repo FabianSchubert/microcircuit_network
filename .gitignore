@@ -1,3 +1,6 @@
+# ingore vim swap files
+*.swp
+
 # ignore zipped files
 *.zip
 
