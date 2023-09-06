@@ -31,7 +31,7 @@ respectively. This is not strictly necessary, but it automates the extra steps i
 in setting up neuron populations and synapse populations for training and
 testing, in particular adding custom updates to the model for weight updates.
 
-An example for building and running a model is given in `mc.min_example.py`.
+**An example for building and running a model is given in `mc.min_example.py`**.
 For simplicity, the construction of
 neuron and synapse model definitions was done in the main script, but, as described
-above, it is preferred to do so in an extra directory in `mc.genn_models`.
+above, it is generally recommended to do so in an extra directory in `mc.genn_models`.
