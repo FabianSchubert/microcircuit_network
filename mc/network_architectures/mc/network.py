@@ -6,7 +6,8 @@ construct an instance of the dendritic microcircuit model.
 import types
 from dataclasses import InitVar
 
-from .layers import HiddenLayer, InputLayer, OutputLayer
+from .layers import (HiddenLayer, InputLayer, OutputLayer)
+
 from .synapses import (SynapseIPBack, SynapsePINP,
                        SynapsePPApical, SynapsePPBasal)
 

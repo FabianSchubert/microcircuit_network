@@ -9,7 +9,6 @@ from pygenn.genn_model import create_custom_neuron_class
 
 from network_base.layer import LayerBase
 
-
 class HiddenLayer(LayerBase):
 
     def __init__(self, name, genn_model,
@@ -95,3 +94,6 @@ class InputLayer(LayerBase):
         self.add_neur_pop("input_pop", N, _input_model,
                           _input_param_space, input_var_space,
                           optimizer_params=optimizer_params)
+
+
+

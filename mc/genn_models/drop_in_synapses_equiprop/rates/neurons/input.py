@@ -8,10 +8,10 @@ post_plast_vars = []
 
 model_def = {
     "class_name": "input",
-    "param_names": [],
+    "param_names": ["beta"],
     "var_name_types": [("r", "scalar"),
-                       ("d_ra", "scalar"),
                        ("u", "scalar"),
+                       ("targ_mode", "scalar"),
                        ("b", "scalar", VarAccess_READ_ONLY), ("db", "scalar")],
     "sim_code": """
         $(u) = $(Isyn);
@@ -19,12 +19,12 @@ model_def = {
     """
 }
 
-param_space = {}
+param_space = {"beta": 1.0}
 
 var_space = {
     "r": 0.0,
-    "d_ra": 0.0,
     "u": 0.0,
+    "targ_mode": 0.0,
     "b": 0.0,
     "db": 0.0
 }

@@ -6,53 +6,39 @@ from pygenn.genn_wrapper.Models import VarAccess_READ_ONLY
 
 from ..settings import mod_type
 
-post_plast_vars = ["d_ra"]
+post_plast_vars = ["r"]
 
 model_def = {
-    "class_name": "output",
-    "param_names": ["tau_d_ra", "tau_prosp"],
+    "class_name": "hidden",
+    "param_names": ["eps", "beta"],
     "var_name_types": [("r", "scalar"),
-                       ("d_ra", "scalar"),
                        ("u", "scalar"),
-                       ("u_prev", "scalar"),
-                       ("u_prosp", "scalar"),
-                       ("va", "scalar"),
-                       ("vb", "scalar"),
-                       ("ga", "scalar"),
+                       ("targ_mode", "scalar"),
                        ("b", "scalar", VarAccess_READ_ONLY), ("db", "scalar")],
-    "additional_input_vars": [("Isyn_vb", "scalar", 0.0)],
     "sim_code": f"""
-        $(u_prosp) = $(u) + ($(u) - $(u_prev)) * $(tau_prosp) / DT;
+        $(u) = ($(u)
+                + DT * $(eps) * (
+                      {d_act_func("$(u)")} * ($(Isyn_regular) + $(b)) - $(u)
+                    + $(beta) * $(targ_mode) * ($(Isyn) - $(r))
+                    )
+                );
 
-        $(r) = {act_func('$(u_prosp)')};
+        $(u) = min(1.0, max($(u), 0.0));
 
-        $(va) = $(Isyn) - $(r);
-        $(vb) = $(Isyn_vb) + $(b);
-
-        $(u_prev) = $(u);
-        $(u) += DT*($(ga) * $(va) + $(vb) - $(u));
-
-        $(d_ra) += DT * ($(va) * {d_act_func('$(vb)')} - $(d_ra)) / $(tau_d_ra);
-        //$(d_ra) = $(va) * {d_act_func('$(vb)')};
-
-        $(db) += DT * $(d_ra);
-    """
+        $(r) = {act_func("$(u)")};
+    """,
+    "additional_input_vars": [("Isyn_regular", "scalar", 0.0)]
 }
 
 param_space = {
-    "tau_d_ra": 10.,
-    "tau_prosp": 1.
+    "eps": 0.5,
+    "beta": 1.0
 }
 
 var_space = {
     "r": 0.0,
-    "d_ra": 0.0,
     "u": 0.0,
-    "u_prev": 0.0,
-    "u_prosp": 0.0,
-    "va": 0.0,
-    "vb": 0.0,
-    "ga": 0.1,
+    "targ_mode": 0.0,
     "b": 0.0,
     "db": 0.0
 }
