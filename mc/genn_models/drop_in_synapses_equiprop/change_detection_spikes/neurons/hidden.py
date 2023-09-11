@@ -21,7 +21,7 @@ model_def = {
               );
 
         // only relevant for act_func(u) = max(0.0, min(1.0, u)).
-        $(u) = min(1.0, max($(u), 0.0));
+        //$(u) = min(1.0, max($(u), 0.0));
 
         $(r) = {act_func("$(u)")};
     """,

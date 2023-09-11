@@ -1,4 +1,5 @@
 import re
+from copy import deepcopy
 
 #######################
 """define the transmission part of
@@ -128,9 +129,11 @@ def convert_f_prev_step(s):
 
     for _var in post_vars:
         _var_full_old = f"$({_var}_post)"
-        _var_full_new = f"$({_var}_prev_post)"
+        _var_full_new = f"$({_var}_prev_event_post)"
         s = _var_full_new.join(s.split(_var_full_old))
-
+    
+    import ipdb
+    ipdb.set_trace()
     return s
 
 
@@ -144,19 +147,14 @@ def generate_event_plast_wu_dict(name, f, params=[], extra_vars=[]):
         sim_code = f"//PLAST CODE {name} \n"
         spk_requ = False
     else:
-        f_prev = convert_f_prev_step(f)
+        #f_prev = convert_f_prev_step(f)
 
         sim_code = f"""
             // PLAST CODE {name}
 
-            const scalar dg_temp = {f_prev};
+            $(dg) += ($(t) - max(0.0,$(prev_sT_pre))) * $(dg_prev);
 
-            //$(dg) += ($(t) - max(0.0,$(prev_sT_pre))) * (dg_temp + $(dg_prev)) * 0.5;
-
-            // previous version:
-            $(dg) += ($(t) - max(0.0,$(prev_sT_pre))) * (dg_temp);
-
-            //$(dg_prev) = {f};
+            $(dg_prev) = {f};
         """
         spk_requ = True
 
@@ -226,27 +224,35 @@ def convert_event_neur_dict(neur_model_dict, post_plast_vars):
     reset code is added.
     """
 
-    neur_model_dict = dict(neur_model_dict)
+    neur_model_dict = deepcopy(neur_model_dict)
+
+    #event_vars = list(set(post_plast_vars + ["r"]))
 
     neur_model_dict["var_name_types"] = (neur_model_dict["var_name_types"]
-        + [(f"{var}_prev", "scalar") for var in post_plast_vars]
-        + [("r_event", "scalar"), ("r_prev_event", "scalar")]
-    )
+            + [("r_event", "scalar")])
+
+    #neur_model_dict["var_name_types"] = (neur_model_dict["var_name_types"]
+    #    + [(f"{var}_prev_event", "scalar") for var in event_vars]
+    #    + [(f"{var}_event", "scalar") for var in event_vars])
 
     neur_model_dict["param_names"] = neur_model_dict["param_names"] + ["th"]
 
     neur_model_dict["threshold_condition_code"] = "abs($(r) - $(r_event)) >= $(th)"
 
-    neur_model_dict["reset_code"] = """
-    $(r_prev_event) = $(r_event);
-    $(r_event) = $(r);
-    """
+    neur_model_dict["reset_code"] = "$(r_event) = $(r);"
+
+    #neur_model_dict["reset_code"] = "\n".join([
+    #f"""
+    #    $({var}_event) = $({var})""" for var in event_vars])
 
     sim_code = neur_model_dict["sim_code"]
 
-    sim_code_prev_update = "\n ".join([f"$({var}_prev) = $({var});" for var in post_plast_vars])
+    #sim_code_prev_update = "\n".join([
+    #f"""
+    #$({var}_prev_event) = $({var}_event);""" for var in event_vars])
 
-    neur_model_dict["sim_code"] = f"{sim_code_prev_update} \n {sim_code}"
+    #neur_model_dict["sim_code"] = f"{sim_code_prev_update} \n {sim_code}"
+    #neur_model_dict["sim_code"] = sim_code
 
     neur_model_dict["is_auto_refractory_required"] = False
 
@@ -257,8 +263,12 @@ def convert_event_neur_var_space_dict(var_space, post_plast_vars):
     """convert the variable initialization of a continuous
     model into the event-based variant."""
 
-    var_space = dict(var_space) | dict([(f"{var}_prev", var_space[var]) for var in post_plast_vars]
-                                    + [("r_event", 0.0), ("r_prev_event", 0.0)])
+    var_space = deepcopy(var_space) | {"r_event": var_space["r"]}
+
+    #event_vars = list(set(post_plast_vars + ["r"]))
+
+    #var_space = dict(var_space) | dict([(f"{var}_event", var_space[var]) for var in event_vars]
+    #                                + [(f"{var}_event", var_space[var]) for var in event_vars])
     return var_space
 
 

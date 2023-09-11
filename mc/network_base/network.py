@@ -521,6 +521,10 @@ class NetworkBase(ABC):
             del l["kwargs"]
             self.custom_sim_step(l, *args, **kwargs)
 
+            #if self.plastic and (t % NT_skip_batch_plast == 0):
+            #    import ipdb
+            #    ipdb.set_trace()
+
             self.pull_neur_var_data(t, readout_neur_pop_vars,
                                     time_signatures_readout_neur_pop,
                                     readout_neur_arrays, readout_views,

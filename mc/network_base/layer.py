@@ -13,7 +13,7 @@ DEFAULT_OPTIM = {
 
 class LayerBase:
 
-    def __init__(self, name, genn_model, plastic=True, read_only_weights=False):
+    def __init__(self, name, genn_model, plastic=True, read_only_weights=True):
         self.name = name
         self.genn_model = genn_model
         self.neur_pops = {}

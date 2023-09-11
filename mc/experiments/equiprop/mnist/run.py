@@ -23,6 +23,9 @@ from genn_models.drop_in_synapses_equiprop import change_detection_spikes, rates
 from data.mnist.dataset import (input_train, output_train,
                                 input_test, output_test)
 
+output_train = output_train * 0.8 + 0.1
+output_test = output_test * 0.8 + 0.1
+
 from ...utils import split_lst
 from ..utils import train_and_test_network
 
@@ -58,21 +61,47 @@ DEFAULT_ADAM_PARAMS = {
     "low": -1e6
 }
 
+N_EPOCHS = 2
+READOUT_TIMES = np.linspace(0, N_EPOCHS * 60000 * 150 * 2./128., 1000)
+#READOUT_TIMES = np.linspace(0., 150*2.*25, 25*20)
+
 params_base = {
     "n_in": 784,
-    "n_hidden": [100],
+    "n_hidden": [200],
     "n_out": 10,
     "dt": 0.25,
     "n_runs": 1,  # this should be set to 1 if multiple jobs are used. Instead, set N_RUNS above.
-    "n_epochs": 1,
+    "n_epochs": N_EPOCHS,
     "n_batch": 128,
     "t_show_pattern": 150.,
-    "n_test_run": 1,
+    "n_test_run": 10,
     "optimizer_params": {
+        "syn_input_input_pop_to_hidden0_hidden_pop": {
+            "optimizer": "adam",
+            "params": DEFAULT_ADAM_PARAMS | {"lr": 0e-3}
+        },
+        "syn_hidden0_hidden_pop_to_output_output_pop": {
+            "optimizer": "adam",
+            "params": DEFAULT_ADAM_PARAMS | {"lr": 2e-4}
+        },
+        "syn_output_output_pop_to_hidden0_hidden_pop": {
+            "optimizer": "adam",
+            "params": DEFAULT_ADAM_PARAMS | {"lr": 0e-5}
+        }
     },
     "train_readout": [
-        ("neur_output_output_pop", "u", np.linspace(0.,150.*50, 50*15)),
-        ("neur_hidden0_hidden_pop", "u", np.linspace(0.,150.*50, 50*15))
+        ("neur_output_output_pop", "u", READOUT_TIMES),
+        ("neur_hidden0_hidden_pop", "u", READOUT_TIMES),
+        ("neur_hidden0_hidden_pop", "r", READOUT_TIMES),
+        ("neur_hidden0_hidden_pop", "targ_mode", READOUT_TIMES),
+        ("neur_input_input_pop", "r", READOUT_TIMES),
+        ("neur_output_output_pop", "r_targ", READOUT_TIMES),
+        ("neur_output_output_pop", "r", READOUT_TIMES),
+        ("neur_output_output_pop", "targ_mode", READOUT_TIMES)
+    ],
+    "train_readout_syn": [
+        ("syn_input_input_pop_to_hidden0_hidden_pop", "g", READOUT_TIMES),
+        ("syn_hidden0_hidden_pop_to_output_output_pop", "g", READOUT_TIMES)
     ]
 }
 
@@ -102,10 +131,7 @@ with open(os.path.join(BASE_FOLD, "runtime_est.log"), "a") as file_log:
 
     for k_sweep, ((model_name, model), sim_id) in enumerate(params_instance):
 
-        epoch_ax, acc, loss, neur_readout, _, run_time = train_and_test_network(params_base, model, data, show_progress=True)
-        
-        import pdb
-        pdb.set_trace()
+        epoch_ax, acc, loss, neur_readout, syn_readout, run_time = train_and_test_network(params_base, model, data, show_progress=True)
 
         df_learn = pd.concat([df_learn,
                               pd.DataFrame({

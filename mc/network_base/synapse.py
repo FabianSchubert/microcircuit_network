@@ -13,6 +13,8 @@ from pygenn.genn_model import (create_custom_weight_update_class,
                                init_connectivity,
                                create_wu_var_ref)
 
+from copy import deepcopy
+
 DEFAULT_OPTIM = {
     "optimizer": "adam",
     "params": {
@@ -49,7 +51,7 @@ class SynapseBase:
     low: float = -10000.0
     high: float = 10000.0
 
-    def build_wu_model(self, plastic, read_only):
+    def build_wu_model(self, plastic, read_only=True):
         '''
         Build either a "plastic" weight update
         model by merging the transmission and
@@ -57,13 +59,14 @@ class SynapseBase:
         a static model using only the transmission
         model definition.
         '''
+
         if plastic:
             _wu_model_def = merge_wu_def("plastic_wu_model",
                                                self.w_update_model_transmit,
                                                self.w_update_model_plast)
 
         else:
-            _wu_model_def = dict(self.w_update_model_transmit)
+            _wu_model_def = deepcopy(self.w_update_model_transmit)
 
         if read_only:
             _var_name_types = _wu_model_def["var_name_types"]
@@ -90,7 +93,7 @@ class SynapseBase:
         return create_custom_postsynaptic_class(**self.ps_model_transmit)
 
     def connect_pops(self, name, genn_model,
-                     target, source, plastic=True, read_only=False,
+                     target, source, plastic=True, read_only=True,
                      optimizer_params={}):
 
         wu_model = self.build_wu_model(plastic, read_only)

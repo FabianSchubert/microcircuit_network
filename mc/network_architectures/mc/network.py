@@ -392,6 +392,7 @@ class MCNetwork(NetworkBase):
                 _name_pp_fwd = f'syn_{_name_this_layer}_pyr_pop_to_{_name_next_layer}_{_name_next_pyr}'
                 _pp_fwd = self.syn_pops[_name_pp_fwd]
                 _synview_pp_fwd = _pp_fwd.vars["g"].view
+                _pp_fwd.pull_var_from_device("g")
 
                 _w_pp_fwd = np.reshape(np.array(_synview_pp_fwd), (_pp_fwd.src.size, _pp_fwd.trg.size))
 

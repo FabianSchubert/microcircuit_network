@@ -277,5 +277,10 @@ def train_and_test_network(params, network_model, data, show_progress=False):
     readout_neur_arrays = {k: v for k, v in readout_arrays.items() if k in _readout_neur_arrays.keys()}
     readout_syn_arrays = {k: v for k, v in readout_arrays.items() if k in _readout_syn_arrays.keys()}
 
+    import matplotlib.pyplot as plt
+    plt.ion()
+    import pdb
+    pdb.set_trace()
+
     return (epoch_ax, acc, loss, readout_neur_arrays,
             readout_syn_arrays, run_time)

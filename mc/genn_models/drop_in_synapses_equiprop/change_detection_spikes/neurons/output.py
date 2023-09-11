@@ -14,16 +14,18 @@ model_def = {
     "var_name_types": [("r", "scalar"),
                        ("u", "scalar"),
                        ("targ_mode", "scalar"),
+                       ("r_targ", "scalar"),
                        ("b", "scalar", VarAccess_READ_ONLY), ("db", "scalar")],
     "sim_code": f"""
+        $(r_targ) = $(Isyn);
         $(u) = ($(u)
                 + DT * $(eps) * (
                       {d_act_func("$(u)")} * ($(Isyn_regular) + $(b)) - $(u)
-                    + $(beta) * $(targ_mode) * ($(Isyn) - $(r))
+                    + $(beta) * $(targ_mode) * ($(r_targ) - $(r))
                     )
                 );
 
-        $(u) = min(1.0, max($(u), 0.0));
+        //$(u) = min(1.0, max($(u), 0.0));
 
         $(r) = {act_func("$(u)")};
     """,
@@ -39,6 +41,7 @@ var_space = {
     "r": 0.0,
     "u": 0.0,
     "targ_mode": 0.0,
+    "r_targ": 0.0,
     "b": 0.0,
     "db": 0.0
 }

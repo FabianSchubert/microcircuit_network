@@ -81,7 +81,6 @@ class EquipropNetwork(NetworkBase):
                 self.neur_pops["neur_hidden0_hidden_pop"],
                 self.neur_pops["neur_input_input_pop"],
                 plastic=self.plastic,
-                read_only=self.plastic,
                 optimizer_params=self.optimizer_params
             )
         )
@@ -100,7 +99,6 @@ class EquipropNetwork(NetworkBase):
                     _l_next.neur_pops["hidden_pop"],
                     _l.neur_pops["hidden_pop"],
                     plastic=self.plastic,
-                    read_only=self.plastic,
                     optimizer_params=self.optimizer_params
                 )
             )
@@ -114,7 +112,6 @@ class EquipropNetwork(NetworkBase):
                     _l.neur_pops["hidden_pop"],
                     _l_next.neur_pops["hidden_pop"],
                     plastic=self.plastic,
-                    read_only=self.plastic,
                     optimizer_params=self.optimizer_params
                 )
             )
@@ -128,7 +125,6 @@ class EquipropNetwork(NetworkBase):
                 self.layers[-1].neur_pops["output_pop"],
                 self.layers[-2].neur_pops["hidden_pop"],
                 plastic=self.plastic,
-                read_only=self.plastic,
                 optimizer_params=self.optimizer_params
             )
         )
@@ -142,7 +138,6 @@ class EquipropNetwork(NetworkBase):
                 self.layers[-2].neur_pops["hidden_pop"],
                 self.layers[-1].neur_pops["output_pop"],
                 plastic=self.plastic,
-                read_only=self.plastic,
                 optimizer_params=self.optimizer_params
             )
         )
@@ -200,6 +195,7 @@ class EquipropNetwork(NetworkBase):
                 _name_syn_fwd = f'syn_{_name_this_layer}_hidden_pop_to_{_name_next_layer}_{_name_next_pop}'
                 _syn_fwd = self.syn_pops[_name_syn_fwd]
                 _synview_syn_fwd = _syn_fwd.vars["g"].view
+                _syn_fwd.pull_var_from_device("g")
 
                 _w_syn_fwd = np.reshape(np.array(_synview_syn_fwd), (_syn_fwd.src.size, _syn_fwd.trg.size))
 
@@ -213,4 +209,4 @@ class EquipropNetwork(NetworkBase):
     def custom_sim_step(self, l):
 
         if self.plastic and (l["t"] % l["NT_skip_batch_plast"] == 0):
-           self.align_fb_weights()
+            self.align_fb_weights()
