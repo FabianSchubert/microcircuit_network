@@ -20,8 +20,10 @@ import time
 
 from genn_models.drop_in_synapses_equiprop import change_detection_spikes, rates
 
-from data.mnist.dataset import (input_train, output_train,
-                                input_test, output_test)
+from data.yinyang.dataset import yinyang_dataset_array
+
+input_train, output_train = yinyang_dataset_array(size=10000, seed=40)
+input_test, output_test = yinyang_dataset_array(size=1000, seed=40)
 
 output_train = output_train * 0.8 + 0.1
 output_test = output_test * 0.8 + 0.1
@@ -67,14 +69,14 @@ DEFAULT_SGD_PARAMS = {
     "low": -1e6
 }
 
-N_EPOCHS = 1
-READOUT_TIMES = np.linspace(0, N_EPOCHS * 60000 * 150 * 2./128., 5000)
+N_EPOCHS = 45
+READOUT_TIMES = np.linspace(0, N_EPOCHS * 10000 * 150 * 2./128., 5000)
 #READOUT_TIMES = np.linspace(0., 150*2.*25, 25*20)
 
 params_base = {
-    "n_in": 784,
-    "n_hidden": [200],
-    "n_out": 10,
+    "n_in": 4,
+    "n_hidden": [30],
+    "n_out": 3,
     "dt": 0.25,
     "n_runs": 1,  # this should be set to 1 if multiple jobs are used. Instead, set N_RUNS above.
     "n_epochs": N_EPOCHS,
@@ -84,11 +86,11 @@ params_base = {
     "optimizer_params": {
         "syn_input_input_pop_to_hidden0_hidden_pop": {
             "optimizer": "adam",
-            "params": DEFAULT_ADAM_PARAMS | {"lr": 0e-3}
+            "params": DEFAULT_ADAM_PARAMS | {"lr": 8e-3}
         },
         "syn_hidden0_hidden_pop_to_output_output_pop": {
-            "optimizer": "sgd",
-            "params": DEFAULT_SGD_PARAMS | {"lr": 2e-5}
+            "optimizer": "adam",
+            "params": DEFAULT_ADAM_PARAMS | {"lr": 2e-7}
         },
         "syn_output_output_pop_to_hidden0_hidden_pop": {
             "optimizer": "adam",
@@ -96,24 +98,24 @@ params_base = {
         }
     },
     "train_readout": [
-        ("neur_output_output_pop", "u", READOUT_TIMES),
-        ("neur_hidden0_hidden_pop", "u", READOUT_TIMES),
-        ("neur_hidden0_hidden_pop", "r", READOUT_TIMES),
-        ("neur_hidden0_hidden_pop", "targ_mode", READOUT_TIMES),
-        ("neur_input_input_pop", "r", READOUT_TIMES),
-        ("neur_output_output_pop", "r_targ", READOUT_TIMES),
-        ("neur_output_output_pop", "r", READOUT_TIMES),
-        ("neur_output_output_pop", "targ_mode", READOUT_TIMES)
+        #("neur_output_output_pop", "u", READOUT_TIMES),
+        #("neur_hidden0_hidden_pop", "u", READOUT_TIMES),
+        #("neur_hidden0_hidden_pop", "r", READOUT_TIMES),
+        #("neur_hidden0_hidden_pop", "targ_mode", READOUT_TIMES),
+        #("neur_input_input_pop", "r", READOUT_TIMES),
+        #("neur_output_output_pop", "r_targ", READOUT_TIMES),
+        #("neur_output_output_pop", "r", READOUT_TIMES),
+        #("neur_output_output_pop", "targ_mode", READOUT_TIMES)
     ],
     "train_readout_syn": [
         #("syn_input_input_pop_to_hidden0_hidden_pop", "g", READOUT_TIMES),
-        ("syn_hidden0_hidden_pop_to_output_output_pop", "g", READOUT_TIMES)
+        #("syn_hidden0_hidden_pop_to_output_output_pop", "g", READOUT_TIMES)
     ]
 }
 
 models = {
-    #"Spike": change_detection_spikes#,
-    "Rate": rates
+    "Spike": change_detection_spikes#,
+    #"Rate": rates
 }
 
 df_learn = pd.DataFrame(columns=["Epoch", "Sim ID", "Accuracy",

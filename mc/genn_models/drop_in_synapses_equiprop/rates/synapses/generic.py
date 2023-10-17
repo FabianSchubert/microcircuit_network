@@ -18,12 +18,12 @@ wu_var_space_transmit = dict(WU_VAR_SPACE_TRANSMIT[mod_type])
 WEIGHT_SCALE = 1.0
 wu_var_space_transmit["g"] = init_var("Uniform", {"min": -WEIGHT_SCALE, "max": WEIGHT_SCALE})
 
-f = "(2.*$(targ_mode_pre)-1.) * $(r_pre) * $(r_post) / $(beta)"
-# 1 if targ_mode_pre == 1, -1 if targ_mod_pre == 0
+f = "(2.*$(targ_mode_post)-1.) * $(r_pre) * $(r_post) / $(beta)"
+# 1 if targ_mode_post == 1, -1 if targ_mod_post == 0
 
 wu_param_space_plast = dict(WU_PARAM_SPACE_PLAST[mod_type])
-wu_param_space_plast["beta"] = 1.0
-w_update_model_plast = generate_plast_wu_dict(mod_type, "weight_update_model_pyr_to_int", f,
+wu_param_space_plast["beta"] = 0.1
+w_update_model_plast = generate_plast_wu_dict(mod_type, "weight_update_model_generic", f,
                                               params=list(wu_param_space_plast.keys()))
 
 wu_var_space_plast = dict(WU_VAR_SPACE_PLAST[mod_type])

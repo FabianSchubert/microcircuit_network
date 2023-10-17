@@ -16,10 +16,10 @@ param_change_batch_reduce = create_custom_custom_update_class(
 update_param_change = create_custom_custom_update_class(
     "update_param_change",
     var_refs=[("change", "scalar"), ("variable", "scalar")],
-    param_names=["batch_size", "low", "high"],
+    param_names=["batch_size", "lr", "low", "high"],
     update_code="""
     // Update
-    $(variable) += $(change) / $(batch_size);
+    $(variable) += $(lr) * $(change) / $(batch_size);
     $(variable) = min($(high), max($(low), $(variable)));
     """)
 
@@ -27,11 +27,11 @@ update_param_change_momentum = create_custom_custom_update_class(
     "update_weight_change_momentum",
     var_refs=[("change", "scalar"), ("variable", "scalar")],
     var_name_types=[("m", "scalar")],
-    param_names=["batch_size", "beta", "low", "high"],
+    param_names=["batch_size", "lr", "beta", "low", "high"],
     update_code="""
     const scalar change_norm = $(change) / $(batch_size);
     $(m) = $(beta) * $(m) + (1.0-$(beta)) * change_norm;
-    $(variable) += $(m);
+    $(variable) += $(lr) * $(m);
     $(variable) = min($(high), max($(low), $(variable)));
     """
 )

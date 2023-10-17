@@ -33,8 +33,8 @@ model_def = {
 }
 
 param_space = {
-    "eps": 0.5,
-    "beta": 1.0
+    "eps": 1.0,
+    "beta": .5
 }
 
 var_space = {
@@ -52,5 +52,7 @@ mod_dat = {
     "var_space": var_space
 }
 
+TH = 0.0
+
 if mod_type == "event":
-    mod_dat = convert_neuron_mod_data_cont_to_event(mod_dat, post_plast_vars)
+    mod_dat = convert_neuron_mod_data_cont_to_event(mod_dat, post_plast_vars, th=TH)

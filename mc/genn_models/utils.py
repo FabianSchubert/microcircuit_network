@@ -87,7 +87,8 @@ value of dg).
 WU_VAR_SPACE_PLAST = {
     "event": {
         "dg": 0.0,
-        "dg_prev": 0.0
+        "dg_prev": 0.0,
+        "t_prev": 0.0
     },
     "cont": {
         "dg": 0.0
@@ -131,9 +132,7 @@ def convert_f_prev_step(s):
         _var_full_old = f"$({_var}_post)"
         _var_full_new = f"$({_var}_prev_event_post)"
         s = _var_full_new.join(s.split(_var_full_old))
-    
-    import ipdb
-    ipdb.set_trace()
+
     return s
 
 
@@ -141,7 +140,7 @@ def generate_event_plast_wu_dict(name, f, params=[], extra_vars=[]):
     """generate the event-based version of
     the plasticity weight update definition"""
 
-    var_name_types = [("dg", "scalar"), ("dg_prev", "scalar")] + extra_vars
+    var_name_types = [("dg", "scalar"), ("dg_prev", "scalar"), ("t_prev", "scalar")] + extra_vars
 
     if f in (None, ""):
         sim_code = f"//PLAST CODE {name} \n"
@@ -151,10 +150,17 @@ def generate_event_plast_wu_dict(name, f, params=[], extra_vars=[]):
 
         sim_code = f"""
             // PLAST CODE {name}
-
-            $(dg) += ($(t) - max(0.0,$(prev_sT_pre))) * $(dg_prev);
-
+            $(dg) += (t - $(t_prev)) * $(dg_prev);
+            //$(dg) += (t - max(0.0,$(prev_sT_pre))) * $(dg_prev);
             $(dg_prev) = {f};
+            $(t_prev) = t;
+        """
+        learn_post_code = f"""
+            // LEARN POST CODE {name}
+            $(dg) += (t - $(t_prev)) * $(dg_prev);
+            //$(dg) += (t - max(0.0,$(prev_sT_pre))) * $(dg_prev);
+            $(dg_prev) = {f};
+            $(t_prev) = t;
         """
         spk_requ = True
 
@@ -163,6 +169,7 @@ def generate_event_plast_wu_dict(name, f, params=[], extra_vars=[]):
         "param_names": params,
         "var_name_types": var_name_types,
         "sim_code": sim_code,
+        "learn_post_code": learn_post_code,
         "is_prev_pre_spike_time_required": spk_requ,
     }
 
@@ -213,7 +220,7 @@ def generate_plast_wu_dict(mod_type, name, f, params=[], extra_vars=[]):
 ###################################
 
 
-def convert_event_neur_dict(neur_model_dict, post_plast_vars):
+def convert_event_neur_dict(neur_model_dict, post_plast_vars, r_poiss=None):
     """convert a "continous" neuron model definition into
     a variant suitable for event-based synapses. This involves
     adding a $(<variable name>_prev) for every variable listed
@@ -235,9 +242,15 @@ def convert_event_neur_dict(neur_model_dict, post_plast_vars):
     #    + [(f"{var}_prev_event", "scalar") for var in event_vars]
     #    + [(f"{var}_event", "scalar") for var in event_vars])
 
-    neur_model_dict["param_names"] = neur_model_dict["param_names"] + ["th"]
 
-    neur_model_dict["threshold_condition_code"] = "abs($(r) - $(r_event)) >= $(th)"
+    neur_model_dict["param_names"].append("th")
+
+    if r_poiss not in (0., None):
+        neur_model_dict["param_names"].append("r_poiss")
+        neur_model_dict["threshold_condition_code"] = "(abs($(r) - $(r_event)) >= $(th)) || ($(gennrand_uniform) <= DT*$(r_poiss))"
+        #neur_model_dict["threshold_condition_code"] = "($(gennrand_uniform) <= DT*$(r_poiss))"
+    else:
+        neur_model_dict["threshold_condition_code"] = "abs($(r) - $(r_event)) >= $(th)"
 
     neur_model_dict["reset_code"] = "$(r_event) = $(r);"
 
@@ -272,22 +285,24 @@ def convert_event_neur_var_space_dict(var_space, post_plast_vars):
     return var_space
 
 
-def convert_event_neur_param_space_dict(param_space, th=1e-3):
+def convert_event_neur_param_space_dict(param_space, th=1e-3, r_poiss=None):
     param_space = dict(param_space) | {"th": th}
+    if r_poiss not in (0., None):
+        param_space = param_space | {"r_poiss": r_poiss}
 
     return param_space
 
 
-def convert_neuron_mod_data_cont_to_event(mod_dat, post_plast_vars, th=1e-3):
+def convert_neuron_mod_data_cont_to_event(mod_dat, post_plast_vars, th=1e-3, r_poiss=None):
     """wrapper function that returns the converted model definition,
     variable, and parameter space."""
 
     mod_dat = dict(mod_dat)
 
     mod_dat["model_def"] = convert_event_neur_dict(mod_dat["model_def"],
-                                                   post_plast_vars)
+                                                   post_plast_vars, r_poiss)
 
-    mod_dat["param_space"] = convert_event_neur_param_space_dict(mod_dat["param_space"], th)
+    mod_dat["param_space"] = convert_event_neur_param_space_dict(mod_dat["param_space"], th, r_poiss)
 
     mod_dat["var_space"] = convert_event_neur_var_space_dict(mod_dat["var_space"], post_plast_vars)
 

@@ -6,7 +6,7 @@ from pygenn.genn_wrapper.Models import VarAccess_READ_ONLY
 
 from ..settings import mod_type
 
-post_plast_vars = ["r"]
+post_plast_vars = ["r", "targ_mode"]
 
 model_def = {
     "class_name": "hidden",
@@ -21,7 +21,7 @@ model_def = {
               );
 
         // only relevant for act_func(u) = max(0.0, min(1.0, u)).
-        $(u) = min(1.0, max($(u), 0.0));
+        //$(u) = min(1.0, max($(u), 0.0));
 
         $(r) = {act_func("$(u)")};
     """,
@@ -30,7 +30,7 @@ model_def = {
 
 param_space = {
     "eps": 0.5,
-    "beta": 1.0
+    "beta": .1
 }
 
 var_space = {

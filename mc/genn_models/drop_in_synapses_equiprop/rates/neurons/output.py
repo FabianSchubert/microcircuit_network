@@ -6,7 +6,7 @@ from pygenn.genn_wrapper.Models import VarAccess_READ_ONLY
 
 from ..settings import mod_type
 
-post_plast_vars = ["r"]
+post_plast_vars = ["r", "targ_mode"]
 
 model_def = {
     "class_name": "hidden",
@@ -14,16 +14,18 @@ model_def = {
     "var_name_types": [("r", "scalar"),
                        ("u", "scalar"),
                        ("targ_mode", "scalar"),
+                       ("r_targ", "scalar"),
                        ("b", "scalar", VarAccess_READ_ONLY), ("db", "scalar")],
     "sim_code": f"""
+        $(r_targ) = $(Isyn);
         $(u) = ($(u)
                 + DT * $(eps) * (
                       {d_act_func("$(u)")} * ($(Isyn_regular) + $(b)) - $(u)
-                    + $(beta) * $(targ_mode) * ($(Isyn) - $(r))
+                    + $(beta) * $(targ_mode) * ($(r_targ) - $(r))
                     )
                 );
 
-        $(u) = min(1.0, max($(u), 0.0));
+        //$(u) = min(1.0, max($(u), 0.0));
 
         $(r) = {act_func("$(u)")};
     """,
@@ -32,13 +34,14 @@ model_def = {
 
 param_space = {
     "eps": 0.5,
-    "beta": 1.0
+    "beta": .1
 }
 
 var_space = {
     "r": 0.0,
     "u": 0.0,
     "targ_mode": 0.0,
+    "r_targ": 0.0,
     "b": 0.0,
     "db": 0.0
 }
