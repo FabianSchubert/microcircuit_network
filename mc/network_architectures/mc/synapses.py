@@ -5,9 +5,6 @@ class SynapsePPBasal(SynapseDense):
 
     def __init__(self, *args, **kwargs):
 
-        import ipdb
-        ipdb.set_trace()
-
         super().__init__(*args[:-1], **kwargs)
 
         self.ps_target_var = "Isyn_vb"

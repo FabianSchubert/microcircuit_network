@@ -136,7 +136,7 @@ def convert_f_prev_step(s):
     return s
 
 
-def generate_event_plast_wu_dict(name, f, params=[], extra_vars=[]):
+def generate_event_plast_wu_dict(name, f, params=[], extra_vars=[], learn_post=False):
     """generate the event-based version of
     the plasticity weight update definition"""
 
@@ -144,6 +144,7 @@ def generate_event_plast_wu_dict(name, f, params=[], extra_vars=[]):
 
     if f in (None, ""):
         sim_code = f"//PLAST CODE {name} \n"
+        learn_post_code = None
         spk_requ = False
     else:
         #f_prev = convert_f_prev_step(f)
@@ -161,7 +162,7 @@ def generate_event_plast_wu_dict(name, f, params=[], extra_vars=[]):
             //$(dg) += (t - max(0.0,$(prev_sT_pre))) * $(dg_prev);
             $(dg_prev) = {f};
             $(t_prev) = t;
-        """
+        """ if learn_post else None
         spk_requ = True
 
     w_update_model_plast = {
